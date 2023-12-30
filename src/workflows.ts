@@ -1,0 +1,98 @@
+import * as YAML from 'yaml'
+
+import { NamedWorkflowStep } from './steps.js'
+import { GWValue, GWVariableName } from './variables.js'
+
+export interface WorkflowParameter {
+  name: GWVariableName
+  default?: GWValue
+}
+
+/**
+ * This is the main container class that brings together all subworkflows in a program
+ */
+export class WorkflowApp {
+  readonly subworkflows: Subworkflow[]
+
+  constructor(subworkflows: Subworkflow[] = []) {
+    this.subworkflows = subworkflows
+  }
+
+  render(): object {
+    return new Map(this.subworkflows.map((wf) => [wf.name, wf.renderBody()]))
+  }
+}
+
+// https://cloud.google.com/workflows/docs/reference/syntax/subworkflows
+export class Subworkflow {
+  readonly name: string
+  readonly steps: NamedWorkflowStep[]
+  readonly params?: WorkflowParameter[]
+
+  constructor(
+    name: string,
+    steps: NamedWorkflowStep[],
+    params?: WorkflowParameter[],
+  ) {
+    this.name = name
+    this.steps = steps
+    this.params = params
+  }
+
+  render(): object {
+    return {
+      [this.name]: this.renderBody(),
+    }
+  }
+
+  renderBody(): object {
+    const body = {
+      steps: this.steps.map(({ name, step }) => {
+        return { [name]: step.render() }
+      }),
+    }
+
+    if (this.params && this.params.length > 0) {
+      Object.assign(body, {
+        params: this.params.map((x) => {
+          if (x.default) {
+            return { [x.name]: x.default }
+          } else {
+            return x.name
+          }
+        }),
+      })
+    }
+
+    return body
+  }
+
+  *iterateStepsDepthFirst(): IterableIterator<NamedWorkflowStep> {
+    const visited = new Set()
+
+    function* visitPreOrder(
+      step: NamedWorkflowStep,
+    ): IterableIterator<NamedWorkflowStep> {
+      if (!visited.has(step)) {
+        visited.add(step)
+
+        yield step
+
+        for (const x of step.step.nestedSteps()) {
+          yield* visitPreOrder(x)
+        }
+      }
+    }
+
+    for (const step of this.steps) {
+      yield* visitPreOrder(step)
+    }
+  }
+}
+
+/**
+ * Print the workflow as a YAML string.
+ */
+export function toYAMLString(workflow: WorkflowApp): string {
+  return YAML.stringify(workflow.render())
+}
