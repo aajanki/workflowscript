@@ -309,9 +309,14 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     program(ctx: any): WorkflowApp {
-      const workflows: Subworkflow[] = ctx.subworkflowDefinition.map(
-        (subctx: any) => this.visit(subctx),
-      )
+      let workflows: Subworkflow[]
+      if (ctx.subworkflowDefinition) {
+        workflows = ctx.subworkflowDefinition.map((subctx: any) =>
+          this.visit(subctx),
+        )
+      } else {
+        workflows = []
+      }
 
       return new WorkflowApp(workflows)
     }

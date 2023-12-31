@@ -3,7 +3,13 @@ import { compile } from '../src/compile.js'
 import * as YAML from 'yaml'
 
 describe('WorkflowScript compiler', () => {
-  it('compiles simple workflow', () => {
+  it('compiles an empty workflow', () => {
+    const compiled = compile('')
+
+    expect(YAML.parse(compiled)).to.be.empty
+  })
+
+  it('compiles a simple workflow', () => {
     const simple = `
     workflow main() {
       a = 1
@@ -61,5 +67,33 @@ describe('WorkflowScript compiler', () => {
     `)
 
     expect(YAML.parse(compiled)).to.deep.equal(expected)
+  })
+
+  it('throws on syntax errors', () => {
+    const program = `
+    workflow main() {
+      name = "Elfo"
+
+      !!!***
+
+      greeting = makeGreeting(name = \${name})
+    }
+    `
+    expect(() => compile(program)).to.throw
+  })
+
+  it('throws on incomplete workflow definition', () => {
+    const program = `
+    workflow main() {
+      name = "Elfo"
+    `
+    expect(() => compile(program)).to.throw
+  })
+
+  it('rejects top level statements', () => {
+    const program = `
+    name = "Elfo"
+    `
+    expect(() => compile(program)).to.throw
   })
 })
