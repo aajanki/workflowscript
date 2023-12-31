@@ -280,9 +280,11 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     workflowBody(ctx: any): NamedWorkflowStep[] {
       if (ctx.statement) {
-        return ctx.statement.map((statementCtx: any) =>
-          this.visit(statementCtx),
+        const steps: NamedWorkflowStep[] = ctx.statement.map(
+          (statementCtx: any) => this.visit(statementCtx),
         )
+
+        return combineConsecutiveAssignments(steps)
       } else {
         return []
       }
@@ -332,4 +334,40 @@ class StepNameGenerator {
 
 function unescapeQuotes(str: string) {
   return str.replaceAll(/\\"/g, '"')
+}
+
+/**
+ * Combine consecutive assignment steps into one.
+ *
+ * Optimization that reduces the number of steps.
+ */
+function combineConsecutiveAssignments(
+  steps: NamedWorkflowStep[],
+): NamedWorkflowStep[] {
+  return steps.reduce((acc, current) => {
+    if (
+      current.step instanceof AssignStep &&
+      acc.length > 0 &&
+      acc[acc.length - 1].step instanceof AssignStep
+    ) {
+      const previousStep = acc[acc.length - 1]
+      const previousAssignments = (previousStep.step as AssignStep).assignments
+      const combinedAssignments = [
+        ...previousAssignments,
+        ...current.step.assignments,
+      ]
+
+      const combinedStep = {
+        name: previousStep.name,
+        step: new AssignStep(combinedAssignments),
+      }
+
+      acc.pop()
+      acc.push(combinedStep)
+      return acc
+    } else {
+      acc.push(current)
+      return acc
+    }
+  }, [] as NamedWorkflowStep[])
 }

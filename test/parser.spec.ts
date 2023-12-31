@@ -91,11 +91,13 @@ describe('Assign statement parsing', () => {
       test1: {
         steps: [
           {
-            assign: [
-              { firstName: 'Tiabeanie' },
-              { middleName: 'Mariabeanie' },
-              { familyName: 'de la Rochambeaux Grunkwitz' },
-            ],
+            assign1: {
+              assign: [
+                { firstName: 'Tiabeanie' },
+                { middleName: 'Mariabeanie' },
+                { familyName: 'de la Rochambeaux Grunkwitz' },
+              ],
+            },
           },
         ],
       },
@@ -129,7 +131,7 @@ describe('Assign statement parsing', () => {
             },
           },
           {
-            assign2: {
+            assign3: {
               assign: [{ c: 3 }, { d: 4 }],
             },
           },
