@@ -28,7 +28,6 @@ import {
   GWAssignment,
   NamedWorkflowStep,
   ReturnStep,
-  GWArguments,
   CallStep,
 } from './steps.js'
 import { Subworkflow, WorkflowApp, WorkflowParameter } from './workflows.js'
@@ -235,15 +234,11 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return parts.join('.')
     }
 
-    actualParameterList(ctx: any): GWArguments | undefined {
+    actualParameterList(ctx: any): GWAssignment[] | undefined {
       if (ctx.Identifier) {
-        const namedArgumentList = ctx.Identifier.map(
-          (identifier: IToken, i: number) => {
-            return [identifier.image, this.visit(ctx.expression[i])]
-          },
-        )
-
-        return Object.fromEntries(namedArgumentList)
+        return ctx.Identifier.map((identifier: IToken, i: number) => {
+          return [identifier.image, this.visit(ctx.expression[i])]
+        })
       } else {
         return undefined
       }
