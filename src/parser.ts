@@ -27,6 +27,8 @@ import {
   GWAssignment,
   NamedWorkflowStep,
   ReturnStep,
+  GWArguments,
+  CallStep,
 } from './steps.js'
 import { Subworkflow, WorkflowApp, WorkflowParameter } from './workflows.js'
 import { GWExpression, GWValue } from './variables.js'
@@ -90,6 +92,28 @@ export class WorfkflowScriptParser extends CstParser {
     })
   })
 
+  actualParameterList = this.RULE('actualParameterList', () => {
+    this.MANY_SEP({
+      SEP: Comma,
+      DEF: () => {
+        this.CONSUME(Identifier)
+        this.CONSUME(Equals)
+        this.SUBRULE(this.expression)
+      },
+    })
+  })
+
+  callStatement = this.RULE('callStatement', () => {
+    this.OPTION(() => {
+      this.CONSUME(Identifier)
+      this.CONSUME(Equals)
+    })
+    this.CONSUME2(Identifier)
+    this.CONSUME(LParentheses)
+    this.SUBRULE(this.actualParameterList)
+    this.CONSUME(RParentheses)
+  })
+
   returnStatement = this.RULE('returnStatement', () => {
     this.CONSUME(Return)
     this.SUBRULE(this.expression)
@@ -98,6 +122,7 @@ export class WorfkflowScriptParser extends CstParser {
   statement = this.RULE('statement', () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.assignmentStatement) },
+      { ALT: () => this.SUBRULE(this.callStatement) },
       { ALT: () => this.SUBRULE(this.returnStatement) },
     ])
   })
@@ -196,6 +221,37 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
+    actualParameterList(ctx: any): GWArguments | undefined {
+      if (ctx.Identifier) {
+        const namedArgumentList = ctx.Identifier.map(
+          (identifier: any, i: number) => {
+            return [identifier.image, this.visit(ctx.expression[i])]
+          },
+        )
+
+        return Object.fromEntries(namedArgumentList)
+      } else {
+        return undefined
+      }
+    }
+
+    callStatement(ctx: any): NamedWorkflowStep {
+      const identifiers = ctx.Identifier
+      const callTarget =
+        identifiers.length === 1 ? identifiers[0].image : identifiers[1].image
+      const resultVariable =
+        identifiers.length === 1 ? undefined : identifiers[0].image
+
+      return {
+        name: stepNameGenerator.generate('call'),
+        step: new CallStep(
+          callTarget,
+          this.visit(ctx.actualParameterList),
+          resultVariable,
+        )
+      }
+    }
+
     returnStatement(ctx: any): NamedWorkflowStep {
       return {
         name: stepNameGenerator.generate('return'),
@@ -206,6 +262,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     statement(ctx: any): NamedWorkflowStep {
       if (ctx.assignmentStatement) {
         return this.visit(ctx.assignmentStatement[0])
+      } else if (ctx.callStatement) {
+        return this.visit(ctx.callStatement[0])
       } else if (ctx.returnStatement) {
         return this.visit(ctx.returnStatement[0])
       } else {
