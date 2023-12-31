@@ -38,6 +38,7 @@ export const RSquare = createToken({
   pattern: /]/,
 })
 export const Comma = createToken({ name: 'Comma', pattern: /,/ })
+export const Dot = createToken({ name: 'Dot', pattern: /\./ })
 export const Colon = createToken({ name: 'Colon', pattern: /:/ })
 export const Equals = createToken({ name: 'Equals', pattern: /=/ })
 export const Return = createToken({
@@ -78,6 +79,7 @@ export const tokens = [
   LSquare,
   RSquare,
   Comma,
+  Dot,
   Colon,
   Equals,
   True,

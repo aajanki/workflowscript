@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 
-import { CstParser } from 'chevrotain'
+import { CstParser, IToken } from 'chevrotain'
 import {
   Colon,
   Comma,
+  Dot,
   Equals,
   ExpressionLiteral,
   False,
@@ -92,6 +93,14 @@ export class WorfkflowScriptParser extends CstParser {
     })
   })
 
+  functionName = this.RULE('functionName', () => {
+    this.CONSUME(Identifier)
+    this.MANY(() => {
+      this.CONSUME(Dot)
+      this.CONSUME2(Identifier)
+    })
+  })
+
   actualParameterList = this.RULE('actualParameterList', () => {
     this.MANY_SEP({
       SEP: Comma,
@@ -108,7 +117,7 @@ export class WorfkflowScriptParser extends CstParser {
       this.CONSUME(Identifier)
       this.CONSUME(Equals)
     })
-    this.CONSUME2(Identifier)
+    this.SUBRULE(this.functionName)
     this.CONSUME(LParentheses)
     this.SUBRULE(this.actualParameterList)
     this.CONSUME(RParentheses)
@@ -210,8 +219,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     assignmentStatement(ctx: any): NamedWorkflowStep {
       const assignments: GWAssignment[] = ctx.Identifier.map(
-        (identifierCtx: any, i: number) => {
-          return [identifierCtx.image, this.visit(ctx.expression[i])]
+        (identifierToken: IToken, i: number) => {
+          return [identifierToken.image, this.visit(ctx.expression[i])]
         },
       )
 
@@ -221,10 +230,15 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
+    functionName(ctx: any): string {
+      const parts: string[] = ctx.Identifier.map((x: IToken) => x.image)
+      return parts.join('.')
+    }
+
     actualParameterList(ctx: any): GWArguments | undefined {
       if (ctx.Identifier) {
         const namedArgumentList = ctx.Identifier.map(
-          (identifier: any, i: number) => {
+          (identifier: IToken, i: number) => {
             return [identifier.image, this.visit(ctx.expression[i])]
           },
         )
@@ -236,19 +250,13 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     callStatement(ctx: any): NamedWorkflowStep {
-      const identifiers = ctx.Identifier
-      const callTarget =
-        identifiers.length === 1 ? identifiers[0].image : identifiers[1].image
-      const resultVariable =
-        identifiers.length === 1 ? undefined : identifiers[0].image
-
       return {
         name: stepNameGenerator.generate('call'),
         step: new CallStep(
-          callTarget,
+          this.visit(ctx.functionName),
           this.visit(ctx.actualParameterList),
-          resultVariable,
-        )
+          ctx.Identifier ? ctx.Identifier[0].image : undefined,
+        ),
       }
     }
 
@@ -282,7 +290,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     formalParameterList(ctx: any): NamedWorkflowStep[] {
-      return ctx.Identifier.map((x: any) => {
+      return ctx.Identifier.map((x: IToken) => {
         return { name: x.image }
       })
     }

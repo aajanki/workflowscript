@@ -131,6 +131,20 @@ describe('Call statement parsing', () => {
       result: 'product',
     })
   })
+
+  it('parses a standard library function call', () => {
+    const block = `htmlPage = http.get(url = "https://visit.dreamland.test/things-to-do")`
+
+    const ast = parseOneRule(block, (p) => p.statement())
+
+    expect(ast.step?.render()).to.deep.equal({
+      call: 'http.get',
+      args: {
+        url: 'https://visit.dreamland.test/things-to-do',
+      },
+      result: 'htmlPage',
+    })
+  })
 })
 
 function parseOneRule(
