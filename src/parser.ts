@@ -35,7 +35,9 @@ import { GWExpression, GWValue } from './variables.js'
 
 export class WorfkflowScriptParser extends CstParser {
   constructor() {
-    super(tokens)
+    super(tokens, {
+      maxLookahead: 2,
+    })
 
     this.performSelfAnalysis()
   }
@@ -84,12 +86,12 @@ export class WorfkflowScriptParser extends CstParser {
   })
 
   assignmentStatement = this.RULE('assignmentStatement', () => {
-    // Combine multiple consequtive assignments into a single step
-    this.AT_LEAST_ONE(() => {
-      this.CONSUME(Identifier)
-      this.CONSUME(Equals)
-      this.SUBRULE(this.expression)
-    })
+    this.CONSUME(Identifier)
+    this.CONSUME(Equals)
+    this.OR([
+      { ALT: () => this.SUBRULE(this.expression) },
+      { ALT: () => this.SUBRULE(this.callExpression) },
+    ])
   })
 
   functionName = this.RULE('functionName', () => {
@@ -111,11 +113,7 @@ export class WorfkflowScriptParser extends CstParser {
     })
   })
 
-  callStatement = this.RULE('callStatement', () => {
-    this.OPTION(() => {
-      this.CONSUME(Identifier)
-      this.CONSUME(Equals)
-    })
+  callExpression = this.RULE('callExpression', () => {
     this.SUBRULE(this.functionName)
     this.CONSUME(LParentheses)
     this.SUBRULE(this.actualParameterList)
@@ -130,7 +128,7 @@ export class WorfkflowScriptParser extends CstParser {
   statement = this.RULE('statement', () => {
     this.OR([
       { ALT: () => this.SUBRULE(this.assignmentStatement) },
-      { ALT: () => this.SUBRULE(this.callStatement) },
+      { ALT: () => this.SUBRULE(this.callExpression) }, // a function call without assigning the return value
       { ALT: () => this.SUBRULE(this.returnStatement) },
     ])
   })
@@ -217,15 +215,22 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     assignmentStatement(ctx: any): NamedWorkflowStep {
-      const assignments: GWAssignment[] = ctx.Identifier.map(
-        (identifierToken: IToken, i: number) => {
-          return [identifierToken.image, this.visit(ctx.expression[i])]
-        },
-      )
+      if (ctx.callExpression) {
+        const { name, step } = this.visit(ctx.callExpression)
 
-      return {
-        name: stepNameGenerator.generate('assign'),
-        step: new AssignStep(assignments),
+        // reconstruct the CallStep to supplement the result variable name
+        const resultVariable = ctx.Identifier[0].image
+        return {
+          name,
+          step: new CallStep(step.call, step.args, resultVariable),
+        }
+      } else {
+        return {
+          name: stepNameGenerator.generate('assign'),
+          step: new AssignStep([
+            [ctx.Identifier[0].image, this.visit(ctx.expression[0])],
+          ]),
+        }
       }
     }
 
@@ -244,13 +249,12 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    callStatement(ctx: any): NamedWorkflowStep {
+    callExpression(ctx: any): NamedWorkflowStep {
       return {
         name: stepNameGenerator.generate('call'),
         step: new CallStep(
           this.visit(ctx.functionName),
           this.visit(ctx.actualParameterList),
-          ctx.Identifier ? ctx.Identifier[0].image : undefined,
         ),
       }
     }
@@ -265,8 +269,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     statement(ctx: any): NamedWorkflowStep {
       if (ctx.assignmentStatement) {
         return this.visit(ctx.assignmentStatement[0])
-      } else if (ctx.callStatement) {
-        return this.visit(ctx.callStatement[0])
+      } else if (ctx.callExpression) {
+        return this.visit(ctx.callExpression)
       } else if (ctx.returnStatement) {
         return this.visit(ctx.returnStatement[0])
       } else {

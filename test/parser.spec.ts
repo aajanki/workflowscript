@@ -77,26 +77,70 @@ describe('Assign statement parsing', () => {
     })
   })
 
-  it('parses multiple assignment statements into one assign step', () => {
+  it('combines multiple assignment statements into one assign step', () => {
     const block = `
-    firstName = "Tiabeanie"
-    middleName = "Mariabeanie"
-    familyName = "de la Rochambeaux Grunkwitz"
+    workflow test1() {
+      firstName = "Tiabeanie"
+      middleName = "Mariabeanie"
+      familyName = "de la Rochambeaux Grunkwitz"
+    }
     `
-    const ast = parseOneRule(block, (p) => p.assignmentStatement())
+    const ast = parseOneRule(block, (p) => p.subworkflowDefinition())
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [
-        { firstName: 'Tiabeanie' },
-        { middleName: 'Mariabeanie' },
-        { familyName: 'de la Rochambeaux Grunkwitz' },
-      ],
+    expect(ast.render()).to.deep.equal({
+      test1: {
+        steps: [
+          {
+            assign: [
+              { firstName: 'Tiabeanie' },
+              { middleName: 'Mariabeanie' },
+              { familyName: 'de la Rochambeaux Grunkwitz' },
+            ],
+          },
+        ],
+      },
+    })
+  })
+
+  it('splits combined assignment steps and call steps', () => {
+    const block = `
+    workflow test1() {
+      a = 1
+      b = 2
+      result = anotherWorkflow()
+      c = 3
+      d = 4
+    }
+    `
+    const ast = parseOneRule(block, (p) => p.subworkflowDefinition())
+
+    expect(ast.render()).to.deep.equal({
+      test1: {
+        steps: [
+          {
+            assign1: {
+              assign: [{ a: 1 }, { b: 2 }],
+            },
+          },
+          {
+            call1: {
+              call: 'anotherWorkflow',
+              result: 'result',
+            },
+          },
+          {
+            assign2: {
+              assign: [{ c: 3 }, { d: 4 }],
+            },
+          },
+        ],
+      },
     })
   })
 })
 
 describe('Call statement parsing', () => {
-  it('parses call statement without arguments', () => {
+  it('parses call statement without assigning the return value', () => {
     const block = `anotherWorkflow()`
 
     const ast = parseOneRule(block, (p) => p.statement())
