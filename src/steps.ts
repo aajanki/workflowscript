@@ -36,13 +36,6 @@ export class AssignStep implements WorkflowStep {
   }
 }
 
-export function assign(
-  name: GWStepName,
-  assignments: GWAssignment[],
-): NamedWorkflowStep {
-  return { name, step: new AssignStep(assignments) }
-}
-
 // https://cloud.google.com/workflows/docs/reference/syntax/calls
 export class CallStep implements WorkflowStep {
   readonly call: string
@@ -79,17 +72,6 @@ export class CallStep implements WorkflowStep {
   }
 }
 
-export function call(
-  name: GWStepName,
-  options: { call: string; args?: GWArguments; result?: string },
-): NamedWorkflowStep {
-  const callTarget = options.call
-  return {
-    name,
-    step: new CallStep(callTarget, options.args, options.result),
-  }
-}
-
 // https://cloud.google.com/workflows/docs/reference/syntax/completing
 export class ReturnStep implements WorkflowStep {
   readonly value: GWValue
@@ -107,11 +89,4 @@ export class ReturnStep implements WorkflowStep {
   nestedSteps(): NamedWorkflowStep[] {
     return []
   }
-}
-
-export function returnStep(
-  name: GWStepName,
-  value: GWValue,
-): NamedWorkflowStep {
-  return { name, step: new ReturnStep(value) }
 }
