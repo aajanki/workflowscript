@@ -5,6 +5,7 @@ import {
   Colon,
   Comma,
   Equals,
+  ExpressionLiteral,
   False,
   Identifier,
   LCurly,
@@ -28,7 +29,7 @@ import {
   ReturnStep,
 } from './steps.js'
 import { Subworkflow, WorkflowApp, WorkflowParameter } from './workflows.js'
-import { GWValue } from './variables.js'
+import { GWExpression, GWValue } from './variables.js'
 
 export class WorfkflowScriptParser extends CstParser {
   constructor() {
@@ -76,6 +77,7 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.CONSUME(True) },
       { ALT: () => this.CONSUME(False) },
       { ALT: () => this.CONSUME(Null) },
+      { ALT: () => this.CONSUME(ExpressionLiteral) },
     ])
   })
 
@@ -174,6 +176,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return this.visit(ctx.array)
       } else if (ctx.object) {
         return this.visit(ctx.object)
+      } else if (ctx.ExpressionLiteral) {
+        return new GWExpression(ctx.ExpressionLiteral[0].image.slice(2, -1))
       } else {
         throw new Error('not implemented')
       }

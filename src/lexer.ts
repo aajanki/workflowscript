@@ -56,6 +56,10 @@ export const NumberLiteral = createToken({
   name: 'NumberLiteral',
   pattern: /-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/,
 })
+export const ExpressionLiteral = createToken({
+  name: 'ExpressionLiteral',
+  pattern: /\$\{[^}]*\}/,
+})
 export const WhiteSpace = createToken({
   name: 'WhiteSpace',
   pattern: /\s+/,
@@ -66,6 +70,7 @@ export const tokens = [
   WhiteSpace,
   NumberLiteral,
   StringLiteral,
+  ExpressionLiteral,
   LParentheses,
   RParentheses,
   LCurly,

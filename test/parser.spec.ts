@@ -66,24 +66,25 @@ describe('WorkflowScript parser', () => {
   })
 
   it('parses subworkflow definition with body', () => {
-    const block = `workflow test1() {
-      a = 12
-      return 10
+    const block = `workflow addOne(a) {
+      res = \${a + 1}
+      return \${res}
     }`
 
     const ast = parseOneRule(block, (p) => p.subworkflowDefinition())
 
     expect(ast.render()).to.deep.equal({
-      test1: {
+      addOne: {
+        params: ["a"],
         steps: [
           {
             assign1: {
-              assign: [{ a: 12 }],
+              assign: [{ res: '${a + 1}' }],
             },
           },
           {
             return1: {
-              return: 10,
+              return: '${res}',
             },
           },
         ],
