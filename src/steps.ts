@@ -206,14 +206,17 @@ export class ParallelStep implements WorkflowStep {
   readonly forStep?: ForStep
   readonly shared?: GWVariableName[]
   readonly concurrenceLimit?: number
+  readonly exceptionPolicy?: string
 
   constructor(
     steps: Record<GWStepName, StepsStep> | ForStep,
     shared?: GWVariableName[],
     concurrencyLimit?: number,
+    exceptionPolicy?: string,
   ) {
     this.shared = shared
     this.concurrenceLimit = concurrencyLimit
+    this.exceptionPolicy = exceptionPolicy
 
     if (steps instanceof ForStep) {
       this.forStep = steps
@@ -231,6 +234,7 @@ export class ParallelStep implements WorkflowStep {
         ...(this.concurrenceLimit && {
           concurrency_limit: this.concurrenceLimit,
         }),
+        ...(this.exceptionPolicy && { exception_policy: this.exceptionPolicy }),
         ...(this.branches && { branches: renderSteps(this.branches) }),
         ...(this.forStep && { for: this.forStep.renderBody() }),
       },

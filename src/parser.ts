@@ -40,7 +40,7 @@ import {
   StepsStep,
 } from './steps.js'
 import { Subworkflow, WorkflowApp, WorkflowParameter } from './workflows.js'
-import { GWExpression, GWValue } from './variables.js'
+import { GWExpression, GWValue, GWVariableName } from './variables.js'
 
 export class WorfkflowScriptParser extends CstParser {
   constructor() {
@@ -157,6 +157,11 @@ export class WorfkflowScriptParser extends CstParser {
 
   parallelStatement = this.RULE('parallelStatement', () => {
     this.CONSUME(Parallel)
+    this.OPTION(() => {
+      this.CONSUME(LParentheses)
+      this.SUBRULE(this.actualParameterList)
+      this.CONSUME(RParentheses)
+    })
     this.AT_LEAST_ONE(() => {
       this.CONSUME(Branch)
       this.CONSUME(LCurly)
@@ -339,10 +344,65 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         }),
       )
 
+      const { shared, concurrencyLimit, exceptionPolicy } =
+        this.optionalBranchParameters(ctx.actualParameterList)
+
       return {
         name: stepNameGenerator.generate('parallel'),
-        step: new ParallelStep(branches),
+        step: new ParallelStep(
+          branches,
+          shared,
+          concurrencyLimit,
+          exceptionPolicy,
+        ),
       }
+    }
+
+    optionalBranchParameters(parameterNode: CstNode | undefined): {
+      shared: string[] | undefined
+      concurrencyLimit: number | undefined
+      exceptionPolicy: string | undefined
+    } {
+      let shared: GWVariableName[] | undefined = undefined
+      let exceptionPolicy: string | undefined = undefined
+      let concurrencyLimit: number | undefined = undefined
+
+      if (parameterNode) {
+        const optionalParameters: GWAssignment[] =
+          this.visit(parameterNode) ?? []
+        optionalParameters.forEach(([key, val]) => {
+          if (key === 'shared') {
+            if (
+              !(Array.isArray(val) && val.every((x) => typeof x === 'string'))
+            ) {
+              throw new Error(
+                'The optional branch parameter "shared" must be an array of strings',
+              )
+            }
+
+            shared = val as string[]
+          } else if (key === 'concurrency_limit') {
+            if (typeof val !== 'number') {
+              throw new Error(
+                'The optional branch parameter "concurrency_limit" must be an integer',
+              )
+            }
+
+            concurrencyLimit = val
+          } else if (key === 'exception_policy') {
+            if (val !== 'continueAll') {
+              throw new Error(
+                'Invalid value for the optional branch parameter "exception_policy"',
+              )
+            }
+
+            exceptionPolicy = val
+          } else {
+            throw new Error(`Unknown branch parameter: ${key}`)
+          }
+        })
+      }
+      return { shared, concurrencyLimit, exceptionPolicy }
     }
 
     returnStatement(ctx: any): NamedWorkflowStep {

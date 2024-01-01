@@ -360,6 +360,122 @@ describe('Parallel step parsing', () => {
       },
     })
   })
+
+  it('parses parallel branches with optional parameters', () => {
+    const block = `
+    parallel (
+      shared = ["numPosts"],
+      concurrency_limit = 2,
+      exception_policy = "continueAll"
+    )
+    branch {
+      n = http.get(url = "https://forum.dreamland.test/numPosts/bean")
+      numPosts = \${numPosts + n}
+    }
+    branch {
+      n = http.get(url = "https://forum.dreamland.test/numPosts/elfo")
+      numPosts = \${numPosts + n}
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      parallel: {
+        shared: ['numPosts'],
+        exception_policy: 'continueAll',
+        concurrency_limit: 2,
+        branches: [
+          {
+            branch1: {
+              steps: [
+                {
+                  call1: {
+                    call: 'http.get',
+                    args: {
+                      url: 'https://forum.dreamland.test/numPosts/bean',
+                    },
+                    result: 'n',
+                  },
+                },
+                {
+                  assign1: {
+                    assign: [{ numPosts: '${numPosts + n}' }],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            branch2: {
+              steps: [
+                {
+                  call2: {
+                    call: 'http.get',
+                    args: {
+                      url: 'https://forum.dreamland.test/numPosts/elfo',
+                    },
+                    result: 'n',
+                  },
+                },
+                {
+                  assign2: {
+                    assign: [{ numPosts: '${numPosts + n}' }],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('throws on unknown optional parameters', () => {
+    const block = `
+    parallel (
+      shared = ["numPosts"],
+      this_is_an_unknown_parameter = true
+    )
+    branch {
+      n = http.get(url = "https://forum.dreamland.test/numPosts/bean")
+      numPosts = \${numPosts + n}
+    }
+    branch {
+      n = http.get(url = "https://forum.dreamland.test/numPosts/elfo")
+      numPosts = \${numPosts + n}
+    }
+    `
+
+    expect(() => parseStatement(block)).to.throw
+  })
+
+  it('"parallel" must be followed by a "branch"', () => {
+    const block = `
+    parallel (shared = ["numPosts"])
+
+    n = http.get(url = "https://forum.dreamland.test/numPosts/bean")
+    numPosts = \${numPosts + n}
+    `
+
+    expect(() => parseStatement(block)).to.throw
+  })
+
+  it('"branch" must be preceeded by "parallel"', () => {
+    const block = `
+    numPosts = 0
+
+    branch {
+      n = http.get(url = "https://forum.dreamland.test/numPosts/bean")
+      numPosts = \${numPosts + n}
+    }
+    branch {
+      n = http.get(url = "https://forum.dreamland.test/numPosts/elfo")
+      numPosts = \${numPosts + n}
+    }
+    `
+
+    expect(() => parseStatement(block)).to.throw
+  })
 })
 
 function parseOneRule(
