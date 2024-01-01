@@ -1,0 +1,12 @@
+workflow main() {
+  oid = "ord123"
+
+  orders = getOrders(orderId=${oid})
+
+  sys.log(text=${"Orders: " + orders})
+}
+
+workflow getOrders(orderId) {
+  res = http.get(url=${"https://example.com/orders/" + orderId})
+  return ${res}
+}

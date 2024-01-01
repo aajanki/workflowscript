@@ -12,7 +12,8 @@
     "build": "tsc -p tsconfig.json",
     "test": "mocha",
     "lint": "eslint src",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "compile-workflowscript": "npm run build && node dist/compile.js"
   },
   "author": "Antti Ajanki <antti.ajanki@iki.fi>",
   "license": "MIT",

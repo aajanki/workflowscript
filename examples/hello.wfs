@@ -1,0 +1,3 @@
+workflow main() {
+  sys.log(text="Hello workflows!")
+}
