@@ -2,6 +2,7 @@
 
 import { CstNode, CstParser, IToken } from 'chevrotain'
 import {
+  Branch,
   Colon,
   Comma,
   Dot,
@@ -16,6 +17,7 @@ import {
   LSquare,
   Null,
   NumberLiteral,
+  Parallel,
   RCurly,
   RParentheses,
   RSquare,
@@ -33,6 +35,9 @@ import {
   CallStep,
   SwitchCondition,
   SwitchStep,
+  ParallelStep,
+  GWStepName,
+  StepsStep,
 } from './steps.js'
 import { Subworkflow, WorkflowApp, WorkflowParameter } from './workflows.js'
 import { GWExpression, GWValue } from './variables.js'
@@ -150,6 +155,16 @@ export class WorfkflowScriptParser extends CstParser {
     })
   })
 
+  parallelStatement = this.RULE('parallelStatement', () => {
+    this.CONSUME(Parallel)
+    this.AT_LEAST_ONE(() => {
+      this.CONSUME(Branch)
+      this.CONSUME(LCurly)
+      this.SUBRULE(this.statementBlock)
+      this.CONSUME(RCurly)
+    })
+  })
+
   returnStatement = this.RULE('returnStatement', () => {
     this.CONSUME(Return)
     this.SUBRULE(this.expression)
@@ -160,6 +175,7 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.SUBRULE(this.assignmentStatement) },
       { ALT: () => this.SUBRULE(this.callExpression) }, // a function call without assigning the return value
       { ALT: () => this.SUBRULE(this.ifStatement) },
+      { ALT: () => this.SUBRULE(this.parallelStatement) },
       { ALT: () => this.SUBRULE(this.returnStatement) },
     ])
   })
@@ -316,6 +332,19 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
+    parallelStatement(ctx: any): NamedWorkflowStep {
+      const branches: Record<GWStepName, StepsStep> = Object.fromEntries(
+        ctx.statementBlock.map((statements: CstNode, i: number) => {
+          return [`branch${i + 1}`, new StepsStep(this.visit(statements))]
+        }),
+      )
+
+      return {
+        name: stepNameGenerator.generate('parallel'),
+        step: new ParallelStep(branches),
+      }
+    }
+
     returnStatement(ctx: any): NamedWorkflowStep {
       return {
         name: stepNameGenerator.generate('return'),
@@ -330,6 +359,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return this.visit(ctx.callExpression)
       } else if (ctx.ifStatement) {
         return this.visit(ctx.ifStatement[0])
+      } else if (ctx.parallelStatement) {
+        return this.visit(ctx.parallelStatement[0])
       } else if (ctx.returnStatement) {
         return this.visit(ctx.returnStatement[0])
       } else {

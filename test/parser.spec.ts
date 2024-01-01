@@ -296,6 +296,72 @@ describe('If statement parsing', () => {
   })
 })
 
+describe('Parallel step parsing', () => {
+  it('parses parallel branches', () => {
+    const block = `
+    parallel branch {
+      http.post(url = "https://forum.dreamland.test/register/bean")
+    }
+    branch {
+      http.post(url = "https://forum.dreamland.test/register/elfo")
+    }
+    branch {
+      http.post(url = "https://forum.dreamland.test/register/luci")
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      parallel: {
+        branches: [
+          {
+            branch1: {
+              steps: [
+                {
+                  call1: {
+                    call: 'http.post',
+                    args: {
+                      url: 'https://forum.dreamland.test/register/bean',
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          {
+            branch2: {
+              steps: [
+                {
+                  call2: {
+                    call: 'http.post',
+                    args: {
+                      url: 'https://forum.dreamland.test/register/elfo',
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          {
+            branch3: {
+              steps: [
+                {
+                  call3: {
+                    call: 'http.post',
+                    args: {
+                      url: 'https://forum.dreamland.test/register/luci',
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    })
+  })
+})
+
 function parseOneRule(
   codeBlock: string,
   parseRule: (parser: WorfkflowScriptParser) => CstNode,

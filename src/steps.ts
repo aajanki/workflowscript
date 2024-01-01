@@ -1,4 +1,4 @@
-import type { GWValue, GWVariableName } from './variables.js'
+import type { GWExpression, GWValue, GWVariableName } from './variables.js'
 import { renderGWValue } from './variables.js'
 
 export type GWStepName = string
@@ -119,6 +119,126 @@ export class SwitchStep implements WorkflowStep {
 
   nestedSteps(): NamedWorkflowStep[] {
     return this.conditions.flatMap((x) => x.steps)
+  }
+}
+
+// https://cloud.google.com/workflows/docs/reference/syntax/steps#embedded-steps
+export class StepsStep implements WorkflowStep {
+  readonly steps: NamedWorkflowStep[]
+
+  // @ts-expect-error Discriminate this from a generic WorkflowStep in type checking.
+  private readonly _isStepsStep: boolean = true
+
+  constructor(steps: NamedWorkflowStep[]) {
+    this.steps = steps
+  }
+
+  render(): object {
+    return {
+      steps: renderSteps(this.steps),
+    }
+  }
+
+  nestedSteps(): NamedWorkflowStep[] {
+    return this.steps
+  }
+}
+
+// https://cloud.google.com/workflows/docs/reference/syntax/iteration
+export class ForStep implements WorkflowStep {
+  readonly steps: NamedWorkflowStep[]
+  readonly loopVariableName: GWVariableName
+  readonly indexVariableName?: GWVariableName
+  readonly listExpression?: GWExpression | GWValue[]
+  readonly rangeStart?: number
+  readonly rangeEnd?: number
+
+  constructor(
+    steps: NamedWorkflowStep[],
+    loopVariable: GWVariableName,
+    listExpression?: GWExpression | GWValue[],
+    indexVariable?: GWVariableName,
+    rangeStart?: number,
+    rangeEnd?: number,
+  ) {
+    this.steps = steps
+    this.loopVariableName = loopVariable
+    this.indexVariableName = indexVariable
+    this.listExpression = listExpression
+    this.rangeStart = rangeStart
+    this.rangeEnd = rangeEnd
+  }
+
+  render(): object {
+    return {
+      for: this.renderBody(),
+    }
+  }
+  renderBody(): object {
+    let range
+    let inValue
+    if (typeof this.listExpression === 'undefined') {
+      range = [this.rangeStart, this.rangeEnd]
+      inValue = undefined
+    } else {
+      inValue = renderGWValue(this.listExpression)
+      range = undefined
+    }
+
+    return {
+      value: this.loopVariableName,
+      index: this.indexVariableName,
+      in: inValue,
+      range: range,
+      steps: renderSteps(this.steps),
+    }
+  }
+
+  nestedSteps(): NamedWorkflowStep[] {
+    return this.steps
+  }
+}
+
+// https://cloud.google.com/workflows/docs/reference/syntax/parallel-steps
+export class ParallelStep implements WorkflowStep {
+  // Steps for each branch
+  readonly branches?: NamedWorkflowStep[]
+  readonly forStep?: ForStep
+  readonly shared?: GWVariableName[]
+  readonly concurrenceLimit?: number
+
+  constructor(
+    steps: Record<GWStepName, StepsStep> | ForStep,
+    shared?: GWVariableName[],
+    concurrencyLimit?: number,
+  ) {
+    this.shared = shared
+    this.concurrenceLimit = concurrencyLimit
+
+    if (steps instanceof ForStep) {
+      this.forStep = steps
+    } else {
+      this.branches = Object.entries(steps).map((x) => {
+        return { name: x[0], step: x[1] }
+      })
+    }
+  }
+
+  render(): object {
+    return {
+      parallel: {
+        ...(this.shared && { shared: this.shared }),
+        ...(this.concurrenceLimit && {
+          concurrency_limit: this.concurrenceLimit,
+        }),
+        ...(this.branches && { branches: renderSteps(this.branches) }),
+        ...(this.forStep && { for: this.forStep.renderBody() }),
+      },
+    }
+  }
+
+  nestedSteps(): NamedWorkflowStep[] {
+    return (this.branches ?? []).concat(this.forStep?.steps ?? [])
   }
 }
 

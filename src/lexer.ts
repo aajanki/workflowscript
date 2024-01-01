@@ -56,6 +56,16 @@ export const Return = createToken({
   pattern: /return/,
   longer_alt: Identifier,
 })
+export const Parallel = createToken({
+  name: 'Parallel',
+  pattern: /parallel/,
+  longer_alt: Identifier,
+})
+export const Branch = createToken({
+  name: 'Branch',
+  pattern: /branch/,
+  longer_alt: Identifier,
+})
 export const Workflow = createToken({
   name: 'Workflow',
   pattern: /workflow/,
@@ -101,6 +111,8 @@ export const tokens = [
   Else,
   Return,
   Workflow,
+  Parallel,
+  Branch,
   Identifier,
 ]
 
