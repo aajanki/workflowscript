@@ -17,7 +17,7 @@ export function compileFile(filename: string): string {
 }
 
 function cliMain() {
-  var args = process.argv.slice(2)
+  const args = process.argv.slice(2)
 
   if (args.length < 1) {
     console.log('Usage: node compile.js [source_code_file]')
