@@ -1,14 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 
-import { CstParser, IToken } from 'chevrotain'
+import { CstNode, CstParser, IToken } from 'chevrotain'
 import {
   Colon,
   Comma,
   Dot,
+  Else,
   Equals,
   ExpressionLiteral,
   False,
   Identifier,
+  If,
   LCurly,
   LParentheses,
   LSquare,
@@ -29,6 +31,8 @@ import {
   NamedWorkflowStep,
   ReturnStep,
   CallStep,
+  SwitchCondition,
+  SwitchStep,
 } from './steps.js'
 import { Subworkflow, WorkflowApp, WorkflowParameter } from './workflows.js'
 import { GWExpression, GWValue } from './variables.js'
@@ -120,6 +124,32 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(RParentheses)
   })
 
+  ifStatement = this.RULE('ifStatement', () => {
+    this.CONSUME(If)
+    this.CONSUME(LParentheses)
+    this.SUBRULE(this.expression)
+    this.CONSUME(RParentheses)
+    this.CONSUME(LCurly)
+    this.SUBRULE(this.statementBlock)
+    this.CONSUME(RCurly)
+    this.MANY(() => {
+      this.CONSUME(Else)
+      this.CONSUME2(If)
+      this.CONSUME2(LParentheses)
+      this.SUBRULE2(this.expression)
+      this.CONSUME2(RParentheses)
+      this.CONSUME2(LCurly)
+      this.SUBRULE2(this.statementBlock)
+      this.CONSUME2(RCurly)
+    })
+    this.OPTION(() => {
+      this.CONSUME2(Else)
+      this.CONSUME3(LCurly)
+      this.SUBRULE3(this.statementBlock)
+      this.CONSUME3(RCurly)
+    })
+  })
+
   returnStatement = this.RULE('returnStatement', () => {
     this.CONSUME(Return)
     this.SUBRULE(this.expression)
@@ -129,11 +159,12 @@ export class WorfkflowScriptParser extends CstParser {
     this.OR([
       { ALT: () => this.SUBRULE(this.assignmentStatement) },
       { ALT: () => this.SUBRULE(this.callExpression) }, // a function call without assigning the return value
+      { ALT: () => this.SUBRULE(this.ifStatement) },
       { ALT: () => this.SUBRULE(this.returnStatement) },
     ])
   })
 
-  workflowBody = this.RULE('workflowBody', () => {
+  statementBlock = this.RULE('statementBlock', () => {
     this.MANY(() => {
       this.SUBRULE(this.statement)
     })
@@ -157,7 +188,7 @@ export class WorfkflowScriptParser extends CstParser {
     })
     this.CONSUME(RParentheses)
     this.CONSUME(LCurly)
-    this.SUBRULE(this.workflowBody)
+    this.SUBRULE(this.statementBlock)
     this.CONSUME(RCurly)
   })
 
@@ -259,6 +290,32 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
+    ifStatement(ctx: any): NamedWorkflowStep {
+      const branches: SwitchCondition[] = ctx.expression.map(
+        (ex: CstNode, i: number) => {
+          return new SwitchCondition(this.visit(ex), {
+            steps: this.visit(ctx.statementBlock[i]),
+          })
+        },
+      )
+
+      if (ctx.statementBlock.length > ctx.expression.length) {
+        // The last branch is an else branch
+        branches.push(
+          new SwitchCondition(true, {
+            steps: this.visit(
+              ctx.statementBlock[ctx.statementBlock.length - 1],
+            ),
+          }),
+        )
+      }
+
+      return {
+        name: stepNameGenerator.generate('switch'),
+        step: new SwitchStep(branches),
+      }
+    }
+
     returnStatement(ctx: any): NamedWorkflowStep {
       return {
         name: stepNameGenerator.generate('return'),
@@ -271,6 +328,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return this.visit(ctx.assignmentStatement[0])
       } else if (ctx.callExpression) {
         return this.visit(ctx.callExpression)
+      } else if (ctx.ifStatement) {
+        return this.visit(ctx.ifStatement[0])
       } else if (ctx.returnStatement) {
         return this.visit(ctx.returnStatement[0])
       } else {
@@ -278,7 +337,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    workflowBody(ctx: any): NamedWorkflowStep[] {
+    statementBlock(ctx: any): NamedWorkflowStep[] {
       if (ctx.statement) {
         const steps: NamedWorkflowStep[] = ctx.statement.map(
           (statementCtx: any) => this.visit(statementCtx),
@@ -299,7 +358,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     subworkflowDefinition(ctx: any): Subworkflow {
       const workflowName: string = ctx.Identifier[0].image
       let params: WorkflowParameter[] = []
-      const steps: NamedWorkflowStep[] = this.visit(ctx.workflowBody)
+      const steps: NamedWorkflowStep[] = this.visit(ctx.statementBlock)
 
       if (ctx.formalParameterList) {
         params = this.visit(ctx.formalParameterList)

@@ -186,6 +186,116 @@ describe('Call statement parsing', () => {
   })
 })
 
+describe('If statement parsing', () => {
+  it('parses if statement without an else branch', () => {
+    const block = `
+    if (\${nickname == ""}) {
+      nickname = "Bean"
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      switch: [
+        {
+          condition: '${nickname == ""}',
+          steps: [
+            {
+              assign1: {
+                assign: [{ nickname: 'Bean' }],
+              },
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('parses if statement with an else branch', () => {
+    const block = `
+    if (\${name == "Oona"}) {
+      isPirate = true
+    } else {
+      isPirate = false
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      switch: [
+        {
+          condition: '${name == "Oona"}',
+          steps: [
+            {
+              assign1: {
+                assign: [{ isPirate: true }],
+              },
+            },
+          ],
+        },
+        {
+          condition: true,
+          steps: [
+            {
+              assign2: {
+                assign: [{ isPirate: false }],
+              },
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('parses if statement multiple branches', () => {
+    const block = `
+    if (\${name == "Mora"}) {
+      homeland = "Mermaid Island"
+    } else if (\${name == "Alva Gunderson"}) {
+      homeland = "Steamland"
+    } else {
+      homeland = "Dreamland"
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      switch: [
+        {
+          condition: '${name == "Mora"}',
+          steps: [
+            {
+              assign1: {
+                assign: [{ homeland: 'Mermaid Island' }],
+              },
+            },
+          ],
+        },
+        {
+          condition: '${name == "Alva Gunderson"}',
+          steps: [
+            {
+              assign2: {
+                assign: [{ homeland: 'Steamland' }],
+              },
+            },
+          ],
+        },
+        {
+          condition: true,
+          steps: [
+            {
+              assign3: {
+                assign: [{ homeland: 'Dreamland' }],
+              },
+            },
+          ],
+        },
+      ],
+    })
+  })
+})
+
 function parseOneRule(
   codeBlock: string,
   parseRule: (parser: WorfkflowScriptParser) => CstNode,

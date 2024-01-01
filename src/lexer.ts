@@ -20,34 +20,46 @@ export const Null = createToken({
   longer_alt: Identifier,
 })
 export const LParentheses = createToken({
-  name: 'Left parentheses',
+  name: 'LeftParentheses',
   pattern: /\(/,
 })
 export const RParentheses = createToken({
-  name: 'Right parentheses',
+  name: 'RightParentheses',
   pattern: /\)/,
 })
 export const LCurly = createToken({ name: 'Left curly bracket', pattern: /{/ })
 export const RCurly = createToken({ name: 'Right curly bracket', pattern: /}/ })
 export const LSquare = createToken({
-  name: 'Left square bracket',
+  name: 'LeftSquareBracket',
   pattern: /\[/,
 })
 export const RSquare = createToken({
-  name: 'Right square bracket',
+  name: 'RightSquareBracket',
   pattern: /]/,
 })
 export const Comma = createToken({ name: 'Comma', pattern: /,/ })
 export const Dot = createToken({ name: 'Dot', pattern: /\./ })
 export const Colon = createToken({ name: 'Colon', pattern: /:/ })
 export const Equals = createToken({ name: 'Equals', pattern: /=/ })
+export const If = createToken({
+  name: 'If',
+  pattern: /if/,
+  longer_alt: Identifier,
+})
+export const Else = createToken({
+  name: 'Else',
+  pattern: /else/,
+  longer_alt: Identifier,
+})
 export const Return = createToken({
-  name: 'return keyword',
+  name: 'Return',
   pattern: /return/,
+  longer_alt: Identifier,
 })
 export const Workflow = createToken({
-  name: 'Workflow keyword',
+  name: 'Workflow',
   pattern: /workflow/,
+  longer_alt: Identifier,
 })
 export const StringLiteral = createToken({
   name: 'StringLiteral',
@@ -85,6 +97,8 @@ export const tokens = [
   True,
   False,
   Null,
+  If,
+  Else,
   Return,
   Workflow,
   Identifier,

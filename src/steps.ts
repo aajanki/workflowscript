@@ -71,6 +71,57 @@ export class CallStep implements WorkflowStep {
   }
 }
 
+export class SwitchCondition {
+  readonly condition: GWValue
+  readonly next?: GWStepName
+  readonly steps: NamedWorkflowStep[]
+
+  constructor(
+    condition: GWValue,
+    options: { next: GWStepName } | { steps: NamedWorkflowStep[] },
+  ) {
+    this.condition = condition
+
+    if ('next' in options) {
+      this.next = options.next
+      this.steps = []
+    } else {
+      this.next = undefined
+      this.steps = options.steps
+    }
+  }
+
+  render(): object {
+    return {
+      condition: renderGWValue(this.condition),
+      ...(this.next && { next: this.next }),
+      ...(this.steps.length > 0 && { steps: renderSteps(this.steps) }),
+    }
+  }
+}
+
+// https://cloud.google.com/workflows/docs/reference/syntax/conditions
+export class SwitchStep implements WorkflowStep {
+  readonly conditions: SwitchCondition[]
+  readonly next?: GWStepName
+
+  constructor(conditions: SwitchCondition[], next?: GWStepName) {
+    this.conditions = conditions
+    this.next = next
+  }
+
+  render(): object {
+    return {
+      switch: this.conditions.map((cond) => cond.render()),
+      ...(this.next && { next: this.next }),
+    }
+  }
+
+  nestedSteps(): NamedWorkflowStep[] {
+    return this.conditions.flatMap((x) => x.steps)
+  }
+}
+
 // https://cloud.google.com/workflows/docs/reference/syntax/completing
 export class ReturnStep implements WorkflowStep {
   readonly value: GWValue
@@ -88,4 +139,10 @@ export class ReturnStep implements WorkflowStep {
   nestedSteps(): NamedWorkflowStep[] {
     return []
   }
+}
+
+function renderSteps(steps: NamedWorkflowStep[]) {
+  return steps.map((x) => {
+    return { [x.name]: x.step.render() }
+  })
 }
