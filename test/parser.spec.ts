@@ -578,6 +578,40 @@ describe('Parallel step parsing', () => {
   })
 })
 
+describe('Expression parsing', () => {
+  it('parses escaped quotes correctly', () => {
+    const s = '"Tiabeanie \\"Bean\\" Mariabeanie de la Rochambeaux Grunkwitz"'
+
+    expect(parseExpression(s)).to.equal(
+      'Tiabeanie "Bean" Mariabeanie de la Rochambeaux Grunkwitz',
+    )
+  })
+
+  it('parses escaped tabs correctly', () => {
+    const s = '"Bean\\tElfo\\tLuci"'
+
+    expect(parseExpression(s)).to.equal('Bean\tElfo\tLuci')
+  })
+
+  it('parses escaped line feeds', () => {
+    const s = '"Dagmar\\nOona"'
+
+    expect(parseExpression(s)).to.equal('Dagmar\nOona')
+  })
+
+  it('parses escaped backslashes', () => {
+    const s = '"Mop Girl\\\\Miri"'
+
+    expect(parseExpression(s)).to.equal('Mop Girl\\Miri')
+  })
+
+  it('parses unicode character references', () => {
+    const s = '"King Z\\u00f8g"'
+
+    expect(parseExpression(s)).to.equal('King Zøg')
+  })
+})
+
 function parseOneRule(
   codeBlock: string,
   parseRule: (parser: WorfkflowScriptParser) => CstNode,
@@ -601,6 +635,8 @@ function parseOneRule(
   return ast
 }
 
+const parseExpression = (codeBlock: string) =>
+  parseOneRule(codeBlock, (p) => p.expression())
 const parseStatement = (codeBlock: string) =>
   parseOneRule(codeBlock, (p) => p.statement())
 const parseSubworkflow = (codeBlock: string) =>

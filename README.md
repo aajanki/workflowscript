@@ -53,7 +53,6 @@ At least the following features should be implemented before this can be conside
 - paraller for
 - optional parameters in subworkflows
 - A proper parsing of expressions. Get rid of `${...}`
-- String escapes: `\\`, `\"`, `\t`, etc
 - `break`
 - `continue`
 - Better error messages

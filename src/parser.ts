@@ -199,7 +199,7 @@ export class WorfkflowScriptParser extends CstParser {
   statement = this.RULE('statement', () => {
     this.OR([
       {
-        // TODO: restructure the common parts in function name/variable name 
+        // TODO: restructure the common parts in function name/variable name
         // grammar so that backtracking is not required
         GATE: this.BACKTRACK(this.assignmentStatement),
         ALT: () => this.SUBRULE(this.assignmentStatement),
