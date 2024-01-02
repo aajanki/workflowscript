@@ -64,6 +64,106 @@ describe('Assign statement parsing', () => {
     })
   })
 
+  it('assigns to variable with integer subscript', () => {
+    const block = `a_list[0] = 1`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'a_list[0]': 1 }],
+    })
+  })
+
+  it('assigns to variable with a string subscript', () => {
+    const block = `a_list["key1"] = 1`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'a_list["key1"]': 1 }],
+    })
+  })
+
+  /*
+  it('assigns to variable with a variable name as the subscript', () => {
+    const block = `a_list[idx] = 2`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [
+        { 'a_list[idx]': 2 },
+      ],
+    })
+  })
+  */
+
+  it('assigns to variable with a complex expression subscript', () => {
+    const block = `a_list[\${len(a_list) - 1}] = 3`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'a_list[${len(a_list) - 1}]': 3 }],
+    })
+  })
+
+  it('assigns to variable with multidimensional subscripts', () => {
+    const block = `a_list[2][3] = 4`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'a_list[2][3]': 4 }],
+    })
+  })
+
+  it('assigns to variable with subscripts and an attribute', () => {
+    const block = `a_list[2][3].nested_key = 5`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'a_list[2][3].nested_key': 5 }],
+    })
+  })
+
+  it('assigns to variable with a nested key', () => {
+    const block = `a_map.key1 = 6`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'a_map.key1': 6 }],
+    })
+  })
+
+  it('assigns to variable with multiple levels of nested keys', () => {
+    const block = `a_map.key1.key2 = 7`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'a_map.key1.key2': 7 }],
+    })
+  })
+
+  it('assigns to variable with nested key and a subscript', () => {
+    const block = `a_map.nested_list[0] = 8`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'a_map.nested_list[0]': 8 }],
+    })
+  })
+
+  it('assigns to variable with multiple keys and subscripts', () => {
+    const block = `a_map.nested_list[0].nested_key2[1] = 9`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'a_map.nested_list[0].nested_key2[1]': 9 }],
+    })
+  })
+
+  it('parsing fails if subscripts are floating point number', () => {
+    const block = `a_list[4.5] = 9`
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
   it('disambiguates keywords from identifiers', () => {
     // The prefix "false" in "falseValue" should not be parsed as the boolean value false.
     const block = 'falseValue = False'
@@ -446,7 +546,7 @@ describe('Parallel step parsing', () => {
     }
     `
 
-    expect(() => parseStatement(block)).to.throw
+    expect(() => parseStatement(block)).to.throw()
   })
 
   it('"parallel" must be followed by a "branch"', () => {
@@ -457,7 +557,7 @@ describe('Parallel step parsing', () => {
     numPosts = \${numPosts + n}
     `
 
-    expect(() => parseStatement(block)).to.throw
+    expect(() => parseStatement(block)).to.throw()
   })
 
   it('"branch" must be preceeded by "parallel"', () => {
@@ -474,7 +574,7 @@ describe('Parallel step parsing', () => {
     }
     `
 
-    expect(() => parseStatement(block)).to.throw
+    expect(() => parseStatement(block)).to.throw()
   })
 })
 

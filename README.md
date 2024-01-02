@@ -47,10 +47,10 @@ npm run test
 This is alpha quality software! Not all workflow features are supported yet.
 
 At least the following features should be implemented before this can be considered usable:
+
 - try/catch/raise
 - for loops
 - paraller for
-- `variable.attribute`, `variable["attribute"]` and `array[2]`
 - optional parameters in subworkflows
 - A proper parsing of expressions. Get rid of `${...}`
 - String escapes: `\\`, `\"`, `\t`, etc
@@ -61,9 +61,11 @@ At least the following features should be implemented before this can be conside
 - Adapt all the validators from gcp-workflows-tookit
 
 Quality-of-life improvements to be implemented later:
+
 - `return` without a value
 - `return subworkflow()`
 - finally block in try?
+- source code comments
 
 ## License
 

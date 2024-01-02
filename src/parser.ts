@@ -94,12 +94,33 @@ export class WorfkflowScriptParser extends CstParser {
     ])
   })
 
-  assignmentStatement = this.RULE('assignmentStatement', () => {
+  subscriptReference = this.RULE('subscriptReference', () => {
     this.CONSUME(Identifier)
+    this.MANY(() => {
+      this.CONSUME(LSquare)
+      this.OR([
+        { ALT: () => this.CONSUME(NumberLiteral) }, // TODO: should really be an integer literal
+        { ALT: () => this.CONSUME(StringLiteral) },
+        { ALT: () => this.CONSUME(ExpressionLiteral) },
+      ])
+      this.CONSUME(RSquare)
+    })
+  })
+
+  variableReference = this.RULE('variableReference', () => {
+    this.SUBRULE(this.subscriptReference)
+    this.MANY(() => {
+      this.CONSUME(Dot)
+      this.SUBRULE2(this.subscriptReference)
+    })
+  })
+
+  assignmentStatement = this.RULE('assignmentStatement', () => {
+    this.SUBRULE(this.variableReference)
     this.CONSUME(Equals)
     this.OR([
-      { ALT: () => this.SUBRULE(this.expression) },
-      { ALT: () => this.SUBRULE(this.callExpression) },
+      { ALT: () => this.SUBRULE2(this.expression) },
+      { ALT: () => this.SUBRULE2(this.callExpression) },
     ])
   })
 
@@ -177,7 +198,12 @@ export class WorfkflowScriptParser extends CstParser {
 
   statement = this.RULE('statement', () => {
     this.OR([
-      { ALT: () => this.SUBRULE(this.assignmentStatement) },
+      {
+        // TODO: restructure the common parts in function name/variable name 
+        // grammar so that backtracking is not required
+        GATE: this.BACKTRACK(this.assignmentStatement),
+        ALT: () => this.SUBRULE(this.assignmentStatement),
+      },
       { ALT: () => this.SUBRULE(this.callExpression) }, // a function call without assigning the return value
       { ALT: () => this.SUBRULE(this.ifStatement) },
       { ALT: () => this.SUBRULE(this.parallelStatement) },
@@ -237,7 +263,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     objectItem(ctx: any): [string, GWValue] {
       return [
-        unescapeQuotes(ctx.StringLiteral[0].image.slice(1, -1)),
+        unescapeBackslashes(ctx.StringLiteral[0].image),
         this.visit(ctx.expression[0]) as GWValue,
       ]
     }
@@ -248,7 +274,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     expression(ctx: any): GWValue {
       if (ctx.StringLiteral) {
-        return unescapeQuotes(ctx.StringLiteral[0].image.slice(1, -1))
+        return unescapeBackslashes(ctx.StringLiteral[0].image)
       } else if (ctx.NumberLiteral) {
         return parseFloat(ctx.NumberLiteral[0].image)
       } else if (ctx.True) {
@@ -266,22 +292,54 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
+    subscriptReference(ctx: any): string {
+      const reference = ctx.Identifier[0].image
+      const subscripts = (ctx.NumberLiteral ?? [])
+        .concat(ctx.StringLiteral ?? [])
+        .concat(ctx.ExpressionLiteral ?? [])
+        .sort(compareStartOffsets)
+        .map((x: IToken) => {
+          if (
+            x.tokenType.name === 'StringLiteral' ||
+            x.tokenType.name === 'ExpressionLiteral'
+          ) {
+            return `[${x.image}]`
+          } else if (x.tokenType.name === 'NumberLiteral') {
+            const i = parseFloat(x.image)
+            if (!Number.isInteger(i)) {
+              throw new TypeError('Subscript must be an integer')
+            }
+            return `[${i}]`
+          } else {
+            throw new Error(`Unexpected subscription type: ${x.tokenType.name}`)
+          }
+        })
+        .join('')
+
+      return reference + subscripts
+    }
+
+    variableReference(ctx: any): string {
+      return ctx.subscriptReference
+        .map((ref: CstNode) => this.visit(ref))
+        .join('.')
+    }
+
     assignmentStatement(ctx: any): NamedWorkflowStep {
+      const varName = this.visit(ctx.variableReference)
+
       if (ctx.callExpression) {
         const { name, step } = this.visit(ctx.callExpression)
 
         // reconstruct the CallStep to supplement the result variable name
-        const resultVariable = ctx.Identifier[0].image
         return {
           name,
-          step: new CallStep(step.call, step.args, resultVariable),
+          step: new CallStep(step.call, step.args, varName),
         }
       } else {
         return {
           name: stepNameGenerator.generate('assign'),
-          step: new AssignStep([
-            [ctx.Identifier[0].image, this.visit(ctx.expression[0])],
-          ]),
+          step: new AssignStep([[varName, this.visit(ctx.expression[0])]]),
         }
       }
     }
@@ -487,8 +545,8 @@ class StepNameGenerator {
   }
 }
 
-function unescapeQuotes(str: string) {
-  return str.replaceAll(/\\"/g, '"')
+function unescapeBackslashes(str: string) {
+  return JSON.parse(str)
 }
 
 /**
@@ -525,4 +583,8 @@ function combineConsecutiveAssignments(
       return acc
     }
   }, [] as NamedWorkflowStep[])
+}
+
+function compareStartOffsets(a: IToken, b: IToken) {
+  return a.startOffset - b.startOffset
 }
