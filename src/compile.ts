@@ -1,3 +1,14 @@
+/* Functions for compiling WorkflowScript program to GCP Workflows YAML.
+ *
+ * This module can be called as script. An input filename can be given as
+ * a command line parameter. If no parameter is given, the input is read
+ * from stdin.
+ *
+ * Example:
+ *
+ * node compile.js inputFile
+ */
+
 import { IToken } from 'chevrotain'
 import { workflowScriptLexer } from './parser/lexer.js'
 import { WorfkflowScriptParser, createVisitor } from './parser/parser.js'
@@ -11,22 +22,21 @@ export function compile(program: string): string {
   return toYAMLString(ast)
 }
 
-export function compileFile(filename: string): string {
-  const code = fs.readFileSync(filename, 'utf8')
+export function compileFile(path: fs.PathOrFileDescriptor): string {
+  const code = fs.readFileSync(path, 'utf8')
   return compile(code)
 }
 
 function cliMain() {
+  let inp: fs.PathOrFileDescriptor
   const args = process.argv.slice(2)
-
-  if (args.length < 1) {
-    console.log('Usage: node compile.js [source_code_file]')
-    process.exit(1)
+  if (args.length === 0) {
+    inp = process.stdin.fd
+  } else {
+    inp = args[0]
   }
 
-  const [inputFilename] = args
-
-  console.log(compileFile(inputFilename))
+  console.log(compileFile(inp))
 }
 
 function tokenize(program: string): IToken[] {

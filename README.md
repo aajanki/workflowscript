@@ -19,26 +19,32 @@ The [examples](examples) directory contains other sample programs.
 
 Compiling a samples program in `examples/hello.wfs`:
 
-```
+```shell
 npm install
 npm run build
 node dist/compile.js examples/hello.wfs
 ```
 
-The compile command will output the workflows YAML in stdout.
+The source can also be piped to the compile.js:
+
+```shell
+cat examples/hello.wfs | node dist/compile.js
+```
+
+The compile command will output the workflows YAML on stdout.
 
 See [WorkflowScript language syntax](syntax.md) for a more detailed specification.
 
 ## Build
 
-```
+```shell
 npm install
 npm run build
 ```
 
 ## Tests
 
-```
+```shell
 npm run test
 ```
 
