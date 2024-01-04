@@ -43,9 +43,9 @@ import {
   StepsStep,
   TryExceptStep,
   RaiseStep,
-} from './steps.js'
-import { Subworkflow, WorkflowApp, WorkflowParameter } from './workflows.js'
-import { GWExpression, GWValue, GWVariableName } from './variables.js'
+} from '../ast/steps.js'
+import { Subworkflow, WorkflowApp, WorkflowParameter } from '../ast/workflows.js'
+import { GWExpression, GWValue, GWVariableName } from '../ast/variables.js'
 
 export class WorfkflowScriptParser extends CstParser {
   constructor() {

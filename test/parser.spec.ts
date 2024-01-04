@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { CstNode } from 'chevrotain'
-import { workflowScriptLexer } from '../src/lexer.js'
-import { WorfkflowScriptParser, createVisitor } from '../src/parser.js'
+import { workflowScriptLexer } from '../src/parser/lexer.js'
+import { WorfkflowScriptParser, createVisitor } from '../src/parser/parser.js'
 
 describe('workflow definition parsing', () => {
   it('parses empty subworkflow definition', () => {

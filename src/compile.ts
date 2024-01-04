@@ -1,7 +1,7 @@
 import { IToken } from 'chevrotain'
-import { workflowScriptLexer } from './lexer.js'
-import { WorfkflowScriptParser, createVisitor } from './parser.js'
-import { WorkflowApp, toYAMLString } from './workflows.js'
+import { workflowScriptLexer } from './parser/lexer.js'
+import { WorfkflowScriptParser, createVisitor } from './parser/parser.js'
+import { WorkflowApp, toYAMLString } from './ast/workflows.js'
 import * as fs from 'node:fs'
 
 export function compile(program: string): string {
