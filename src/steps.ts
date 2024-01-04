@@ -3,6 +3,7 @@ import { renderGWValue } from './variables.js'
 
 export type GWStepName = string
 export type GWAssignment = readonly [GWVariableName, GWValue]
+export type GWArguments = Record<GWVariableName, GWValue>
 
 export interface WorkflowStep {
   render(): object
@@ -38,10 +39,10 @@ export class AssignStep implements WorkflowStep {
 // https://cloud.google.com/workflows/docs/reference/syntax/calls
 export class CallStep implements WorkflowStep {
   readonly call: string
-  readonly args?: GWAssignment[]
+  readonly args?: GWArguments
   readonly result?: string
 
-  constructor(call: string, args?: GWAssignment[], result?: string) {
+  constructor(call: string, args?: GWArguments, result?: string) {
     this.call = call
     this.args = args
     this.result = result
@@ -53,7 +54,7 @@ export class CallStep implements WorkflowStep {
       | undefined = undefined
     if (this.args) {
       args = Object.fromEntries(
-        this.args.map(([k, v]) => {
+        Object.entries(this.args).map(([k, v]) => {
           return [k, renderGWValue(v)]
         }),
       )

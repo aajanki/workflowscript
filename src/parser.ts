@@ -35,6 +35,7 @@ import {
   GWAssignment,
   NamedWorkflowStep,
   ReturnStep,
+  GWArguments,
   CallStep,
   SwitchCondition,
   SwitchStep,
@@ -379,11 +380,15 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return parts.join('.')
     }
 
-    actualParameterList(ctx: any): GWAssignment[] | undefined {
+    actualParameterList(ctx: any): GWArguments | undefined {
       if (ctx.Identifier) {
-        return ctx.Identifier.map((identifier: IToken, i: number) => {
-          return [identifier.image, this.visit(ctx.expression[i])]
-        })
+        const namedArgumentList = ctx.Identifier.map(
+          (identifier: IToken, i: number) => {
+            return [identifier.image, this.visit(ctx.expression[i])]
+          },
+        )
+
+        return Object.fromEntries(namedArgumentList)
       } else {
         return undefined
       }
