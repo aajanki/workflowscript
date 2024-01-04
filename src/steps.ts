@@ -323,7 +323,7 @@ export class TryExceptStep implements WorkflowStep {
       try: {
         steps: renderSteps(this.trySteps),
       },
-      ...retry && { retry },
+      ...(retry && { retry }),
       except: {
         as: this.errorMap,
         steps: renderSteps(this.exceptSteps),
@@ -333,6 +333,25 @@ export class TryExceptStep implements WorkflowStep {
 
   nestedSteps(): NamedWorkflowStep[] {
     return this.trySteps.concat(this.exceptSteps)
+  }
+}
+
+// https://cloud.google.com/workflows/docs/reference/syntax/raising-errors
+export class RaiseStep implements WorkflowStep {
+  readonly value: GWValue
+
+  constructor(value: GWValue) {
+    this.value = value
+  }
+
+  render(): object {
+    return {
+      raise: renderGWValue(this.value),
+    }
+  }
+
+  nestedSteps(): NamedWorkflowStep[] {
+    return []
   }
 }
 

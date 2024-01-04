@@ -48,7 +48,6 @@ This is alpha quality software! Not all workflow features are supported yet.
 
 At least the following features should be implemented before this can be considered usable:
 
-- try/catch/raise
 - try/retry
 - for loops
 - paraller for

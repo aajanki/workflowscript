@@ -76,6 +76,11 @@ export const Catch = createToken({
   pattern: /catch/,
   longer_alt: Identifier,
 })
+export const Raise = createToken({
+  name: 'Raise',
+  pattern: /raise/,
+  longer_alt: Identifier,
+})
 export const Workflow = createToken({
   name: 'Workflow',
   pattern: /workflow/,
@@ -121,6 +126,7 @@ export const tokens = [
   Else,
   Try,
   Catch,
+  Raise,
   Return,
   Workflow,
   Parallel,

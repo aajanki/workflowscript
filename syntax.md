@@ -213,9 +213,9 @@ The WorkflowScript statement
 
 ```javascript
 try {
-  http.get(url = "https://visit.dreamland.test/")
+  http.get((url = 'https://visit.dreamland.test/'))
 } catch (err) {
-  return "Error!"
+  return 'Error!'
 }
 ```
 
@@ -223,26 +223,41 @@ will be compiled to the following [try/except structure](https://cloud.google.co
 
 ```yaml
 try1:
-    try:
-      steps:
-        - call1:
-            call: http.get
-            args:
-              url: https://visit.dreamland.test/
-    except:
-      as: err
-      steps:
-        - return1:
-            return: Error!
+  try:
+    steps:
+      - call1:
+          call: http.get
+          args:
+            url: https://visit.dreamland.test/
+  except:
+    as: err
+    steps:
+      - return1:
+          return: Error!
 ```
 
 The error variable and other variables created inside the catch block are accessible only in that block's scope (similar to [the variable scoping in Workflows](https://cloud.google.com/workflows/docs/reference/syntax/catching-errors#variable-scope)).
 
 TOOD retry
 
-## Raise
+## Raising errors
 
-TBD
+The WorkflowScript statement
+
+```javascript
+raise "Error!"
+```
+
+will be compiled to the following [raise block](https://cloud.google.com/workflows/docs/reference/syntax/raising-errors)
+
+```yaml
+raise1:
+  raise: 'Error!'
+```
+
+The error can be a string, a map or an expression that evaluates to string or map.
+
+Raised errors can be handled by a try statement.
 
 ## Parallel for
 

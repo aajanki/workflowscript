@@ -22,6 +22,7 @@ import {
   RCurly,
   RParentheses,
   RSquare,
+  Raise,
   Return,
   StringLiteral,
   True,
@@ -41,6 +42,7 @@ import {
   GWStepName,
   StepsStep,
   TryExceptStep,
+  RaiseStep,
 } from './steps.js'
 import { Subworkflow, WorkflowApp, WorkflowParameter } from './workflows.js'
 import { GWExpression, GWValue, GWVariableName } from './variables.js'
@@ -193,6 +195,15 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME2(RCurly)
   })
 
+  raiseStatement = this.RULE('raiseStatement', () => {
+    this.CONSUME(Raise)
+    this.OR([
+      { ALT: () => this.CONSUME(StringLiteral) },
+      { ALT: () => this.SUBRULE(this.object) },
+      { ALT: () => this.CONSUME(ExpressionLiteral) },
+    ])
+  })
+
   parallelStatement = this.RULE('parallelStatement', () => {
     this.CONSUME(Parallel)
     this.OPTION(() => {
@@ -225,6 +236,7 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.SUBRULE(this.ifStatement) },
       { ALT: () => this.SUBRULE(this.parallelStatement) },
       { ALT: () => this.SUBRULE(this.tryStatement) },
+      { ALT: () => this.SUBRULE(this.raiseStatement) },
       { ALT: () => this.SUBRULE(this.returnStatement) },
     ])
   })
@@ -488,7 +500,25 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
       return {
         name: stepNameGenerator.generate('try'),
-        step: new TryExceptStep(trySteps, catchSteps, undefined, errorVariable)
+        step: new TryExceptStep(trySteps, catchSteps, undefined, errorVariable),
+      }
+    }
+
+    raiseStatement(ctx: any): NamedWorkflowStep {
+      let value: GWValue
+      if (ctx.StringLiteral) {
+        value = unescapeBackslashes(ctx.StringLiteral[0].image)
+      } else if (ctx.object) {
+        value = this.visit(ctx.object)
+      } else if (ctx.ExpressionLiteral) {
+        value = new GWExpression(ctx.ExpressionLiteral[0].image.slice(2, -1))
+      } else {
+        throw new Error('Raise unexpected value')
+      }
+
+      return {
+        name: stepNameGenerator.generate('raise'),
+        step: new RaiseStep(value),
       }
     }
 
@@ -510,6 +540,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return this.visit(ctx.parallelStatement[0])
       } else if (ctx.tryStatement) {
         return this.visit(ctx.tryStatement[0])
+      } else if (ctx.raiseStatement) {
+        return this.visit(ctx.raiseStatement[0])
       } else if (ctx.returnStatement) {
         return this.visit(ctx.returnStatement[0])
       } else {

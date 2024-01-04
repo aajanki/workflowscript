@@ -638,6 +638,53 @@ describe('Try-catch statement parsing', () => {
 
     expect(() => parseStatement(block)).to.throw()
   })
+
+  it('parses raise with a string', () => {
+    const block = `
+    raise "Error!"
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      raise: 'Error!',
+    })
+  })
+
+  it('parses raise with an expression', () => {
+    const block = `
+    raise \${exception}
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      raise: '${exception}',
+    })
+  })
+
+  it('parses raise with a map value', () => {
+    const block = `
+    raise {
+      "code": 98,
+      "message": "Access denied"
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      raise: {
+        code: 98,
+        message: 'Access denied',
+      },
+    })
+  })
+
+  it('throws on raise with number ', () => {
+    const block = `
+    raise 3.1415
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
 })
 
 describe('Expression parsing', () => {
