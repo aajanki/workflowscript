@@ -265,6 +265,77 @@ export class ReturnStep implements WorkflowStep {
   }
 }
 
+export type DefaultRetryPolicy =
+  | 'http.default_retry'
+  | 'http.default_retry_non_idempotent'
+
+export interface CustomRetryPolicy {
+  predicate: string
+  maxRetries: number
+  backoff: {
+    initialDelay: number
+    maxDelay: number
+    multiplier: number
+  }
+}
+
+// https://cloud.google.com/workflows/docs/reference/syntax/catching-errors
+export class TryExceptStep implements WorkflowStep {
+  readonly retryPolicy?: string | CustomRetryPolicy
+  readonly errorMap?: GWStepName
+  // Steps in the try block
+  readonly trySteps: NamedWorkflowStep[]
+  // Steps in the except block
+  readonly exceptSteps: NamedWorkflowStep[]
+
+  constructor(
+    steps: NamedWorkflowStep[],
+    exceptSteps: NamedWorkflowStep[],
+    retryPolicy?: DefaultRetryPolicy | CustomRetryPolicy,
+    errorMap?: GWVariableName,
+  ) {
+    this.trySteps = steps
+    this.retryPolicy = retryPolicy
+    this.errorMap = errorMap
+    this.exceptSteps = exceptSteps
+  }
+
+  render(): object {
+    let retry
+    if (typeof this.retryPolicy === 'undefined') {
+      retry = undefined
+    } else if (typeof this.retryPolicy === 'string') {
+      retry = `\${${this.retryPolicy}}`
+    } else {
+      const predicateName = this.retryPolicy.predicate
+      retry = {
+        predicate: `\${${predicateName}}`,
+        max_retries: this.retryPolicy.maxRetries,
+        backoff: {
+          initial_delay: this.retryPolicy.backoff.initialDelay,
+          max_delay: this.retryPolicy.backoff.maxDelay,
+          multiplier: this.retryPolicy.backoff.multiplier,
+        },
+      }
+    }
+
+    return {
+      try: {
+        steps: renderSteps(this.trySteps),
+      },
+      ...retry && { retry },
+      except: {
+        as: this.errorMap,
+        steps: renderSteps(this.exceptSteps),
+      },
+    }
+  }
+
+  nestedSteps(): NamedWorkflowStep[] {
+    return this.trySteps.concat(this.exceptSteps)
+  }
+}
+
 function renderSteps(steps: NamedWorkflowStep[]) {
   return steps.map((x) => {
     return { [x.name]: x.step.render() }

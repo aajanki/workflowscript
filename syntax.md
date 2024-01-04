@@ -207,18 +207,47 @@ branch {
 }
 ```
 
+## Try/catch statements
+
+The WorkflowScript statement
+
+```javascript
+try {
+  http.get(url = "https://visit.dreamland.test/")
+} catch (err) {
+  return "Error!"
+}
+```
+
+will be compiled to the following [try/except structure](https://cloud.google.com/workflows/docs/reference/syntax/catching-errors)
+
+```yaml
+try1:
+    try:
+      steps:
+        - call1:
+            call: http.get
+            args:
+              url: https://visit.dreamland.test/
+    except:
+      as: err
+      steps:
+        - return1:
+            return: Error!
+```
+
+The error variable and other variables created inside the catch block are accessible only in that block's scope (similar to [the variable scoping in Workflows](https://cloud.google.com/workflows/docs/reference/syntax/catching-errors#variable-scope)).
+
+TOOD retry
+
+## Raise
+
+TBD
+
 ## Parallel for
 
 TBD
 
 ## For loops
-
-TBD
-
-## Try/catch
-
-TBD
-
-## Raise
 
 TBD

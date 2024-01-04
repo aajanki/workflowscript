@@ -7,6 +7,14 @@ workflow main() {
 }
 
 workflow getOrders(orderId) {
-  res = http.get(url=${"https://example.com/orders/" + orderId})
-  return ${res}
+  try {
+    res = http.get(url=${"https://example.com/orders/" + orderId})
+    return ${res}
+  } catch (err) {
+    if (${err.code == 404}) {
+      return "Not found"
+    } else {
+      raise ${err}
+    }
+  }
 }

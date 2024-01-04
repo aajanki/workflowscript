@@ -3,6 +3,7 @@
 import { CstNode, CstParser, IToken } from 'chevrotain'
 import {
   Branch,
+  Catch,
   Colon,
   Comma,
   Dot,
@@ -24,6 +25,7 @@ import {
   Return,
   StringLiteral,
   True,
+  Try,
   Workflow,
   tokens,
 } from './lexer.js'
@@ -38,6 +40,7 @@ import {
   ParallelStep,
   GWStepName,
   StepsStep,
+  TryExceptStep,
 } from './steps.js'
 import { Subworkflow, WorkflowApp, WorkflowParameter } from './workflows.js'
 import { GWExpression, GWValue, GWVariableName } from './variables.js'
@@ -176,6 +179,20 @@ export class WorfkflowScriptParser extends CstParser {
     })
   })
 
+  tryStatement = this.RULE('tryStatement', () => {
+    this.CONSUME(Try)
+    this.CONSUME(LCurly)
+    this.SUBRULE(this.statementBlock)
+    this.CONSUME(RCurly)
+    this.CONSUME(Catch)
+    this.CONSUME(LParentheses)
+    this.CONSUME(Identifier)
+    this.CONSUME(RParentheses)
+    this.CONSUME2(LCurly)
+    this.SUBRULE2(this.statementBlock)
+    this.CONSUME2(RCurly)
+  })
+
   parallelStatement = this.RULE('parallelStatement', () => {
     this.CONSUME(Parallel)
     this.OPTION(() => {
@@ -207,6 +224,7 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.SUBRULE(this.callExpression) }, // a function call without assigning the return value
       { ALT: () => this.SUBRULE(this.ifStatement) },
       { ALT: () => this.SUBRULE(this.parallelStatement) },
+      { ALT: () => this.SUBRULE(this.tryStatement) },
       { ALT: () => this.SUBRULE(this.returnStatement) },
     ])
   })
@@ -463,6 +481,17 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return { shared, concurrencyLimit, exceptionPolicy }
     }
 
+    tryStatement(ctx: any): NamedWorkflowStep {
+      const trySteps = this.visit(ctx.statementBlock[0])
+      const catchSteps = this.visit(ctx.statementBlock[1])
+      const errorVariable = ctx.Identifier[0].image
+
+      return {
+        name: stepNameGenerator.generate('try'),
+        step: new TryExceptStep(trySteps, catchSteps, undefined, errorVariable)
+      }
+    }
+
     returnStatement(ctx: any): NamedWorkflowStep {
       return {
         name: stepNameGenerator.generate('return'),
@@ -479,6 +508,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return this.visit(ctx.ifStatement[0])
       } else if (ctx.parallelStatement) {
         return this.visit(ctx.parallelStatement[0])
+      } else if (ctx.tryStatement) {
+        return this.visit(ctx.tryStatement[0])
       } else if (ctx.returnStatement) {
         return this.visit(ctx.returnStatement[0])
       } else {

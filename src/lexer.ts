@@ -66,6 +66,16 @@ export const Branch = createToken({
   pattern: /branch/,
   longer_alt: Identifier,
 })
+export const Try = createToken({
+  name: 'Try',
+  pattern: /try/,
+  longer_alt: Identifier,
+})
+export const Catch = createToken({
+  name: 'Catch',
+  pattern: /catch/,
+  longer_alt: Identifier,
+})
 export const Workflow = createToken({
   name: 'Workflow',
   pattern: /workflow/,
@@ -109,6 +119,8 @@ export const tokens = [
   Null,
   If,
   Else,
+  Try,
+  Catch,
   Return,
   Workflow,
   Parallel,

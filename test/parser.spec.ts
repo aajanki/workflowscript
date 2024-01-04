@@ -400,13 +400,13 @@ describe('Parallel step parsing', () => {
   it('parses parallel branches', () => {
     const block = `
     parallel branch {
-      http.post(url = "https://forum.dreamland.test/register/bean")
+      http.post(url = "https://forums.dreamland.test/register/bean")
     }
     branch {
-      http.post(url = "https://forum.dreamland.test/register/elfo")
+      http.post(url = "https://forums.dreamland.test/register/elfo")
     }
     branch {
-      http.post(url = "https://forum.dreamland.test/register/luci")
+      http.post(url = "https://forums.dreamland.test/register/luci")
     }
     `
     const ast = parseStatement(block)
@@ -421,7 +421,7 @@ describe('Parallel step parsing', () => {
                   call1: {
                     call: 'http.post',
                     args: {
-                      url: 'https://forum.dreamland.test/register/bean',
+                      url: 'https://forums.dreamland.test/register/bean',
                     },
                   },
                 },
@@ -435,7 +435,7 @@ describe('Parallel step parsing', () => {
                   call2: {
                     call: 'http.post',
                     args: {
-                      url: 'https://forum.dreamland.test/register/elfo',
+                      url: 'https://forums.dreamland.test/register/elfo',
                     },
                   },
                 },
@@ -449,7 +449,7 @@ describe('Parallel step parsing', () => {
                   call3: {
                     call: 'http.post',
                     args: {
-                      url: 'https://forum.dreamland.test/register/luci',
+                      url: 'https://forums.dreamland.test/register/luci',
                     },
                   },
                 },
@@ -469,11 +469,11 @@ describe('Parallel step parsing', () => {
       exception_policy = "continueAll"
     )
     branch {
-      n = http.get(url = "https://forum.dreamland.test/numPosts/bean")
+      n = http.get(url = "https://forums.dreamland.test/numPosts/bean")
       numPosts = \${numPosts + n}
     }
     branch {
-      n = http.get(url = "https://forum.dreamland.test/numPosts/elfo")
+      n = http.get(url = "https://forums.dreamland.test/numPosts/elfo")
       numPosts = \${numPosts + n}
     }
     `
@@ -492,7 +492,7 @@ describe('Parallel step parsing', () => {
                   call1: {
                     call: 'http.get',
                     args: {
-                      url: 'https://forum.dreamland.test/numPosts/bean',
+                      url: 'https://forums.dreamland.test/numPosts/bean',
                     },
                     result: 'n',
                   },
@@ -512,7 +512,7 @@ describe('Parallel step parsing', () => {
                   call2: {
                     call: 'http.get',
                     args: {
-                      url: 'https://forum.dreamland.test/numPosts/elfo',
+                      url: 'https://forums.dreamland.test/numPosts/elfo',
                     },
                     result: 'n',
                   },
@@ -537,11 +537,11 @@ describe('Parallel step parsing', () => {
       this_is_an_unknown_parameter = true
     )
     branch {
-      n = http.get(url = "https://forum.dreamland.test/numPosts/bean")
+      n = http.get(url = "https://forums.dreamland.test/numPosts/bean")
       numPosts = \${numPosts + n}
     }
     branch {
-      n = http.get(url = "https://forum.dreamland.test/numPosts/elfo")
+      n = http.get(url = "https://forums.dreamland.test/numPosts/elfo")
       numPosts = \${numPosts + n}
     }
     `
@@ -553,7 +553,7 @@ describe('Parallel step parsing', () => {
     const block = `
     parallel (shared = ["numPosts"])
 
-    n = http.get(url = "https://forum.dreamland.test/numPosts/bean")
+    n = http.get(url = "https://forums.dreamland.test/numPosts/bean")
     numPosts = \${numPosts + n}
     `
 
@@ -565,12 +565,74 @@ describe('Parallel step parsing', () => {
     numPosts = 0
 
     branch {
-      n = http.get(url = "https://forum.dreamland.test/numPosts/bean")
+      n = http.get(url = "https://forums.dreamland.test/numPosts/bean")
       numPosts = \${numPosts + n}
     }
     branch {
-      n = http.get(url = "https://forum.dreamland.test/numPosts/elfo")
+      n = http.get(url = "https://forums.dreamland.test/numPosts/elfo")
       numPosts = \${numPosts + n}
+    }
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+})
+
+describe('Try-catch statement parsing', () => {
+  it('parses try-catch without errors', () => {
+    const block = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    } catch (err) {
+      if (\${err.code == 404}) {
+        return "Not found"
+      }
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      try: {
+        steps: [
+          {
+            call1: {
+              call: 'http.get',
+              args: {
+                url: 'https://visit.dreamland.test/',
+              },
+              result: 'response',
+            },
+          },
+        ],
+      },
+      except: {
+        as: 'err',
+        steps: [
+          {
+            switch1: {
+              switch: [
+                {
+                  condition: '${err.code == 404}',
+                  steps: [
+                    {
+                      return1: {
+                        return: 'Not found',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('throws on try without catch', () => {
+    const block = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
     }
     `
 
