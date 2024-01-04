@@ -32,7 +32,6 @@ import {
 } from './lexer.js'
 import {
   AssignStep,
-  GWAssignment,
   NamedWorkflowStep,
   ReturnStep,
   GWArguments,
@@ -461,9 +460,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       let concurrencyLimit: number | undefined = undefined
 
       if (parameterNode) {
-        const optionalParameters: GWAssignment[] =
-          this.visit(parameterNode) ?? []
-        optionalParameters.forEach(([key, val]) => {
+        const optionalParameters: GWArguments = this.visit(parameterNode) ?? {}
+        for (const key in optionalParameters) {
+          const val = optionalParameters[key]
+
           if (key === 'shared') {
             if (
               !(Array.isArray(val) && val.every((x) => typeof x === 'string'))
@@ -493,7 +493,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
           } else {
             throw new Error(`Unknown branch parameter: ${key}`)
           }
-        })
+        }
       }
       return { shared, concurrencyLimit, exceptionPolicy }
     }
