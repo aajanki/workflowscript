@@ -19,7 +19,9 @@ export class WorkflowApp {
   }
 
   render(): object {
-    return new Map(this.subworkflows.map((wf) => [wf.name, wf.renderBody()]))
+    return Object.fromEntries(
+      new Map(this.subworkflows.map((wf) => [wf.name, wf.renderBody()])),
+    )
   }
 }
 

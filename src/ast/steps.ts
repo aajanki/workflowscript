@@ -15,6 +15,10 @@ export interface NamedWorkflowStep {
   step: WorkflowStep
 }
 
+export function namedStep(name: string, step: WorkflowStep) {
+  return { name, step }
+}
+
 // https://cloud.google.com/workflows/docs/reference/syntax/variables#assign-step
 export class AssignStep implements WorkflowStep {
   readonly assignments: GWAssignment[]
@@ -188,9 +192,9 @@ export class ForStep implements WorkflowStep {
 
     return {
       value: this.loopVariableName,
-      index: this.indexVariableName,
-      in: inValue,
-      range: range,
+      ...this.indexVariableName && { index: this.indexVariableName },
+      ...inValue && { in: inValue },
+      ...range && { range },
       steps: renderSteps(this.steps),
     }
   }

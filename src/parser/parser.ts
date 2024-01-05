@@ -44,7 +44,11 @@ import {
   TryExceptStep,
   RaiseStep,
 } from '../ast/steps.js'
-import { Subworkflow, WorkflowApp, WorkflowParameter } from '../ast/workflows.js'
+import {
+  Subworkflow,
+  WorkflowApp,
+  WorkflowParameter,
+} from '../ast/workflows.js'
 import { GWExpression, GWValue, GWVariableName } from '../ast/variables.js'
 
 export class WorfkflowScriptParser extends CstParser {

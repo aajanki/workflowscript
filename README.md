@@ -62,7 +62,6 @@ At least the following features should be implemented before this can be conside
 - `break`
 - `continue`
 - Better error messages
-- Bring in unit tests from gcp-workflows-tookit
 - Adapt all the validators from gcp-workflows-tookit
 
 Quality-of-life improvements to be implemented later:
