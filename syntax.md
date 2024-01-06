@@ -39,7 +39,7 @@ workflow main() {
   a = 1
 }
 
-workflow anotherWorkflow {
+workflow anotherWorkflow() {
   b = 10
   return ${2 * b}
 }
@@ -53,7 +53,13 @@ workflow multiply(firstFactor, secondFactor) {
 }
 ```
 
-Optional parameters are not yet supported.
+Parameters can be optional and have a default value that is used if a value is not provided in a subworkflow call:
+
+```
+workflow log(x, base=10) {
+  return ${"Compute logarithm of x"}
+}
+```
 
 ### Returning value from a subworkflow
 

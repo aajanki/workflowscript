@@ -251,12 +251,20 @@ export class WorfkflowScriptParser extends CstParser {
     })
   })
 
-  formalParameterList = this.RULE('formalParameterList', () => {
-    // TODO: default values
+  formalParameter = this.RULE('formalParameter', () => {
     this.CONSUME(Identifier)
-    this.MANY(() => {
-      this.CONSUME(Comma)
-      this.CONSUME2(Identifier)
+    this.OPTION(() => {
+      this.CONSUME(Equals)
+      this.SUBRULE(this.expression)
+    })
+  })
+
+  formalParameterList = this.RULE('formalParameterList', () => {
+    this.MANY_SEP({
+      SEP: Comma,
+      DEF: () => {
+        this.SUBRULE(this.formalParameter)
+      },
     })
   })
 
@@ -264,9 +272,7 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(Workflow)
     this.CONSUME(Identifier)
     this.CONSUME(LParentheses)
-    this.OPTION(() => {
-      this.SUBRULE(this.formalParameterList)
-    })
+    this.SUBRULE(this.formalParameterList)
     this.CONSUME(RParentheses)
     this.CONSUME(LCurly)
     this.SUBRULE(this.statementBlock)
@@ -570,20 +576,27 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    formalParameterList(ctx: any): NamedWorkflowStep[] {
-      return ctx.Identifier.map((x: IToken) => {
-        return { name: x.image }
-      })
+    formalParameter(ctx: any): WorkflowParameter {
+      const name = ctx.Identifier[0].image
+      if (ctx.expression) {
+        return { name, default: this.visit(ctx.expression) }
+      } else {
+        return { name }
+      }
+    }
+
+    formalParameterList(ctx: any): WorkflowParameter[] {
+      if (ctx.formalParameter) {
+        return ctx.formalParameter.map((x: CstNode) => this.visit(x))
+      } else {
+        return []
+      }
     }
 
     subworkflowDefinition(ctx: any): Subworkflow {
       const workflowName: string = ctx.Identifier[0].image
-      let params: WorkflowParameter[] = []
       const steps: NamedWorkflowStep[] = this.visit(ctx.statementBlock)
-
-      if (ctx.formalParameterList) {
-        params = this.visit(ctx.formalParameterList)
-      }
+      const params: WorkflowParameter[] = this.visit(ctx.formalParameterList)
 
       return new Subworkflow(workflowName, steps, params)
     }

@@ -57,7 +57,6 @@ At least the following features should be implemented before this can be conside
 - try/retry
 - for loops
 - paraller for
-- optional parameters in subworkflows
 - A proper parsing of expressions. Get rid of `${...}`
 - `break`
 - `continue`

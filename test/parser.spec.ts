@@ -27,6 +27,18 @@ describe('workflow definition parsing', () => {
     })
   })
 
+  it('parses subworkflow definition with optional parameters', () => {
+    const block = 'workflow mySubworkflow(color, age=42) { }'
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      mySubworkflow: {
+        params: ['color', { age: 42 }],
+        steps: [],
+      },
+    })
+  })
+
   it('parses subworkflow definition with body', () => {
     const block = `workflow addOne(a) {
       res = \${a + 1}
