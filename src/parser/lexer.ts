@@ -103,6 +103,11 @@ export const ExpressionLiteral = createToken({
   name: 'ExpressionLiteral',
   pattern: /\$\{[^}]*\}/,
 })
+const SingleLineComment = createToken({
+  name: 'SingleLineComment ',
+  pattern: /\/\/[^\n\r]*/,
+  group: Lexer.SKIPPED,
+})
 export const WhiteSpace = createToken({
   name: 'WhiteSpace',
   pattern: /\s+/,
@@ -138,6 +143,7 @@ export const tokens = [
   Parallel,
   Branch,
   Identifier,
+  SingleLineComment,
 ]
 
 export const workflowScriptLexer = new Lexer(tokens)

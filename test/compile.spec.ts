@@ -96,4 +96,25 @@ describe('WorkflowScript compiler', () => {
     `
     expect(() => compile(program)).to.throw
   })
+
+  it('ignores single-line comments', () => {
+    const program = `// Single line comments
+    workflow main() {
+      // Going to define a variable
+      a = 1 // <-- Defining a variable here
+      // Variable is now defined
+    }`
+
+    const compiled = compile(program)
+
+    const expected = YAML.parse(`
+    main:
+      steps:
+        - assign1:
+            assign:
+              - a: 1
+    `)
+
+    expect(YAML.parse(compiled)).to.deep.equal(expected)
+  })
 })

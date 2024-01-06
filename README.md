@@ -67,7 +67,6 @@ Quality-of-life improvements to be implemented later:
 - `return` without a value
 - `return subworkflow()`
 - finally block in try?
-- source code comments
 
 ## License
 

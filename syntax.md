@@ -307,3 +307,12 @@ TBD
 ## For loops
 
 TBD
+
+## Source code comments
+
+Comments are started with `//`. The rest of the line after `//` is ignored. There are no multiline comments.
+
+```javascript
+// This line is a comment
+var1 = 1
+```
