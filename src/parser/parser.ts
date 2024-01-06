@@ -23,6 +23,7 @@ import {
   RParentheses,
   RSquare,
   Raise,
+  Retry,
   Return,
   StringLiteral,
   True,
@@ -43,6 +44,7 @@ import {
   StepsStep,
   TryExceptStep,
   RaiseStep,
+  CustomRetryPolicy,
 } from '../ast/steps.js'
 import {
   Subworkflow,
@@ -190,13 +192,22 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(LCurly)
     this.SUBRULE(this.statementBlock)
     this.CONSUME(RCurly)
-    this.CONSUME(Catch)
-    this.CONSUME(LParentheses)
-    this.CONSUME(Identifier)
-    this.CONSUME(RParentheses)
-    this.CONSUME2(LCurly)
-    this.SUBRULE2(this.statementBlock)
-    this.CONSUME2(RCurly)
+    this.OPTION(() => {
+      this.CONSUME(Retry)
+      this.CONSUME(LParentheses)
+      this.SUBRULE(this.actualParameterList)
+      this.CONSUME(RParentheses)
+    })
+    this.OPTION2(() => {
+      this.CONSUME(Catch)
+      this.CONSUME2(LParentheses)
+      this.CONSUME(Identifier)
+      this.CONSUME2(RParentheses)
+      this.CONSUME2(LCurly)
+      this.SUBRULE2(this.statementBlock)
+      this.CONSUME2(RCurly)
+    })
+    // Check in post-processing that at least either retry or catch is specified
   })
 
   raiseStatement = this.RULE('raiseStatement', () => {
@@ -509,13 +520,33 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     tryStatement(ctx: any): NamedWorkflowStep {
+      // must have either retry or catch block (or both)
+      if (ctx.statementBlock.length <= 1 && !ctx.actualParameterList) {
+        throw new Error('retry or catch expected in a try statement')
+      }
+
       const trySteps = this.visit(ctx.statementBlock[0])
-      const catchSteps = this.visit(ctx.statementBlock[1])
-      const errorVariable = ctx.Identifier[0].image
+      const catchSteps =
+        ctx.statementBlock.length > 1
+          ? this.visit(ctx.statementBlock[1])
+          : undefined
+      const errorVariable = ctx.Identifier ? ctx.Identifier[0].image : undefined
+      let policy: string | CustomRetryPolicy | undefined = undefined
+
+      if (ctx.actualParameterList) {
+        const policyParameters: GWArguments | undefined = this.visit(
+          ctx.actualParameterList,
+        )
+        if (policyParameters) {
+          policy = parseRetryPolicy(policyParameters)
+        } else {
+          throw new Error('Retry policy required')
+        }
+      }
 
       return {
         name: stepNameGenerator.generate('try'),
-        step: new TryExceptStep(trySteps, catchSteps, undefined, errorVariable),
+        step: new TryExceptStep(trySteps, catchSteps, policy, errorVariable),
       }
     }
 
@@ -672,4 +703,64 @@ function combineConsecutiveAssignments(
 
 function compareStartOffsets(a: IToken, b: IToken) {
   return a.startOffset - b.startOffset
+}
+
+function setEqual<T>(a: Set<T>, b: Set<T>): boolean {
+  return a.size === b.size && [...a].every((x) => b.has(x))
+}
+
+function parseRetryPolicy(
+  policyParameters: GWArguments,
+): string | CustomRetryPolicy {
+  const defaultPolicyRequiredKays = new Set(['policy'])
+  const customPolicyRequiredKays = new Set([
+    'predicate',
+    'maxRetries',
+    'initialDelay',
+    'maxDelay',
+    'multiplier',
+  ])
+  const actualKeys = new Set(Object.keys(policyParameters))
+
+  if (setEqual(actualKeys, defaultPolicyRequiredKays)) {
+    // default policy
+    if (policyParameters.policy instanceof GWExpression) {
+      return policyParameters.policy.expression
+    } else {
+      throw new Error('Invalid retry policy')
+    }
+  } else if (setEqual(actualKeys, customPolicyRequiredKays)) {
+    // custom policy
+    if (!(policyParameters.predicate instanceof GWExpression)) {
+      throw new Error('Invalid custom retry policy predicate')
+    }
+
+    if (typeof policyParameters.maxRetries !== 'number') {
+      throw new Error('Invalid custom retry policy maxRetries')
+    }
+
+    if (typeof policyParameters.initialDelay !== 'number') {
+      throw new Error('Invalid custom retry policy initalDelay')
+    }
+
+    if (typeof policyParameters.maxDelay !== 'number') {
+      throw new Error('Invalid custom retry policy maxDelay')
+    }
+
+    if (typeof policyParameters.multiplier !== 'number') {
+      throw new Error('Invalid custom retry policy multiplier')
+    }
+
+    return {
+      predicate: policyParameters.predicate.expression,
+      maxRetries: policyParameters.maxRetries,
+      backoff: {
+        initialDelay: policyParameters.initialDelay,
+        maxDelay: policyParameters.maxDelay,
+        multiplier: policyParameters.multiplier,
+      },
+    }
+  } else {
+    throw new Error('Invalid retry policy options')
+  }
 }

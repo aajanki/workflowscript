@@ -71,6 +71,11 @@ export const Try = createToken({
   pattern: /try/,
   longer_alt: Identifier,
 })
+export const Retry = createToken({
+  name: 'Retry',
+  pattern: /retry/,
+  longer_alt: Identifier,
+})
 export const Catch = createToken({
   name: 'Catch',
   pattern: /catch/,
@@ -125,6 +130,7 @@ export const tokens = [
   If,
   Else,
   Try,
+  Retry,
   Catch,
   Raise,
   Return,

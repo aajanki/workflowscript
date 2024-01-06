@@ -270,10 +270,6 @@ export class ReturnStep implements WorkflowStep {
   }
 }
 
-export type DefaultRetryPolicy =
-  | 'http.default_retry'
-  | 'http.default_retry_non_idempotent'
-
 export interface CustomRetryPolicy {
   predicate: string
   maxRetries: number
@@ -296,7 +292,7 @@ export class TryExceptStep implements WorkflowStep {
   constructor(
     steps: NamedWorkflowStep[],
     exceptSteps: NamedWorkflowStep[],
-    retryPolicy?: DefaultRetryPolicy | CustomRetryPolicy,
+    retryPolicy?: string | CustomRetryPolicy,
     errorMap?: GWVariableName,
   ) {
     this.trySteps = steps
@@ -324,15 +320,22 @@ export class TryExceptStep implements WorkflowStep {
       }
     }
 
+    let except
+    if (this.errorMap !== undefined || this.exceptSteps !== undefined) {
+      except = {
+        as: this.errorMap,
+        steps: renderSteps(this.exceptSteps),
+      }
+    } else {
+      except = undefined
+    }
+
     return {
       try: {
         steps: renderSteps(this.trySteps),
       },
       ...(retry && { retry }),
-      except: {
-        as: this.errorMap,
-        steps: renderSteps(this.exceptSteps),
-      },
+      ...(except && { except }),
     }
   }
 

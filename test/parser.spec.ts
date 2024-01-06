@@ -590,7 +590,7 @@ describe('Parallel step parsing', () => {
   })
 })
 
-describe('Try-catch statement parsing', () => {
+describe('Try-retry-catch statement parsing', () => {
   it('parses try-catch without errors', () => {
     const block = `
     try {
@@ -641,11 +641,196 @@ describe('Try-catch statement parsing', () => {
     })
   })
 
+  it('parses a try with a default retry policy without errors', () => {
+    const block = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    } retry (policy = \${http.default_retry})
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      try: {
+        steps: [
+          {
+            call1: {
+              call: 'http.get',
+              args: {
+                url: 'https://visit.dreamland.test/',
+              },
+              result: 'response',
+            },
+          },
+        ],
+      },
+      retry: '${http.default_retry}',
+    })
+  })
+
+  it('parses a try with a custom retry policy without errors', () => {
+    const block = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    }
+    retry (predicate = \${http.default_retry_predicate}, maxRetries = 10, initialDelay = 3.0, maxDelay = 60, multiplier = 1.5)
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      try: {
+        steps: [
+          {
+            call1: {
+              call: 'http.get',
+              args: {
+                url: 'https://visit.dreamland.test/',
+              },
+              result: 'response',
+            },
+          },
+        ],
+      },
+      retry: {
+        predicate: '${http.default_retry_predicate}',
+        max_retries: 10,
+        backoff: {
+          initial_delay: 3.0,
+          max_delay: 60,
+          multiplier: 1.5,
+        },
+      },
+    })
+  })
+
+  it('parses a try-retry-catch without errors', () => {
+    const block = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    }
+    retry (policy = \${http.default_retry})
+    catch (err) {
+      if (\${err.code == 404}) {
+        return "Not found"
+      }
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      try: {
+        steps: [
+          {
+            call1: {
+              call: 'http.get',
+              args: {
+                url: 'https://visit.dreamland.test/',
+              },
+              result: 'response',
+            },
+          },
+        ],
+      },
+      retry: '${http.default_retry}',
+      except: {
+        as: 'err',
+        steps: [
+          {
+            switch1: {
+              switch: [
+                {
+                  condition: '${err.code == 404}',
+                  steps: [
+                    {
+                      return1: {
+                        return: 'Not found',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('throws if a retry policy is not defined', () => {
+    const block1 = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    }
+    retry
+    `
+
+    const block2 = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    }
+    retry ()
+    `
+
+    expect(() => parseStatement(block1)).to.throw()
+    expect(() => parseStatement(block2)).to.throw()
+  })
+
+  it('throws an error if custom retry policy is only partially defined', () => {
+    const block = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    }
+    retry (predicate = \${http.default_retry_predicate}, maxRetries = 10)
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
+  it('throws an error if both default and custom retry policy are defined', () => {
+    const block = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    }
+    retry (policy = \${http.default_retry}, predicate = \${http.default_retry_predicate}, maxRetries = 10, initialDelay = 3, maxDelay = 60, multiplier = 2)
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
   it('throws on try without catch', () => {
     const block = `
     try {
       response = http.get(url = "https://visit.dreamland.test/")
     }
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
+  it('try can have only one catch block', () => {
+    const block = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    }
+    catch (err) {
+      raise \${err}
+    }
+    catch (err) {
+      if (\${err.code == 404}) {
+        return "Not found"
+      }
+    }
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
+  it('try can have only one retry block', () => {
+    const block = `
+    try {
+      response = http.get(url = "https://visit.dreamland.test/")
+    }
+    retry (policy = \${http.default_retry})
+    retry (policy = \${http.default_retry})
     `
 
     expect(() => parseStatement(block)).to.throw()

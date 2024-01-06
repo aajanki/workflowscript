@@ -54,12 +54,11 @@ This is alpha quality software! Not all workflow features are supported yet.
 
 At least the following features should be implemented before this can be considered usable:
 
-- try/retry
 - for loops
 - paraller for
-- A proper parsing of expressions. Get rid of `${...}`
 - `break`
 - `continue`
+- A proper parsing of expressions. Get rid of `${...}`
 - Better error messages
 - Adapt all the validators from gcp-workflows-tookit
 

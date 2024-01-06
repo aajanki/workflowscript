@@ -64,7 +64,7 @@ workflow log(x, base=10) {
 ### Returning value from a subworkflow
 
 ```javascript
-return 'Success'
+return "Success"
 ```
 
 The returned value can be an expression:
@@ -80,7 +80,7 @@ At the moment, return must always have a value. A plain `return` is not supporte
 The WorkflowScript statement
 
 ```javascript
-name = 'Bean'
+name = "Bean"
 ```
 
 will be compiled to an [assign step](https://cloud.google.com/workflows/docs/reference/syntax/variables#assign-step):
@@ -96,7 +96,7 @@ will be compiled to an [assign step](https://cloud.google.com/workflows/docs/ref
 The WorkflowScript statement
 
 ```javascript
-response = http.get((url = 'https://www.example.com/path'))
+response = http.get((url = "https://www.example.com/path"))
 ```
 
 will be compiled to a [call step](https://cloud.google.com/workflows/docs/reference/syntax/calls):
@@ -219,9 +219,9 @@ The WorkflowScript statement
 
 ```javascript
 try {
-  http.get((url = 'https://visit.dreamland.test/'))
+  http.get((url = "https://visit.dreamland.test/"))
 } catch (err) {
-  return 'Error!'
+  return "Error!"
 }
 ```
 
@@ -244,7 +244,42 @@ try1:
 
 The error variable and other variables created inside the catch block are accessible only in that block's scope (similar to [the variable scoping in Workflows](https://cloud.google.com/workflows/docs/reference/syntax/catching-errors#variable-scope)).
 
-TOOD retry
+Failing steps can be retried with a retry policy. See the [documentation for GCP retry step](https://cloud.google.com/workflows/docs/reference/syntax/retrying).
+
+There are two default retry policies: `http.default_retry` and `http.default_retry_non_idempotent`. The syntax for default retry policy is the following:
+
+```javascript
+try {
+  http.get((url = "https://visit.dreamland.test/"))
+}
+retry (policy = "http.default_retry")
+```
+
+A custom retry policy is defined by specifying all of the following parameters:
+- `predicate`: Name of the rule to define which errors retried. "http.default_retry", "http.default_retry_non_idempotent" or a subworkflow name
+- `maxRetries`: Maximum number of times a step will be retried, not counting the initial step execution attempt.
+- `initialDelay`: delay in seconds between the initial failure and the first retry.
+- `maxDelay`: maximum delay in seconds between retries.
+- `multiplier`: multiplier applied to the previous delay to calculate the delay for the subsequent retry.
+
+```javascript
+try {
+  http.get((url = "https://visit.dreamland.test/"))
+}
+retry (predicate = http.default_retry_predicate, maxRetries = 10, initialDelay = 2.5, maxDelay = 60, multiplier = 1.5)
+```
+
+Retry and catch blocks can be combined like this:
+
+```javascript
+try {
+  http.get((url = "https://visit.dreamland.test/"))
+}
+retry (policy = "http.default_retry")
+catch (err) {
+  return "Error!"
+}
+```
 
 ## Raising errors
 
@@ -258,7 +293,7 @@ will be compiled to the following [raise block](https://cloud.google.com/workflo
 
 ```yaml
 raise1:
-  raise: 'Error!'
+  raise: "Error!"
 ```
 
 The error can be a string, a map or an expression that evaluates to string or map.
