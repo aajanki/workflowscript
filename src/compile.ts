@@ -67,6 +67,9 @@ function createAst(tokens: IToken[]): WorkflowApp {
   return ast
 }
 
-if (import.meta.url.endsWith(process.argv[1])) {
+if (
+  import.meta.url.endsWith(process.argv[1]) ||
+  process.argv[1].endsWith('/wfscompile')
+) {
   cliMain()
 }
