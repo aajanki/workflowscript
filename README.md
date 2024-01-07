@@ -31,6 +31,12 @@ The source can also be piped to the compile.js:
 cat examples/hello.wfs | node dist/compile.js
 ```
 
+Alternatively, the compiler can be called as `wfscompile` npm script:
+
+```shell
+npx wfscompile examples/hello.wfs
+```
+
 The compile command will output the workflows YAML on stdout.
 
 See [WorkflowScript language syntax](syntax.md) for a more detailed specification.

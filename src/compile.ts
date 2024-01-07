@@ -38,7 +38,16 @@ function cliMain() {
     inp = args[0]
   }
 
-  console.log(compileFile(inp))
+  try {
+    console.log(compileFile(inp))
+  } catch (err) {
+    if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
+      console.error('File not found')
+      process.exit(1)
+    } else {
+      throw err
+    }
+  }
 }
 
 function tokenize(program: string): IToken[] {
