@@ -16,6 +16,9 @@
     "format": "prettier . --write",
     "compile-workflowscript": "npm run build && node dist/compile.js"
   },
+  "bin": {
+    "wfscompile": "./dist/compile.js"
+  },
   "author": "Antti Ajanki <antti.ajanki@iki.fi>",
   "license": "MIT",
   "dependencies": {

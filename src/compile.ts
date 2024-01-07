@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /* Functions for compiling WorkflowScript program to GCP Workflows YAML.
  *
  * This module can be called as script. An input filename can be given as
