@@ -21,7 +21,7 @@ ${a + b}
 
 ${args.user.id}
 
-${name === "Bean"}
+${name == "Bean"}
 
 ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
 
