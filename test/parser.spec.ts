@@ -3,6 +3,10 @@ import { CstNode } from 'chevrotain'
 import { workflowScriptLexer } from '../src/parser/lexer.js'
 import { WorfkflowScriptParser, createVisitor } from '../src/parser/parser.js'
 
+beforeEach(() => {
+  visitor.reset()
+})
+
 describe('workflow definition parsing', () => {
   it('parses empty subworkflow definition', () => {
     const block = 'workflow main() { }'
@@ -918,13 +922,13 @@ describe('Expression parsing', () => {
   })
 })
 
+const parser = new WorfkflowScriptParser()
+const visitor = createVisitor(parser)
+
 function parseOneRule(
   codeBlock: string,
   parseRule: (parser: WorfkflowScriptParser) => CstNode,
 ) {
-  const parser = new WorfkflowScriptParser()
-  const visitor = createVisitor(parser)
-
   const lexResult = workflowScriptLexer.tokenize(codeBlock)
   parser.input = lexResult.tokens
 

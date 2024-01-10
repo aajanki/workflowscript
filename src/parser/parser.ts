@@ -300,12 +300,18 @@ export class WorfkflowScriptParser extends CstParser {
 export function createVisitor(parserInstance: WorfkflowScriptParser) {
   const BaseWorkflowscriptCstVisitor =
     parserInstance.getBaseCstVisitorConstructor()
-  const stepNameGenerator = new StepNameGenerator()
 
   class WorkflowscriptVisitor extends BaseWorkflowscriptCstVisitor {
+    stepNameGenerator: StepNameGenerator
+
     constructor() {
       super()
       this.validateVisitor()
+      this.stepNameGenerator = new StepNameGenerator()
+    }
+
+    reset() {
+      this.stepNameGenerator.reset()
     }
 
     object(ctx: any): Record<string, GWValue> {
@@ -389,7 +395,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         }
       } else {
         return {
-          name: stepNameGenerator.generate('assign'),
+          name: this.stepNameGenerator.generate('assign'),
           step: new AssignStep([[varName, this.visit(ctx.expression[0])]]),
         }
       }
@@ -416,7 +422,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     callExpression(ctx: any): NamedWorkflowStep {
       return {
-        name: stepNameGenerator.generate('call'),
+        name: this.stepNameGenerator.generate('call'),
         step: new CallStep(
           this.visit(ctx.functionName),
           this.visit(ctx.actualParameterList),
@@ -445,7 +451,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
 
       return {
-        name: stepNameGenerator.generate('switch'),
+        name: this.stepNameGenerator.generate('switch'),
         step: new SwitchStep(branches),
       }
     }
@@ -461,7 +467,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         this.optionalBranchParameters(ctx.actualParameterList)
 
       return {
-        name: stepNameGenerator.generate('parallel'),
+        name: this.stepNameGenerator.generate('parallel'),
         step: new ParallelStep(
           branches,
           shared,
@@ -545,7 +551,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
 
       return {
-        name: stepNameGenerator.generate('try'),
+        name: this.stepNameGenerator.generate('try'),
         step: new TryExceptStep(trySteps, catchSteps, policy, errorVariable),
       }
     }
@@ -563,14 +569,14 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
 
       return {
-        name: stepNameGenerator.generate('raise'),
+        name: this.stepNameGenerator.generate('raise'),
         step: new RaiseStep(value),
       }
     }
 
     returnStatement(ctx: any): NamedWorkflowStep {
       return {
-        name: stepNameGenerator.generate('return'),
+        name: this.stepNameGenerator.generate('return'),
         step: new ReturnStep(this.visit(ctx.expression[0])),
       }
     }
@@ -650,7 +656,11 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 }
 
 class StepNameGenerator {
-  counters = new Map<string, number>()
+  private counters: Map<string, number>
+
+  constructor() {
+    this.counters = new Map<string, number>()
+  }
 
   generate(prefix: string): string {
     const i = this.counters.get(prefix) ?? 1
@@ -658,6 +668,10 @@ class StepNameGenerator {
     this.counters.set(prefix, i + 1)
 
     return `${prefix}${i}`
+  }
+
+  reset() {
+    this.counters = new Map<string, number>()
   }
 }
 
