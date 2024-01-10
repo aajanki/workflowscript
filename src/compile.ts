@@ -30,30 +30,32 @@ export function compileFile(path: fs.PathOrFileDescriptor): string {
 }
 
 function cliMain() {
-  let inp: fs.PathOrFileDescriptor
   const args = process.argv.slice(2)
-  if (args.length === 0 || args[0] === '-') {
-    inp = process.stdin.fd
-  } else {
-    inp = args[0]
-  }
 
-  try {
-    console.log(compileFile(inp))
-  } catch (err) {
-    if (err instanceof Error && 'code' in err && err.code === 'ENOENT') {
-      console.error(`Error: "${inp}" not found`)
-      process.exit(1)
-    } else if (err instanceof Error && 'code' in err && err.code === 'EISDIR') {
-      console.error(`Error: "${inp}" is a directory`)
-      process.exit(1)
-    } else if (err instanceof Error && 'code' in err && err.code === 'EAGAIN' && inp === process.stdin.fd) {
-      // Reading from stdin if there's no input causes error. This is a bug in node
-      console.error('Error: Failed to read from stdin')
-      process.exit(1)
-    } else {
-      throw err
-    }
+  if (args.length === 0) {
+    console.log(compileFile(process.stdin.fd))
+  } else {
+    args.forEach((inputFile) => {
+      const inp = inputFile === '-' ? process.stdin.fd : inputFile
+
+      try {
+        console.log(compileFile(inp))
+      } catch (err) {
+        if (isIoError(err, 'ENOENT')) {
+          console.error(`Error: "${inp}" not found`)
+          process.exit(1)
+        } else if (isIoError(err, 'EISDIR')) {
+          console.error(`Error: "${inp}" is a directory`)
+          process.exit(1)
+        } else if (isIoError(err, 'EAGAIN') && inp === process.stdin.fd) {
+          // Reading from stdin if there's no input causes error. This is a bug in node
+          console.error('Error: Failed to read from stdin')
+          process.exit(1)
+        } else {
+          throw err
+        }
+      }
+    })
   }
 }
 
@@ -81,6 +83,10 @@ function createAst(tokens: IToken[]): WorkflowApp {
   }
 
   return ast
+}
+
+function isIoError(err: unknown, errorCode: string): boolean {
+  return err instanceof Error && 'code' in err && err.code == errorCode
 }
 
 if (
