@@ -42,7 +42,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     object(ctx: any): Record<string, GWValue> {
-      return Object.fromEntries(ctx.objectItem.map((x: any) => this.visit(x)))
+      return Object.fromEntries(ctx.objectItem.map((x: CstNode) => this.visit(x)))
     }
 
     objectItem(ctx: any): [string, GWValue] {
@@ -53,7 +53,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     array(ctx: any): GWValue[] {
-      return ctx.expression.map((val: any) => this.visit(val))
+      return ctx.expression.map((val: CstNode) => this.visit(val))
     }
 
     expression(ctx: any): GWValue {
@@ -105,7 +105,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     variableReference(ctx: any): string {
       return ctx.subscriptReference
-        .map((ref: CstNode) => this.visit(ref))
+        .map((ref: CstNode) => this.visit(ref) as string)
         .join('.')
     }
 
@@ -331,7 +331,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     statementBlock(ctx: any): NamedWorkflowStep[] {
       if (ctx.statement) {
         const steps: NamedWorkflowStep[] = ctx.statement.map(
-          (statementCtx: any) => this.visit(statementCtx),
+          (statementCtx: CstNode) => this.visit(statementCtx),
         )
 
         return combineConsecutiveAssignments(steps)
@@ -368,7 +368,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     program(ctx: any): WorkflowApp {
       let workflows: Subworkflow[]
       if (ctx.subworkflowDefinition) {
-        workflows = ctx.subworkflowDefinition.map((subctx: any) =>
+        workflows = ctx.subworkflowDefinition.map((subctx: CstNode) =>
           this.visit(subctx),
         )
       } else {
@@ -402,8 +402,8 @@ class StepNameGenerator {
   }
 }
 
-function unescapeBackslashes(str: string) {
-  return JSON.parse(str)
+function unescapeBackslashes(str: string): string {
+  return JSON.parse(str) as string
 }
 
 /**
