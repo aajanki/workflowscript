@@ -13,7 +13,8 @@
 
 import { IToken } from 'chevrotain'
 import { workflowScriptLexer } from './parser/lexer.js'
-import { WorfkflowScriptParser, createVisitor } from './parser/parser.js'
+import { WorfkflowScriptParser } from './parser/parser.js'
+import { createVisitor } from './parser/cstvisitor.js'
 import { WorkflowApp, toYAMLString } from './ast/workflows.js'
 import * as fs from 'node:fs'
 

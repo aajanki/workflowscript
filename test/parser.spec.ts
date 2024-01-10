@@ -1,7 +1,8 @@
 import { expect } from 'chai'
 import { CstNode } from 'chevrotain'
 import { workflowScriptLexer } from '../src/parser/lexer.js'
-import { WorfkflowScriptParser, createVisitor } from '../src/parser/parser.js'
+import { WorfkflowScriptParser } from '../src/parser/parser.js'
+import { createVisitor } from '../src/parser/cstvisitor.js'
 
 beforeEach(() => {
   visitor.reset()
