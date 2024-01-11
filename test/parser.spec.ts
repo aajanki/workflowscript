@@ -889,6 +889,77 @@ describe('Try-retry-catch statement parsing', () => {
   })
 })
 
+describe('For loop parsing', () => {
+  it('parses for loop without errors', () => {
+    const block = `
+    for (x in [1, 2, 3]) {
+      total = \${total + x}
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      for: {
+        value: 'x',
+        in: [1, 2, 3],
+        steps: [
+          {
+            assign1: {
+              assign: [{ total: '${total + x}' }],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('parses a for loop over an list expression', () => {
+    const block = `
+    for (key in \${keys(map)}) {
+      total = \${total + map[key]}
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      for: {
+        value: 'key',
+        in: '${keys(map)}',
+        steps: [
+          {
+            assign1: {
+              assign: [{ total: '${total + map[key]}' }],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('parses a for loop with an empty body', () => {
+    const block = `
+    for (x in [1, 2, 3]) { }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      for: {
+        value: 'x',
+        in: [1, 2, 3],
+        steps: [],
+      },
+    })
+  })
+
+  it('fails to parse for in number', () => {
+    const block = `
+    for (x in 999) { }
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+})
+
 describe('Expression parsing', () => {
   it('parses escaped quotes correctly', () => {
     const s = '"Tiabeanie \\"Bean\\" Mariabeanie de la Rochambeaux Grunkwitz"'

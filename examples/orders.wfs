@@ -1,9 +1,11 @@
 workflow main() {
-  oid = "ord123"
+  orderIds = ["ord1", "ord2", "ord3"]
 
-  orders = getOrders(orderId=${oid})
+  for (oid in ${orderIds}) {
+    orders = getOrders(orderId=${oid})
 
-  sys.log(text=${"Orders: " + orders})
+    sys.log(text=${"Orders: " + orders})
+  }
 }
 
 workflow getOrders(orderId) {

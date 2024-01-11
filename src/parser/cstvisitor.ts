@@ -15,6 +15,7 @@ import {
   TryExceptStep,
   RaiseStep,
   CustomRetryPolicy,
+  ForStep,
 } from '../ast/steps.js'
 import {
   Subworkflow,
@@ -42,7 +43,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     object(ctx: any): Record<string, GWValue> {
-      return Object.fromEntries(ctx.objectItem.map((x: CstNode) => this.visit(x)))
+      return Object.fromEntries(
+        ctx.objectItem.map((x: CstNode) => this.visit(x)),
+      )
     }
 
     objectItem(ctx: any): [string, GWValue] {
@@ -69,6 +72,16 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return this.visit(ctx.array)
       } else if (ctx.object) {
         return this.visit(ctx.object)
+      } else if (ctx.ExpressionLiteral) {
+        return new GWExpression(ctx.ExpressionLiteral[0].image.slice(2, -1))
+      } else {
+        throw new Error('not implemented')
+      }
+    }
+
+    arrayOrArrayExpression(ctx: any) {
+      if (ctx.array) {
+        return this.visit(ctx.array)
       } else if (ctx.ExpressionLiteral) {
         return new GWExpression(ctx.ExpressionLiteral[0].image.slice(2, -1))
       } else {
@@ -180,6 +193,17 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return {
         name: this.stepNameGenerator.generate('switch'),
         step: new SwitchStep(branches),
+      }
+    }
+
+    forStatement(ctx: any): NamedWorkflowStep {
+      const loopVariable = ctx.Identifier[0].image
+      const steps = this.visit(ctx.statementBlock)
+      const expression = this.visit(ctx.arrayOrArrayExpression)
+
+      return {
+        name: this.stepNameGenerator.generate('for'),
+        step: new ForStep(steps, loopVariable, expression),
       }
     }
 
@@ -315,6 +339,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return this.visit(ctx.callExpression)
       } else if (ctx.ifStatement) {
         return this.visit(ctx.ifStatement[0])
+      } else if (ctx.forStatement) {
+        return this.visit(ctx.forStatement[0])
       } else if (ctx.parallelStatement) {
         return this.visit(ctx.parallelStatement[0])
       } else if (ctx.tryStatement) {

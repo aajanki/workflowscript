@@ -16,79 +16,89 @@ export const False = createToken({
 })
 export const Null = createToken({
   name: 'Null',
-  pattern: /null/,
+  pattern: 'null',
   longer_alt: Identifier,
 })
 export const LParentheses = createToken({
   name: 'LeftParentheses',
-  pattern: /\(/,
+  pattern: '(',
 })
 export const RParentheses = createToken({
   name: 'RightParentheses',
-  pattern: /\)/,
+  pattern: ')',
 })
-export const LCurly = createToken({ name: 'Left curly bracket', pattern: /{/ })
-export const RCurly = createToken({ name: 'Right curly bracket', pattern: /}/ })
+export const LCurly = createToken({ name: 'Left curly bracket', pattern: '{' })
+export const RCurly = createToken({ name: 'Right curly bracket', pattern: '}' })
 export const LSquare = createToken({
   name: 'LeftSquareBracket',
-  pattern: /\[/,
+  pattern: '[',
 })
 export const RSquare = createToken({
   name: 'RightSquareBracket',
-  pattern: /]/,
+  pattern: ']',
 })
-export const Comma = createToken({ name: 'Comma', pattern: /,/ })
-export const Dot = createToken({ name: 'Dot', pattern: /\./ })
-export const Colon = createToken({ name: 'Colon', pattern: /:/ })
-export const Equals = createToken({ name: 'Equals', pattern: /=/ })
+export const Comma = createToken({ name: 'Comma', pattern: ',' })
+export const Dot = createToken({ name: 'Dot', pattern: '.' })
+export const Colon = createToken({ name: 'Colon', pattern: ':' })
+export const Equals = createToken({ name: 'Equals', pattern: '=' })
 export const If = createToken({
   name: 'If',
-  pattern: /if/,
+  pattern: 'if',
   longer_alt: Identifier,
 })
 export const Else = createToken({
   name: 'Else',
-  pattern: /else/,
+  pattern: 'else',
   longer_alt: Identifier,
 })
 export const Return = createToken({
   name: 'Return',
-  pattern: /return/,
+  pattern: 'return',
   longer_alt: Identifier,
 })
 export const Parallel = createToken({
   name: 'Parallel',
-  pattern: /parallel/,
+  pattern: 'parallel',
   longer_alt: Identifier,
 })
 export const Branch = createToken({
   name: 'Branch',
-  pattern: /branch/,
+  pattern: 'branch',
   longer_alt: Identifier,
 })
 export const Try = createToken({
   name: 'Try',
-  pattern: /try/,
+  pattern: 'try',
   longer_alt: Identifier,
 })
 export const Retry = createToken({
   name: 'Retry',
-  pattern: /retry/,
+  pattern: 'retry',
   longer_alt: Identifier,
 })
 export const Catch = createToken({
   name: 'Catch',
-  pattern: /catch/,
+  pattern: 'catch',
   longer_alt: Identifier,
 })
 export const Raise = createToken({
   name: 'Raise',
-  pattern: /raise/,
+  pattern: 'raise',
+  longer_alt: Identifier,
+})
+export const For = createToken({
+  name: 'For',
+  pattern: 'for',
+  longer_alt: Identifier,
+})
+export const In = createToken({
+  name: 'In',
+  pattern: 'in',
   longer_alt: Identifier,
 })
 export const Workflow = createToken({
   name: 'Workflow',
-  pattern: /workflow/,
+  pattern: 'workflow',
   longer_alt: Identifier,
 })
 export const StringLiteral = createToken({
@@ -138,6 +148,8 @@ export const tokens = [
   Retry,
   Catch,
   Raise,
+  For,
+  In,
   Return,
   Workflow,
   Parallel,

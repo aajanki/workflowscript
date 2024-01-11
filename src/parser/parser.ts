@@ -9,8 +9,10 @@ import {
   Equals,
   ExpressionLiteral,
   False,
+  For,
   Identifier,
   If,
+  In,
   LCurly,
   LParentheses,
   LSquare,
@@ -78,6 +80,13 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.CONSUME(True) },
       { ALT: () => this.CONSUME(False) },
       { ALT: () => this.CONSUME(Null) },
+      { ALT: () => this.CONSUME(ExpressionLiteral) },
+    ])
+  })
+
+  arrayOrArrayExpression = this.RULE('arrayOrArrayExpression', () => {
+    this.OR([
+      { ALT: () => this.SUBRULE(this.array) },
       { ALT: () => this.CONSUME(ExpressionLiteral) },
     ])
   })
@@ -196,6 +205,18 @@ export class WorfkflowScriptParser extends CstParser {
     ])
   })
 
+  forStatement = this.RULE('forStatement', () => {
+    this.CONSUME(For)
+    this.CONSUME(LParentheses)
+    this.CONSUME(Identifier)
+    this.CONSUME(In)
+    this.SUBRULE(this.arrayOrArrayExpression)
+    this.CONSUME(RParentheses)
+    this.CONSUME(LCurly)
+    this.SUBRULE(this.statementBlock)
+    this.CONSUME(RCurly)
+  })
+
   parallelStatement = this.RULE('parallelStatement', () => {
     this.CONSUME(Parallel)
     this.OPTION(() => {
@@ -226,6 +247,7 @@ export class WorfkflowScriptParser extends CstParser {
       },
       { ALT: () => this.SUBRULE(this.callExpression) }, // a function call without assigning the return value
       { ALT: () => this.SUBRULE(this.ifStatement) },
+      { ALT: () => this.SUBRULE(this.forStatement) },
       { ALT: () => this.SUBRULE(this.parallelStatement) },
       { ALT: () => this.SUBRULE(this.tryStatement) },
       { ALT: () => this.SUBRULE(this.raiseStatement) },

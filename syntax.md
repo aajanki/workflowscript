@@ -300,11 +300,38 @@ The error can be a string, a map or an expression that evaluates to string or ma
 
 Raised errors can be handled by a try statement.
 
-## Parallel for
-
-TBD
-
 ## For loops
+
+The WorkflowScript fragment
+
+```javascript
+total = 0
+for (i in [1, 2, 3]) {
+  total = ${total + i}
+}
+```
+
+will be compiled to the following [for loop statement](https://cloud.google.com/workflows/docs/reference/syntax/iteration)
+
+```yaml
+steps:
+  - assign1:
+      assign:
+        - total: 0
+  - for1:
+      for:
+        value: i
+        in:
+          - 1
+          - 2
+          - 3
+        steps:
+          - assign2:
+              assign:
+                - total: ${total + i}
+```
+
+## Parallel for
 
 TBD
 
