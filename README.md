@@ -60,10 +60,7 @@ This is alpha quality software! Not all workflow features are supported yet.
 
 At least the following features should be implemented before this can be considered usable:
 
-- index variable in for loops
 - paraller for
-- `break`
-- `continue`
 - A proper parsing of expressions. Get rid of `${...}`
 - Better error messages
 - Adapt all the validators from gcp-workflows-tookit
@@ -73,6 +70,7 @@ Quality-of-life improvements to be implemented later:
 - `return` without a value
 - `return subworkflow()`
 - finally block in try?
+- index variable in a for loop
 
 ## License
 

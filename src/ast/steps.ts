@@ -149,6 +149,24 @@ export class StepsStep implements WorkflowStep {
   }
 }
 
+export class NextStep implements WorkflowStep {
+  readonly target: string
+
+  constructor(target: string) {
+    this.target = target
+  }
+
+  render(): object {
+    return {
+      next: this.target,
+    }
+  }
+
+  nestedSteps(): NamedWorkflowStep[] {
+    return []
+  }
+}
+
 // https://cloud.google.com/workflows/docs/reference/syntax/iteration
 export class ForStep implements WorkflowStep {
   readonly steps: NamedWorkflowStep[]

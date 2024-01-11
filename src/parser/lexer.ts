@@ -96,6 +96,16 @@ export const In = createToken({
   pattern: 'in',
   longer_alt: Identifier,
 })
+export const Break = createToken({
+  name: 'Break',
+  pattern: 'break',
+  longer_alt: Identifier,
+})
+export const Continue = createToken({
+  name: 'Continue',
+  pattern: 'continue',
+  longer_alt: Identifier,
+})
 export const Workflow = createToken({
   name: 'Workflow',
   pattern: 'workflow',
@@ -150,6 +160,8 @@ export const tokens = [
   Raise,
   For,
   In,
+  Break,
+  Continue,
   Return,
   Workflow,
   Parallel,

@@ -951,6 +951,92 @@ describe('For loop parsing', () => {
     })
   })
 
+  it('parses continue in a for loop', () => {
+    const block = `
+    for (x in [1, 2, 3, 4]) {
+      if (\${x % 2 == 0}) {
+        continue
+      }
+
+      total = \${total + x}
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      for: {
+        value: 'x',
+        in: [1, 2, 3, 4],
+        steps: [
+          {
+            switch1: {
+              switch: [
+                {
+                  condition: '${x % 2 == 0}',
+                  steps: [
+                    {
+                      continue1: {
+                        next: 'continue',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+          {
+            assign1: {
+              assign: [{ total: '${total + x}' }],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('parses break in a for loop', () => {
+    const block = `
+    for (x in [1, 2, 3, 4]) {
+      if (\${total > 5}) {
+        break
+      }
+
+      total = \${total + x}
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      for: {
+        value: 'x',
+        in: [1, 2, 3, 4],
+        steps: [
+          {
+            switch1: {
+              switch: [
+                {
+                  condition: '${total > 5}',
+                  steps: [
+                    {
+                      break1: {
+                        next: 'break',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+          {
+            assign1: {
+              assign: [{ total: '${total + x}' }],
+            },
+          },
+        ],
+      },
+    })
+  })
+
   it('fails to parse for in number', () => {
     const block = `
     for (x in 999) { }

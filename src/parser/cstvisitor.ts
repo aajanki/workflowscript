@@ -16,6 +16,7 @@ import {
   RaiseStep,
   CustomRetryPolicy,
   ForStep,
+  NextStep,
 } from '../ast/steps.js'
 import {
   Subworkflow,
@@ -325,6 +326,20 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
+    breakStatement(): NamedWorkflowStep {
+      return {
+        name: this.stepNameGenerator.generate('break'),
+        step: new NextStep('break'),
+      }
+    }
+
+    continueStatement(): NamedWorkflowStep {
+      return {
+        name: this.stepNameGenerator.generate('continue'),
+        step: new NextStep('continue'),
+      }
+    }
+
     returnStatement(ctx: any): NamedWorkflowStep {
       return {
         name: this.stepNameGenerator.generate('return'),
@@ -347,6 +362,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return this.visit(ctx.tryStatement[0])
       } else if (ctx.raiseStatement) {
         return this.visit(ctx.raiseStatement[0])
+      } else if (ctx.breakStatement) {
+        return this.visit(ctx.breakStatement[0])
+      } else if (ctx.continueStatement) {
+        return this.visit(ctx.continueStatement[0])
       } else if (ctx.returnStatement) {
         return this.visit(ctx.returnStatement[0])
       } else {

@@ -331,6 +331,34 @@ steps:
                 - total: ${total + i}
 ```
 
+### Break and continue in a for loop
+
+Breaking out of loop:
+
+```javascript
+total = 0
+for (i in [1, 2, 3, 4]) {
+  if (${total > 5}) {
+    break
+  }
+
+  total = ${total + i}
+}
+```
+
+Continuing from the next iteration of a loop:
+
+```javascript
+total = 0
+for (i in [1, 2, 3, 4]) {
+  if (${i % 2 == 0}) {
+    continue
+  }
+
+  total = ${total + i}
+}
+```
+
 ## Parallel for
 
 TBD
