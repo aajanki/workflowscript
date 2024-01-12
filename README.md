@@ -41,6 +41,47 @@ The compile command will output the workflows YAML on stdout.
 
 See [WorkflowScript language syntax](syntax.md) for a more detailed specification.
 
+## Compiler API
+
+Calling the Workflow compiler from a Javascript application:
+
+```javascript
+import { compile } from 'dist/index.js'
+
+compile(fs.readFileSync('example/hello.wfs', 'utf8'))
+```
+
+Compiling when a source code file:
+
+```javascript
+import { compileFile } from 'dist/index.js'
+
+compileFile('example/hello.wfs')
+```
+
+## Validation
+
+The compiler checks the workflow for common errors. If it detects an error, it throws a WorkflowValidationError.
+
+Currently implemented validators:
+
+- `"duplicatedStepName"` checks that there are no duplicated step names in the workflow
+- `"duplicatedSubworkflowName"` checks that there are not duplicated subworkflow names
+- `"invalidWorkflowName"` checks that the workflow names are valid
+- `"missingJumpTarget"` checks that call and next steps targets exist
+- `"wrongNumberOfCallArguments"` checks that a correct number of arguments is provided in subworkflow calls
+
+It is possible to disable some validators by listing the names of validators-to-be-disabled as the second argument of the `compile()` or `compileFile()` function invocation. This might be handy, for example, if a validator is buggy and rejects a valid workflow. It is not possible to disable validators when calling as a script currently.
+
+```javascript
+import { compile } from 'dist/index.js'
+
+const workflowSource = 'workflow main() {}'
+const disabled = ['missingJumpTarget']
+
+compile(workflowSource, disabled)
+```
+
 ## Build
 
 ```shell
@@ -63,7 +104,6 @@ At least the following features should be implemented before this can be conside
 - paraller for
 - A proper parsing of expressions. Get rid of `${...}`
 - Better error messages
-- Adapt all the validators from gcp-workflows-tookit
 
 Quality-of-life improvements to be implemented later:
 

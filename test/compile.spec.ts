@@ -1,6 +1,8 @@
 import { expect } from 'chai'
-import { compile } from '../src/compile.js'
+import * as fs from 'node:fs'
+import { join } from 'node:path'
 import * as YAML from 'yaml'
+import { compile, compileFile } from '../src/compile.js'
 
 describe('WorkflowScript compiler', () => {
   it('compiles an empty workflow', () => {
@@ -69,6 +71,16 @@ describe('WorkflowScript compiler', () => {
     expect(YAML.parse(compiled)).to.deep.equal(expected)
   })
 
+  it('compiles examples without errors', () => {
+    const sampleDir = 'examples'
+    fs.readdirSync(sampleDir).forEach((fname) => {
+      const path = join(sampleDir, fname)
+      if (path.endsWith('.wfs') && !fs.statSync(path).isDirectory()) {
+        expect(() => compileFile(path)).not.to.throw()
+      }
+    })
+  })
+
   it('throws on syntax errors', () => {
     const program = `
     workflow main() {
@@ -116,5 +128,19 @@ describe('WorkflowScript compiler', () => {
     `)
 
     expect(YAML.parse(compiled)).to.deep.equal(expected)
+  })
+
+  it('throws validation errors', () => {
+    const program = `
+    workflow greetings() {
+      return "Hello"
+    }
+
+    workflow greetings() {
+      return "Hi"
+    }
+    `
+
+    expect(() => compile(program)).to.throw('duplicatedSubworkflowName')
   })
 })

@@ -17,17 +17,25 @@ import { WorfkflowScriptParser } from './parser/parser.js'
 import { createVisitor } from './parser/cstvisitor.js'
 import { WorkflowApp, toYAMLString } from './ast/workflows.js'
 import * as fs from 'node:fs'
+import { validate } from './ast/validation.js'
 
-export function compile(program: string): string {
+export function compile(
+  program: string,
+  disabledValidators: string[] = [],
+): string {
   const tokens = tokenize(program)
-  const ast = createAst(tokens)
+  const workflowApp = createAst(tokens)
+  validate(workflowApp, disabledValidators)
 
-  return toYAMLString(ast)
+  return toYAMLString(workflowApp)
 }
 
-export function compileFile(path: fs.PathOrFileDescriptor): string {
+export function compileFile(
+  path: fs.PathOrFileDescriptor,
+  disabledValidators: string[] = [],
+): string {
   const code = fs.readFileSync(path, 'utf8')
-  return compile(code)
+  return compile(code, disabledValidators)
 }
 
 function cliMain() {
