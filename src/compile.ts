@@ -17,7 +17,7 @@ import { WorfkflowScriptParser } from './parser/parser.js'
 import { createVisitor } from './parser/cstvisitor.js'
 import { WorkflowApp, toYAMLString } from './ast/workflows.js'
 import * as fs from 'node:fs'
-import { validate } from './ast/validation.js'
+import { WorkflowValidationError, validate } from './ast/validation.js'
 
 export function compile(
   program: string,
@@ -41,30 +41,42 @@ export function compileFile(
 function cliMain() {
   const args = process.argv.slice(2)
 
-  if (args.length === 0) {
-    console.log(compileFile(process.stdin.fd))
-  } else {
-    args.forEach((inputFile) => {
-      const inp = inputFile === '-' ? process.stdin.fd : inputFile
+  try {
+    if (args.length === 0) {
+      console.log(compileFile(process.stdin.fd))
+    } else {
+      args.forEach((inputFile) => {
+        const inp = inputFile === '-' ? process.stdin.fd : inputFile
 
-      try {
-        console.log(compileFile(inp))
-      } catch (err) {
-        if (isIoError(err, 'ENOENT')) {
-          console.error(`Error: "${inp}" not found`)
-          process.exit(1)
-        } else if (isIoError(err, 'EISDIR')) {
-          console.error(`Error: "${inp}" is a directory`)
-          process.exit(1)
-        } else if (isIoError(err, 'EAGAIN') && inp === process.stdin.fd) {
-          // Reading from stdin if there's no input causes error. This is a bug in node
-          console.error('Error: Failed to read from stdin')
-          process.exit(1)
-        } else {
-          throw err
+        try {
+          console.log(compileFile(inp))
+        } catch (err) {
+          if (isIoError(err, 'ENOENT')) {
+            console.error(`Error: "${inp}" not found`)
+            process.exit(1)
+          } else if (isIoError(err, 'EISDIR')) {
+            console.error(`Error: "${inp}" is a directory`)
+            process.exit(1)
+          } else if (isIoError(err, 'EAGAIN') && inp === process.stdin.fd) {
+            // Reading from stdin if there's no input causes error. This is a bug in node
+            console.error('Error: Failed to read from stdin')
+            process.exit(1)
+          } else {
+            throw err
+          }
         }
-      }
-    })
+      })
+    }
+  } catch (err) {
+    if (err instanceof WorkflowValidationError) {
+      console.error('Validation errors:')
+      err.issues.forEach((x) => {
+        console.error(`- ${x.message} (${x.type})`)
+      })
+      process.exit(1)
+    } else {
+      throw err
+    }
   }
 }
 
