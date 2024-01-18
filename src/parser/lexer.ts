@@ -160,6 +160,7 @@ export const For = createToken({
 export const In = createToken({
   name: 'In',
   pattern: 'in',
+  categories: [BinaryOperator],
   longer_alt: Identifier,
 })
 export const Break = createToken({

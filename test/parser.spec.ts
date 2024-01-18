@@ -1071,6 +1071,11 @@ describe('Expression parsing', () => {
     assertExpression('"King Z\\u00f8g"', 'King Zøg')
   })
 
+  it('parses lists', () => {
+    assertExpression('[1, 2, 3]', [1, 2, 3])
+    assertExpression('["Y", "Yes", 1]', ['Y', 'Yes', 1])
+  })
+
   it('parses binary operators', () => {
     assertExpression('0', 0)
     assertExpression('1 + 2', $('1 + 2'))
@@ -1106,6 +1111,14 @@ describe('Expression parsing', () => {
       $('inputOK and receiverReady'),
     )
     assertExpression('isEven or isPositive', $('isEven or isPositive'))
+  })
+
+  it('parses membership expressions', () => {
+    assertExpression('8 in luckyNumber', $('8 in luckyNumber'))
+    assertExpression(
+      '"Elfo" in ["Luci", "Elfo"]',
+      $('"Elfo" in ["Luci","Elfo"]'),
+    )
   })
 })
 
