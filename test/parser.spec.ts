@@ -1089,6 +1089,24 @@ describe('Expression parsing', () => {
     assertExpression('customers[99].name', $('customers[99].name'))
     assertExpression('host["ip_address"]', $('host["ip_address"]'))
   })
+
+  it('parses inequality operators', () => {
+    assertExpression('value > 100', $('value > 100'))
+    assertExpression('status >= 0', $('status >= 0'))
+    assertExpression('-1 < 0', $('-1 < 0'))
+    assertExpression('x <= 0', $('x <= 0'))
+    assertExpression('status != 0', $('status != 0'))
+    assertExpression('response != "ERROR"', $('response != "ERROR"'))
+    assertExpression('country == "Norge"', $('country == "Norge"'))
+  })
+
+  it('parses boolean operators', () => {
+    assertExpression(
+      'inputOK and receiverReady',
+      $('inputOK and receiverReady'),
+    )
+    assertExpression('isEven or isPositive', $('isEven or isPositive'))
+  })
 })
 
 const parser = new WorfkflowScriptParser()

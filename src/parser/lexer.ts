@@ -44,7 +44,7 @@ export const RSquare = createToken({
 export const Comma = createToken({ name: 'Comma', pattern: ',' })
 export const Dot = createToken({ name: 'Dot', pattern: '.' })
 export const Colon = createToken({ name: 'Colon', pattern: ':' })
-export const Equals = createToken({ name: 'Equals', pattern: '=' })
+export const Assignment = createToken({ name: 'Assignment', pattern: '=' })
 export const Plus = createToken({
   name: 'Plus',
   pattern: '+',
@@ -64,6 +64,48 @@ export const Division = createToken({
   name: 'Division',
   pattern: '/',
   categories: [BinaryOperator],
+})
+export const LessThanOrEqualTo = createToken({
+  name: 'LessThanOrEqualTo',
+  pattern: '<=',
+  categories: [BinaryOperator],
+})
+export const GreaterThanOrEqualTo = createToken({
+  name: 'GreaterThanOrEqualTo',
+  pattern: '>=',
+  categories: [BinaryOperator],
+})
+export const LessThan = createToken({
+  name: 'LessThan',
+  pattern: '<',
+  categories: [BinaryOperator],
+})
+export const GreaterThan = createToken({
+  name: 'GreaterThan',
+  pattern: '>',
+  categories: [BinaryOperator],
+})
+export const EqualTo = createToken({
+  name: 'EqualTo',
+  pattern: '==',
+  categories: [BinaryOperator],
+})
+export const NotEqualTo = createToken({
+  name: 'NotEqualTo',
+  pattern: '!=',
+  categories: [BinaryOperator],
+})
+export const And = createToken({
+  name: 'And',
+  pattern: 'and',
+  categories: [BinaryOperator],
+  longer_alt: Identifier,
+})
+export const Or = createToken({
+  name: 'Or',
+  pattern: 'or',
+  categories: [BinaryOperator],
+  longer_alt: Identifier,
 })
 export const If = createToken({
   name: 'If',
@@ -173,8 +215,16 @@ export const tokens = [
   RSquare,
   Comma,
   Dot,
+  LessThanOrEqualTo,
+  GreaterThanOrEqualTo,
+  LessThan,
+  GreaterThan,
+  EqualTo,
+  NotEqualTo,
+  And,
+  Or,
   Colon,
-  Equals,
+  Assignment,
   Plus,
   Minus,
   Multiplication,

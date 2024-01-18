@@ -38,7 +38,10 @@ export class GWVariableReference {
 }
 
 // Operator such as: +, -, <, ==, not
-interface GWOperation { operator: string; right: GWTerm }
+interface GWOperation {
+  operator: string
+  right: GWTerm
+}
 
 // expr: term (op term)*
 // term: VALUE | VARIABLE | LPAREN expr PAREN

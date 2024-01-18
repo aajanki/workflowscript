@@ -9,7 +9,7 @@ import {
   Continue,
   Dot,
   Else,
-  Equals,
+  Assignment,
   ExpressionLiteral,
   False,
   For,
@@ -126,7 +126,7 @@ export class WorfkflowScriptParser extends CstParser {
 
   assignmentStatement = this.RULE('assignmentStatement', () => {
     this.SUBRULE(this.variableReference)
-    this.CONSUME(Equals)
+    this.CONSUME(Assignment)
     this.OR([
       {
         GATE: this.BACKTRACK(this.callExpression),
@@ -149,7 +149,7 @@ export class WorfkflowScriptParser extends CstParser {
       SEP: Comma,
       DEF: () => {
         this.CONSUME(Identifier)
-        this.CONSUME(Equals)
+        this.CONSUME(Assignment)
         this.SUBRULE(this.expression)
       },
     })
@@ -289,7 +289,7 @@ export class WorfkflowScriptParser extends CstParser {
   formalParameter = this.RULE('formalParameter', () => {
     this.CONSUME(Identifier)
     this.OPTION(() => {
-      this.CONSUME(Equals)
+      this.CONSUME(Assignment)
       this.SUBRULE(this.expression)
     })
   })
