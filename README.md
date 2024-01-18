@@ -101,7 +101,7 @@ This is alpha quality software! Not all workflow features are supported yet.
 
 At least the following features should be implemented before this can be considered usable:
 
-- paraller for
+- parallel for
 - A proper parsing of expressions. Get rid of `${...}`
 - Better error messages
 

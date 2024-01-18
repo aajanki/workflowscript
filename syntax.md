@@ -8,7 +8,7 @@
 - Boolean (true/false, True/False, TRUE/FALSE)
 - null
 - Array: `[1, 2, 3]`
-- Map: `{temperature: -12, unit: "Celsius"}`
+- Map: `{"temperature": -12, "unit": "Celsius"}`
 
 ## Expressions
 

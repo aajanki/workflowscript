@@ -6,12 +6,12 @@ export type GWValue =
   | boolean
   | GWValue[]
   | { [key: string]: GWValue }
-  | GWExpression
+  | GWExpressionLiteral
 
 export function renderGWValue(
   val: GWValue,
 ): null | string | number | boolean | object {
-  if (val instanceof GWExpression) {
+  if (val instanceof GWExpressionLiteral) {
     return val.render()
   } else if (Array.isArray(val)) {
     return val.map(renderGWValue)
@@ -24,13 +24,42 @@ export function renderGWValue(
   }
 }
 
+// A plain identifier (y, year), property access (person.name), list element accessor (names[3])
+export class GWVariableReference {
+  readonly name: GWVariableName
+
+  constructor(name: GWVariableName) {
+    this.name = name
+  }
+
+  render(): string {
+    return this.name
+  }
+}
+
+// Operator such as: +, -, <, ==, not
+interface GWOperation { operator: string; right: GWTerm }
+
+// expr: term (op term)*
+// term: VALUE | VARIABLE | LPAREN expr PAREN
+export type GWTerm = GWValue | GWVariableReference // | (expr)
 export class GWExpression {
+  readonly left: GWTerm
+  readonly rest: GWOperation[]
+
+  constructor(left: GWTerm, rest: GWOperation[]) {
+    this.left = left
+    this.rest = rest
+  }
+}
+
+export class GWExpressionLiteral {
   readonly expression: string
 
   constructor(ex: string) {
     // Detect injections. I don't know if these can be escaped somehow if used in string for example.
     if (ex.includes('$') || ex.includes('{') || ex.includes('}')) {
-      throw new Error('Unsupported expression')
+      throw new Error(`Unsupported expression: ${ex}`)
     }
 
     this.expression = ex
@@ -41,7 +70,7 @@ export class GWExpression {
   }
 }
 
-// A short-hand syntax for writing expression: $('a + 1')
-export function $(ex: string): GWExpression {
-  return new GWExpression(ex)
+// A short-hand syntax for writing an expression literal: $('a + 1')
+export function $(ex: string): GWExpressionLiteral {
+  return new GWExpressionLiteral(ex)
 }

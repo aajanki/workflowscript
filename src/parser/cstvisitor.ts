@@ -23,7 +23,15 @@ import {
   WorkflowApp,
   WorkflowParameter,
 } from '../ast/workflows.js'
-import { GWExpression, GWValue, GWVariableName } from '../ast/variables.js'
+import {
+  GWExpression,
+  GWExpressionLiteral,
+  GWTerm,
+  GWValue,
+  GWVariableName,
+  GWVariableReference,
+  renderGWValue,
+} from '../ast/variables.js'
 import { WorfkflowScriptParser } from './parser.js'
 
 export function createVisitor(parserInstance: WorfkflowScriptParser) {
@@ -52,15 +60,15 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     objectItem(ctx: any): [string, GWValue] {
       return [
         unescapeBackslashes(ctx.StringLiteral[0].image),
-        this.visit(ctx.expression[0]) as GWValue,
+        renderExpression(this.visit(ctx.expression[0])),
       ]
     }
 
-    array(ctx: any): GWValue[] {
+    array(ctx: any): GWExpression[] {
       return ctx.expression.map((val: CstNode) => this.visit(val))
     }
 
-    expression(ctx: any): GWValue {
+    term(ctx: any): GWValue | GWVariableReference {
       if (ctx.StringLiteral) {
         return unescapeBackslashes(ctx.StringLiteral[0].image)
       } else if (ctx.NumberLiteral) {
@@ -70,21 +78,43 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.False) {
         return false
       } else if (ctx.array) {
-        return this.visit(ctx.array)
+        const expressions: GWExpression[] = this.visit(ctx.array)
+        return expressions.map(renderExpression)
       } else if (ctx.object) {
         return this.visit(ctx.object)
+      } else if (ctx.variableReference) {
+        return this.visit(ctx.variableReference)
       } else if (ctx.ExpressionLiteral) {
-        return new GWExpression(ctx.ExpressionLiteral[0].image.slice(2, -1))
+        return new GWExpressionLiteral(
+          ctx.ExpressionLiteral[0].image.slice(2, -1),
+        )
       } else {
         throw new Error('not implemented')
       }
     }
 
-    arrayOrArrayExpression(ctx: any) {
+    expression(ctx: any): GWExpression {
+      const terms: (GWValue | GWVariableReference)[] = ctx.term.map(
+        (t: CstNode) => this.visit(t),
+      )
+      const operators: string[] | undefined = ctx.BinaryOperator?.map(
+        (op: IToken) => op.image,
+      )
+      const rest = operators?.map((op, i) => {
+        return { operator: op, right: terms[i + 1] }
+      })
+
+      return new GWExpression(terms[0], rest ?? [])
+    }
+
+    arrayOrArrayExpression(ctx: any): GWExpressionLiteral | GWValue[] {
       if (ctx.array) {
-        return this.visit(ctx.array)
+        const expressionArray = this.visit(ctx.array) as GWExpression[]
+        return expressionArray.map(renderExpression)
       } else if (ctx.ExpressionLiteral) {
-        return new GWExpression(ctx.ExpressionLiteral[0].image.slice(2, -1))
+        return new GWExpressionLiteral(
+          ctx.ExpressionLiteral[0].image.slice(2, -1),
+        )
       } else {
         throw new Error('not implemented')
       }
@@ -117,14 +147,15 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return reference + subscripts
     }
 
-    variableReference(ctx: any): string {
-      return ctx.subscriptReference
+    variableReference(ctx: any): GWVariableReference {
+      const name: string = ctx.subscriptReference
         .map((ref: CstNode) => this.visit(ref) as string)
         .join('.')
+      return new GWVariableReference(name)
     }
 
     assignmentStatement(ctx: any): NamedWorkflowStep {
-      const varName = this.visit(ctx.variableReference)
+      const ref: GWVariableReference = this.visit(ctx.variableReference)
 
       if (ctx.callExpression) {
         const { name, step } = this.visit(ctx.callExpression)
@@ -132,12 +163,14 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         // reconstruct the CallStep to supplement the result variable name
         return {
           name,
-          step: new CallStep(step.call, step.args, varName),
+          step: new CallStep(step.call, step.args, ref.name),
         }
       } else {
         return {
           name: this.stepNameGenerator.generate('assign'),
-          step: new AssignStep([[varName, this.visit(ctx.expression[0])]]),
+          step: new AssignStep([
+            [ref.name, renderExpression(this.visit(ctx.expression[0]))],
+          ]),
         }
       }
     }
@@ -151,7 +184,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       if (ctx.Identifier) {
         const namedArgumentList = ctx.Identifier.map(
           (identifier: IToken, i: number) => {
-            return [identifier.image, this.visit(ctx.expression[i])]
+            return [
+              identifier.image,
+              renderExpression(this.visit(ctx.expression[i])),
+            ]
           },
         )
 
@@ -174,7 +210,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     ifStatement(ctx: any): NamedWorkflowStep {
       const branches: SwitchCondition[] = ctx.expression.map(
         (ex: CstNode, i: number) => {
-          return new SwitchCondition(this.visit(ex), {
+          return new SwitchCondition(renderExpression(this.visit(ex)), {
             steps: this.visit(ctx.statementBlock[i]),
           })
         },
@@ -200,7 +236,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     forStatement(ctx: any): NamedWorkflowStep {
       const loopVariable = ctx.Identifier[0].image
       const steps = this.visit(ctx.statementBlock)
-      const expression = this.visit(ctx.arrayOrArrayExpression)
+      const expression = this.visit(ctx.arrayOrArrayExpression) as
+        | GWExpressionLiteral
+        | GWValue[]
 
       return {
         name: this.stepNameGenerator.generate('for'),
@@ -315,7 +353,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.object) {
         value = this.visit(ctx.object)
       } else if (ctx.ExpressionLiteral) {
-        value = new GWExpression(ctx.ExpressionLiteral[0].image.slice(2, -1))
+        value = new GWExpressionLiteral(
+          ctx.ExpressionLiteral[0].image.slice(2, -1),
+        )
       } else {
         throw new Error('Raise unexpected value')
       }
@@ -343,7 +383,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     returnStatement(ctx: any): NamedWorkflowStep {
       return {
         name: this.stepNameGenerator.generate('return'),
-        step: new ReturnStep(this.visit(ctx.expression[0])),
+        step: new ReturnStep(renderExpression(this.visit(ctx.expression[0]))),
       }
     }
 
@@ -388,7 +428,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     formalParameter(ctx: any): WorkflowParameter {
       const name = ctx.Identifier[0].image
       if (ctx.expression) {
-        return { name, default: this.visit(ctx.expression) }
+        return { name, default: renderExpression(this.visit(ctx.expression)) }
       } else {
         return { name }
       }
@@ -510,14 +550,14 @@ function parseRetryPolicy(
 
   if (setEqual(actualKeys, defaultPolicyRequiredKays)) {
     // default policy
-    if (policyParameters.policy instanceof GWExpression) {
+    if (policyParameters.policy instanceof GWExpressionLiteral) {
       return policyParameters.policy.expression
     } else {
       throw new Error('Invalid retry policy')
     }
   } else if (setEqual(actualKeys, customPolicyRequiredKays)) {
     // custom policy
-    if (!(policyParameters.predicate instanceof GWExpression)) {
+    if (!(policyParameters.predicate instanceof GWExpressionLiteral)) {
       throw new Error('Invalid custom retry policy predicate')
     }
 
@@ -548,5 +588,29 @@ function parseRetryPolicy(
     }
   } else {
     throw new Error('Invalid retry policy options')
+  }
+}
+
+export function renderExpression(ex: GWExpression): GWValue {
+  if (ex.rest.length === 0) {
+    if (ex.left instanceof GWVariableReference) {
+      return new GWExpressionLiteral(ex.left.render())
+    } else {
+      return ex.left
+    }
+  } else {
+    const left = stringifyTerm(ex.left)
+    const parts = ex.rest.map((x) => `${x.operator} ${stringifyTerm(x.right)}`)
+    parts.unshift(left)
+
+    return new GWExpressionLiteral(parts.join(' '))
+  }
+}
+
+function stringifyTerm(term: GWTerm): string {
+  if (term instanceof GWVariableReference) {
+    return term.render()
+  } else {
+    return JSON.stringify(renderGWValue(term))
   }
 }

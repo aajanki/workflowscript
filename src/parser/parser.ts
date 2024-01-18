@@ -1,5 +1,6 @@
 import { CstParser } from 'chevrotain'
 import {
+  BinaryOperator,
   Branch,
   Break,
   Catch,
@@ -73,7 +74,7 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(RSquare)
   })
 
-  expression = this.RULE('expression', () => {
+  term = this.RULE('term', () => {
     this.OR([
       { ALT: () => this.CONSUME(StringLiteral) },
       { ALT: () => this.CONSUME(NumberLiteral) },
@@ -82,8 +83,17 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.CONSUME(True) },
       { ALT: () => this.CONSUME(False) },
       { ALT: () => this.CONSUME(Null) },
-      { ALT: () => this.CONSUME(ExpressionLiteral) },
+      { ALT: () => this.SUBRULE(this.variableReference) },
+      { ALT: () => this.CONSUME(ExpressionLiteral) }, // TODO remove
     ])
+  })
+
+  expression = this.RULE('expression', () => {
+    this.SUBRULE(this.term)
+    this.MANY(() => {
+      this.CONSUME(BinaryOperator)
+      this.SUBRULE2(this.term)
+    })
   })
 
   arrayOrArrayExpression = this.RULE('arrayOrArrayExpression', () => {
@@ -118,8 +128,11 @@ export class WorfkflowScriptParser extends CstParser {
     this.SUBRULE(this.variableReference)
     this.CONSUME(Equals)
     this.OR([
-      { ALT: () => this.SUBRULE2(this.expression) },
-      { ALT: () => this.SUBRULE2(this.callExpression) },
+      {
+        GATE: this.BACKTRACK(this.callExpression),
+        ALT: () => this.SUBRULE(this.callExpression),
+      },
+      { ALT: () => this.SUBRULE(this.expression) },
     ])
   })
 

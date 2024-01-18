@@ -2,7 +2,8 @@ import { expect } from 'chai'
 import { CstNode } from 'chevrotain'
 import { workflowScriptLexer } from '../src/parser/lexer.js'
 import { WorfkflowScriptParser } from '../src/parser/parser.js'
-import { createVisitor } from '../src/parser/cstvisitor.js'
+import { createVisitor, renderExpression } from '../src/parser/cstvisitor.js'
+import { GWExpression, GWValue, $ } from '../src/ast/variables.js'
 
 beforeEach(() => {
   visitor.reset()
@@ -1048,35 +1049,45 @@ describe('For loop parsing', () => {
 
 describe('Expression parsing', () => {
   it('parses escaped quotes correctly', () => {
-    const s = '"Tiabeanie \\"Bean\\" Mariabeanie de la Rochambeaux Grunkwitz"'
-
-    expect(parseExpression(s)).to.equal(
+    assertExpression(
+      '"Tiabeanie \\"Bean\\" Mariabeanie de la Rochambeaux Grunkwitz"',
       'Tiabeanie "Bean" Mariabeanie de la Rochambeaux Grunkwitz',
     )
   })
 
   it('parses escaped tabs correctly', () => {
-    const s = '"Bean\\tElfo\\tLuci"'
-
-    expect(parseExpression(s)).to.equal('Bean\tElfo\tLuci')
+    assertExpression('"Bean\\tElfo\\tLuci"', 'Bean\tElfo\tLuci')
   })
 
   it('parses escaped line feeds', () => {
-    const s = '"Dagmar\\nOona"'
-
-    expect(parseExpression(s)).to.equal('Dagmar\nOona')
+    assertExpression('"Dagmar\\nOona"', 'Dagmar\nOona')
   })
 
   it('parses escaped backslashes', () => {
-    const s = '"Mop Girl\\\\Miri"'
-
-    expect(parseExpression(s)).to.equal('Mop Girl\\Miri')
+    assertExpression('"Mop Girl\\\\Miri"', 'Mop Girl\\Miri')
   })
 
   it('parses unicode character references', () => {
-    const s = '"King Z\\u00f8g"'
+    assertExpression('"King Z\\u00f8g"', 'King Zøg')
+  })
 
-    expect(parseExpression(s)).to.equal('King Zøg')
+  it('parses binary operators', () => {
+    assertExpression('0', 0)
+    assertExpression('1 + 2', $('1 + 2'))
+    assertExpression('5 + 1/3', $('5 + 1 / 3'))
+    assertExpression('"Queen" + " Dagmar"', $('"Queen" + " Dagmar"'))
+  })
+
+  it('parses variable references', () => {
+    assertExpression('a - 1', $('a - 1'))
+    assertExpression('100 + 2*x', $('100 + 2 * x'))
+    assertExpression('host.ip_address', $('host.ip_address'))
+  })
+
+  it('parses subscript references', () => {
+    assertExpression('customers[4]', $('customers[4]'))
+    assertExpression('customers[99].name', $('customers[99].name'))
+    assertExpression('host["ip_address"]', $('host["ip_address"]'))
   })
 })
 
@@ -1101,6 +1112,13 @@ function parseOneRule(
   }
 
   return ast
+}
+
+function assertExpression(
+  expression: string,
+  expected: GWValue | GWExpression,
+): void {
+  expect(renderExpression(parseExpression(expression))).to.deep.equal(expected)
 }
 
 const parseExpression = (codeBlock: string) =>

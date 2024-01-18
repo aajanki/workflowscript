@@ -1,5 +1,9 @@
 import { Lexer, createToken } from 'chevrotain'
 
+export const BinaryOperator = createToken({
+  name: 'BinaryOperator',
+  pattern: Lexer.NA,
+})
 export const Identifier = createToken({
   name: 'Identifier',
   pattern: /[a-zA-Z_][a-zA-Z0-9_]*/,
@@ -41,6 +45,26 @@ export const Comma = createToken({ name: 'Comma', pattern: ',' })
 export const Dot = createToken({ name: 'Dot', pattern: '.' })
 export const Colon = createToken({ name: 'Colon', pattern: ':' })
 export const Equals = createToken({ name: 'Equals', pattern: '=' })
+export const Plus = createToken({
+  name: 'Plus',
+  pattern: '+',
+  categories: [BinaryOperator],
+})
+export const Minus = createToken({
+  name: 'Minus',
+  pattern: '-',
+  categories: [BinaryOperator],
+})
+export const Multiplication = createToken({
+  name: 'Multiplication',
+  pattern: '*',
+  categories: [BinaryOperator],
+})
+export const Division = createToken({
+  name: 'Division',
+  pattern: '/',
+  categories: [BinaryOperator],
+})
 export const If = createToken({
   name: 'If',
   pattern: 'if',
@@ -135,6 +159,7 @@ export const WhiteSpace = createToken({
 })
 
 export const tokens = [
+  BinaryOperator,
   WhiteSpace,
   NumberLiteral,
   StringLiteral,
@@ -149,6 +174,10 @@ export const tokens = [
   Dot,
   Colon,
   Equals,
+  Plus,
+  Minus,
+  Multiplication,
+  Division,
   True,
   False,
   Null,
