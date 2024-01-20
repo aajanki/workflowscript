@@ -37,8 +37,8 @@ export class GWVariableReference {
   }
 }
 
-// Operator such as: +, -, <, ==, not
 interface GWOperation {
+  // Operator such as: +, -, <, ==, not
   operator: string
   right: GWTerm
 }
@@ -111,7 +111,7 @@ export class GWExpressionLiteral {
 
   constructor(ex: string) {
     // Detect injections. I don't know if these can be escaped somehow if used in string for example.
-    if (ex.includes('$') || ex.includes('{') || ex.includes('}')) {
+    if (ex.includes('${')) {
       throw new Error(`Unsupported expression: ${ex}`)
     }
 
@@ -133,7 +133,24 @@ function stringifyTerm(term: GWTerm): string {
     return term.toString()
   } else if (term instanceof GWParenthesizedExpression) {
     return `(${term.expression.toString()})`
+  } else if (Array.isArray(term)) {
+    const elements = term.map((t) => stringifyTerm(t))
+    return `[${elements.join(', ')}]`
+  } else if (isRecord(term)) {
+    const elements = Object.entries(term).map(([k, v]) => {
+      return `${k}: ${stringifyTerm(v)}`
+    })
+    return `{${elements.join(', ')}}`
+  } else if (term instanceof GWExpressionLiteral) {
+    // TODO get rid of this
+    throw new Error(
+      `Trying to stringify an expression literal: ${term.expression}`,
+    )
   } else {
     return JSON.stringify(renderGWValue(term))
   }
+}
+
+function isRecord(object: unknown): object is Record<keyof never, unknown> {
+  return object instanceof Object && object.constructor === Object
 }

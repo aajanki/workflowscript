@@ -1117,7 +1117,7 @@ describe('Expressions', () => {
     assertExpression('8 in luckyNumbers', $('8 in luckyNumbers'))
     assertExpression(
       '"Elfo" in ["Luci", "Elfo"]',
-      $('"Elfo" in ["Luci","Elfo"]'),
+      $('"Elfo" in ["Luci", "Elfo"]'),
     )
   })
 
@@ -1135,7 +1135,26 @@ describe('Expressions', () => {
     )
     assertExpression(
       '(name in ["Bean", "Derek", "Jasper"]) or (affiliation == "Dreamland")',
-      $('(name in ["Bean","Derek","Jasper"]) or (affiliation == "Dreamland")'),
+      $(
+        '(name in ["Bean", "Derek", "Jasper"]) or (affiliation == "Dreamland")',
+      ),
+    )
+  })
+
+  it('parses complex expressions in lists', () => {
+    assertExpression('[0, 1+2]', $('[0, 1 + 2]'))
+    assertExpression('[1+2, 2*(x + 10)]', $('[1 + 2, 2 * (x + 10)]'))
+  })
+
+  it('parses complex expressions as map values', () => {
+    assertExpression('{"name": name}', $('{"name": name}'))
+    assertExpression(
+      '{"age": thisYear - birthYear}',
+      $('{"age": thisYear - birthYear}'),
+    )
+    assertExpression(
+      '{"id": "ID-" + identifiers[i]}',
+      $('{"id": "ID-" + identifiers[i]}'),
     )
   })
 })

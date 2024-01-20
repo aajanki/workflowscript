@@ -51,13 +51,13 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       this.stepNameGenerator.reset()
     }
 
-    object(ctx: any): Record<string, GWValue> {
+    object(ctx: any): Record<string, GWExpression> {
       return Object.fromEntries(
         ctx.objectItem.map((x: CstNode) => this.visit(x)),
       )
     }
 
-    objectItem(ctx: any): [string, GWValue] {
+    objectItem(ctx: any): [string, GWExpression] {
       return [
         unescapeBackslashes(ctx.StringLiteral[0].image),
         this.visit(ctx.expression[0]).render(),
@@ -96,9 +96,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     expression(ctx: any): GWExpression {
-      const terms: (GWValue | GWVariableReference)[] = ctx.term.map(
-        (t: CstNode) => this.visit(t),
-      )
+      const terms: GWTerm[] = ctx.term.map((t: CstNode) => this.visit(t))
       const operators: string[] | undefined = ctx.BinaryOperator?.map(
         (op: IToken) => op.image,
       )
@@ -115,7 +113,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     arrayOrArrayExpression(ctx: any): GWExpressionLiteral | GWValue[] {
       if (ctx.array) {
-        const expressionArray = this.visit(ctx.array) as GWExpression[]
+        const expressionArray: GWExpression[] = this.visit(ctx.array)
         return expressionArray.map((x) => x.render())
       } else if (ctx.ExpressionLiteral) {
         return new GWExpressionLiteral(
