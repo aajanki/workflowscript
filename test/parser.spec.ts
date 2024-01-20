@@ -1095,6 +1095,13 @@ describe('Expressions', () => {
     assertExpression('host["ip_address"]', $('host["ip_address"]'))
   })
 
+  /*
+  it('parses expression as subscript', () => {
+    assertExpression('customers[i]', $('customers[i]'))
+    assertExpression('customers[2*(a+b)]', $('customers[2 * (a + b)]'))
+  })
+  */
+
   it('parses inequality operators', () => {
     assertExpression('value > 100', $('value > 100'))
     assertExpression('status >= 0', $('status >= 0'))
@@ -1141,20 +1148,47 @@ describe('Expressions', () => {
     )
   })
 
-  it('parses complex expressions in lists', () => {
-    assertExpression('[0, 1+2]', $('[0, 1 + 2]'))
-    assertExpression('[1+2, 2*(x + 10)]', $('[1 + 2, 2 * (x + 10)]'))
+  it('parses expressions in lists', () => {
+    assertExpression('[0, 1+2]', [0, $('1 + 2')])
+    assertExpression('[1+2, 2*(x + 10)]', [$('1 + 2'), $('2 * (x + 10)')])
   })
 
-  it('parses complex expressions as map values', () => {
-    assertExpression('{"name": name}', $('{"name": name}'))
+  it('parses nested expressions in lists', () => {
+    assertExpression('[["first", 1], ["second", 2]]', [
+      ['first', 1],
+      ['second', 2],
+    ])
+    assertExpression('[{"name": "Dagmar"}, {"name": "Oona"}]', [
+      { name: 'Dagmar' },
+      { name: 'Oona' },
+    ])
+    assertExpression('["Bean" in ["Oona", "Bean"]]', [
+      $('"Bean" in ["Oona", "Bean"]'),
+    ])
+    assertExpression('["Bean" in {"Bean": 1}]', [$('"Bean" in {"Bean": 1}')])
+  })
+
+  it('parses expressions as map values', () => {
+    assertExpression('{"name": name}', { name: $('name') })
+    assertExpression('{"age": thisYear - birthYear}', {
+      age: $('thisYear - birthYear'),
+    })
+    assertExpression('{"id": "ID-" + identifiers[2]}', {
+      id: $('"ID-" + identifiers[2]'),
+    })
+  })
+
+  it('parses nested expression in map values', () => {
     assertExpression(
-      '{"age": thisYear - birthYear}',
-      $('{"age": thisYear - birthYear}'),
+      '{"address": {"building": "The Dreamland Castle", "kingdom": "Dreamland"}}',
+      { address: { building: 'The Dreamland Castle', kingdom: 'Dreamland' } },
     )
+    assertExpression('{"success": code in [200, 201]}', {
+      success: $('code in [200, 201]'),
+    })
     assertExpression(
-      '{"id": "ID-" + identifiers[i]}',
-      $('{"id": "ID-" + identifiers[i]}'),
+      '{"isKnownLocation": location in {"Dreamland": 1, "Maru": 2}}',
+      { isKnownLocation: $('location in {"Dreamland": 1, "Maru": 2}') },
     )
   })
 })

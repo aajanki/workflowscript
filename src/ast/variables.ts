@@ -4,8 +4,8 @@ export type GWValue =
   | string
   | number
   | boolean
-  | GWValue[]
-  | { [key: string]: GWValue }
+  | (GWValue | GWExpression)[]
+  | { [key: string]: GWValue | GWExpression }
   | GWExpressionLiteral
 
 export function renderGWValue(
@@ -14,10 +14,22 @@ export function renderGWValue(
   if (val instanceof GWExpressionLiteral) {
     return val.render()
   } else if (Array.isArray(val)) {
-    return val.map(renderGWValue)
+    return val.map((x) => {
+      if (x instanceof GWExpression) {
+        return x.render()
+      } else {
+        return renderGWValue(x)
+      }
+    })
   } else if (val !== null && typeof val === 'object') {
     return Object.fromEntries(
-      Object.entries(val).map(([k, v]) => [k, renderGWValue(v)]),
+      Object.entries(val).map(([k, v]) => {
+        if (v instanceof GWExpression) {
+          return [k, v.render()]
+        } else {
+          return [k, renderGWValue(v)]
+        }
+      }),
     )
   } else {
     return val
@@ -134,18 +146,26 @@ function stringifyTerm(term: GWTerm): string {
   } else if (term instanceof GWParenthesizedExpression) {
     return `(${term.expression.toString()})`
   } else if (Array.isArray(term)) {
-    const elements = term.map((t) => stringifyTerm(t))
+    const elements = term.map((t) => {
+      if (t instanceof GWExpression) {
+        return t.toString()
+      } else {
+        return stringifyTerm(t)
+      }
+    })
     return `[${elements.join(', ')}]`
   } else if (isRecord(term)) {
     const elements = Object.entries(term).map(([k, v]) => {
-      return `${k}: ${stringifyTerm(v)}`
+      if (v instanceof GWExpression) {
+        return `"${k}": ${v.toString()}`
+      } else {
+        return `"${k}": ${stringifyTerm(v)}`
+      }
     })
     return `{${elements.join(', ')}}`
   } else if (term instanceof GWExpressionLiteral) {
     // TODO get rid of this
-    throw new Error(
-      `Trying to stringify an expression literal: ${term.expression}`,
-    )
+    return term.expression
   } else {
     return JSON.stringify(renderGWValue(term))
   }

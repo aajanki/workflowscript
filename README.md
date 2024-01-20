@@ -103,6 +103,9 @@ At least the following features should be implemented before this can be conside
 
 - parallel for
 - A proper parsing of expressions. Get rid of `${...}`
+- Expressions in subscript: `customers[i]`
+- function expressions: `sys.get_env("GOOGLE_CLOUD_PROJECT_ID")`
+- dynamic keys in maps: `{"${dynamicKey}": "myValue"}`
 - Better error messages
 
 Quality-of-life improvements to be implemented later:
