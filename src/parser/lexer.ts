@@ -23,12 +23,12 @@ export const Null = createToken({
   pattern: 'null',
   longer_alt: Identifier,
 })
-export const LParentheses = createToken({
-  name: 'LeftParentheses',
+export const LParenthesis = createToken({
+  name: 'LeftParenthesis',
   pattern: '(',
 })
-export const RParentheses = createToken({
-  name: 'RightParentheses',
+export const RParenthesis = createToken({
+  name: 'RightParenthesis',
   pattern: ')',
 })
 export const LCurly = createToken({ name: 'Left curly bracket', pattern: '{' })
@@ -208,8 +208,8 @@ export const tokens = [
   NumberLiteral,
   StringLiteral,
   ExpressionLiteral,
-  LParentheses,
-  RParentheses,
+  LParenthesis,
+  RParenthesis,
   LCurly,
   RCurly,
   LSquare,

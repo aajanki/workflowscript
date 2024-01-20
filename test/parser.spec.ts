@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { CstNode } from 'chevrotain'
 import { workflowScriptLexer } from '../src/parser/lexer.js'
 import { WorfkflowScriptParser } from '../src/parser/parser.js'
-import { createVisitor, renderExpression } from '../src/parser/cstvisitor.js'
+import { createVisitor } from '../src/parser/cstvisitor.js'
 import { GWExpression, GWValue, $ } from '../src/ast/variables.js'
 
 beforeEach(() => {
@@ -1047,7 +1047,7 @@ describe('For loop parsing', () => {
   })
 })
 
-describe('Expression parsing', () => {
+describe('Expressions', () => {
   it('parses escaped quotes correctly', () => {
     assertExpression(
       '"Tiabeanie \\"Bean\\" Mariabeanie de la Rochambeaux Grunkwitz"',
@@ -1073,7 +1073,7 @@ describe('Expression parsing', () => {
 
   it('parses lists', () => {
     assertExpression('[1, 2, 3]', [1, 2, 3])
-    assertExpression('["Y", "Yes", 1]', ['Y', 'Yes', 1])
+    assertExpression('["Y", "Yes", 1, True]', ['Y', 'Yes', 1, true])
   })
 
   it('parses binary operators', () => {
@@ -1102,7 +1102,7 @@ describe('Expression parsing', () => {
     assertExpression('x <= 0', $('x <= 0'))
     assertExpression('status != 0', $('status != 0'))
     assertExpression('response != "ERROR"', $('response != "ERROR"'))
-    assertExpression('country == "Norge"', $('country == "Norge"'))
+    assertExpression('country == "Norway"', $('country == "Norway"'))
   })
 
   it('parses boolean operators', () => {
@@ -1114,10 +1114,28 @@ describe('Expression parsing', () => {
   })
 
   it('parses membership expressions', () => {
-    assertExpression('8 in luckyNumber', $('8 in luckyNumber'))
+    assertExpression('8 in luckyNumbers', $('8 in luckyNumbers'))
     assertExpression(
       '"Elfo" in ["Luci", "Elfo"]',
       $('"Elfo" in ["Luci","Elfo"]'),
+    )
+  })
+
+  it('parses parenthesized expressions', () => {
+    assertExpression('(1)', $('(1)'))
+    assertExpression('2*(x + 5)', $('2 * (x + 5)'))
+    assertExpression('2*(3*(4 + x))', $('2 * (3 * (4 + x))'))
+    assertExpression(
+      '("Status: " + statusMessage)',
+      $('("Status: " + statusMessage)'),
+    )
+    assertExpression(
+      '(age >= 18) and (age < 100)',
+      $('(age >= 18) and (age < 100)'),
+    )
+    assertExpression(
+      '(name in ["Bean", "Derek", "Jasper"]) or (affiliation == "Dreamland")',
+      $('(name in ["Bean","Derek","Jasper"]) or (affiliation == "Dreamland")'),
     )
   })
 })
@@ -1149,7 +1167,7 @@ function assertExpression(
   expression: string,
   expected: GWValue | GWExpression,
 ): void {
-  expect(renderExpression(parseExpression(expression))).to.deep.equal(expected)
+  expect(parseExpression(expression).render()).to.deep.equal(expected)
 }
 
 const parseExpression = (codeBlock: string) =>

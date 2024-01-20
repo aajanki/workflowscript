@@ -32,7 +32,7 @@ export class GWVariableReference {
     this.name = name
   }
 
-  render(): string {
+  toString(): string {
     return this.name
   }
 }
@@ -44,8 +44,8 @@ interface GWOperation {
 }
 
 // expr: term (op term)*
-// term: VALUE | VARIABLE | LPAREN expr PAREN
-export type GWTerm = GWValue | GWVariableReference // | (expr)
+// term: VALUE | VARIABLE | LPAREN expr RPAREN
+export type GWTerm = GWValue | GWVariableReference | GWParenthesizedExpression
 export class GWExpression {
   readonly left: GWTerm
   readonly rest: GWOperation[]
@@ -53,6 +53,56 @@ export class GWExpression {
   constructor(left: GWTerm, rest: GWOperation[]) {
     this.left = left
     this.rest = rest
+  }
+
+  render(): GWValue {
+    if (this.rest.length === 0) {
+      if (
+        this.left instanceof GWVariableReference ||
+        this.left instanceof GWParenthesizedExpression
+      ) {
+        return new GWExpressionLiteral(stringifyTerm(this.left))
+      } else {
+        return this.left
+      }
+    } else {
+      const left = stringifyTerm(this.left)
+      const parts = this.rest.map(
+        (x) => `${x.operator} ${stringifyTerm(x.right)}`,
+      )
+      parts.unshift(left)
+
+      return new GWExpressionLiteral(parts.join(' '))
+    }
+  }
+
+  toString(): string {
+    if (this.rest.length === 0) {
+      if (
+        this.left instanceof GWVariableReference ||
+        this.left instanceof GWParenthesizedExpression
+      ) {
+        return stringifyTerm(this.left)
+      } else {
+        return JSON.stringify(this.left)
+      }
+    } else {
+      const left = stringifyTerm(this.left)
+      const parts = this.rest.map(
+        (x) => `${x.operator} ${stringifyTerm(x.right)}`,
+      )
+      parts.unshift(left)
+
+      return parts.join(' ')
+    }
+  }
+}
+
+export class GWParenthesizedExpression {
+  readonly expression: GWExpression
+
+  constructor(expression: GWExpression) {
+    this.expression = expression
   }
 }
 
@@ -76,4 +126,14 @@ export class GWExpressionLiteral {
 // A short-hand syntax for writing an expression literal: $('a + 1')
 export function $(ex: string): GWExpressionLiteral {
   return new GWExpressionLiteral(ex)
+}
+
+function stringifyTerm(term: GWTerm): string {
+  if (term instanceof GWVariableReference) {
+    return term.toString()
+  } else if (term instanceof GWParenthesizedExpression) {
+    return `(${term.expression.toString()})`
+  } else {
+    return JSON.stringify(renderGWValue(term))
+  }
 }

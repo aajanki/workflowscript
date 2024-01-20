@@ -17,13 +17,13 @@ import {
   If,
   In,
   LCurly,
-  LParentheses,
+  LParenthesis,
   LSquare,
   Null,
   NumberLiteral,
   Parallel,
   RCurly,
-  RParentheses,
+  RParenthesis,
   RSquare,
   Raise,
   Retry,
@@ -84,6 +84,7 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.CONSUME(False) },
       { ALT: () => this.CONSUME(Null) },
       { ALT: () => this.SUBRULE(this.variableReference) },
+      { ALT: () => this.SUBRULE(this.parenthesizedExpression) },
       { ALT: () => this.CONSUME(ExpressionLiteral) }, // TODO remove
     ])
   })
@@ -94,6 +95,12 @@ export class WorfkflowScriptParser extends CstParser {
       this.CONSUME(BinaryOperator)
       this.SUBRULE2(this.term)
     })
+  })
+
+  parenthesizedExpression = this.RULE('parenthesizedExpression', () => {
+    this.CONSUME(LParenthesis)
+    this.SUBRULE(this.expression)
+    this.CONSUME(RParenthesis)
   })
 
   arrayOrArrayExpression = this.RULE('arrayOrArrayExpression', () => {
@@ -157,25 +164,25 @@ export class WorfkflowScriptParser extends CstParser {
 
   callExpression = this.RULE('callExpression', () => {
     this.SUBRULE(this.functionName)
-    this.CONSUME(LParentheses)
+    this.CONSUME(LParenthesis)
     this.SUBRULE(this.actualParameterList)
-    this.CONSUME(RParentheses)
+    this.CONSUME(RParenthesis)
   })
 
   ifStatement = this.RULE('ifStatement', () => {
     this.CONSUME(If)
-    this.CONSUME(LParentheses)
+    this.CONSUME(LParenthesis)
     this.SUBRULE(this.expression)
-    this.CONSUME(RParentheses)
+    this.CONSUME(RParenthesis)
     this.CONSUME(LCurly)
     this.SUBRULE(this.statementBlock)
     this.CONSUME(RCurly)
     this.MANY(() => {
       this.CONSUME(Else)
       this.CONSUME2(If)
-      this.CONSUME2(LParentheses)
+      this.CONSUME2(LParenthesis)
       this.SUBRULE2(this.expression)
-      this.CONSUME2(RParentheses)
+      this.CONSUME2(RParenthesis)
       this.CONSUME2(LCurly)
       this.SUBRULE2(this.statementBlock)
       this.CONSUME2(RCurly)
@@ -195,15 +202,15 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(RCurly)
     this.OPTION(() => {
       this.CONSUME(Retry)
-      this.CONSUME(LParentheses)
+      this.CONSUME(LParenthesis)
       this.SUBRULE(this.actualParameterList)
-      this.CONSUME(RParentheses)
+      this.CONSUME(RParenthesis)
     })
     this.OPTION2(() => {
       this.CONSUME(Catch)
-      this.CONSUME2(LParentheses)
+      this.CONSUME2(LParenthesis)
       this.CONSUME(Identifier)
-      this.CONSUME2(RParentheses)
+      this.CONSUME2(RParenthesis)
       this.CONSUME2(LCurly)
       this.SUBRULE2(this.statementBlock)
       this.CONSUME2(RCurly)
@@ -222,11 +229,11 @@ export class WorfkflowScriptParser extends CstParser {
 
   forStatement = this.RULE('forStatement', () => {
     this.CONSUME(For)
-    this.CONSUME(LParentheses)
+    this.CONSUME(LParenthesis)
     this.CONSUME(Identifier)
     this.CONSUME(In)
     this.SUBRULE(this.arrayOrArrayExpression)
-    this.CONSUME(RParentheses)
+    this.CONSUME(RParenthesis)
     this.CONSUME(LCurly)
     this.SUBRULE(this.statementBlock)
     this.CONSUME(RCurly)
@@ -243,9 +250,9 @@ export class WorfkflowScriptParser extends CstParser {
   parallelStatement = this.RULE('parallelStatement', () => {
     this.CONSUME(Parallel)
     this.OPTION(() => {
-      this.CONSUME(LParentheses)
+      this.CONSUME(LParenthesis)
       this.SUBRULE(this.actualParameterList)
-      this.CONSUME(RParentheses)
+      this.CONSUME(RParenthesis)
     })
     this.AT_LEAST_ONE(() => {
       this.CONSUME(Branch)
@@ -306,9 +313,9 @@ export class WorfkflowScriptParser extends CstParser {
   subworkflowDefinition = this.RULE('subworkflowDefinition', () => {
     this.CONSUME(Workflow)
     this.CONSUME(Identifier)
-    this.CONSUME(LParentheses)
+    this.CONSUME(LParenthesis)
     this.SUBRULE(this.formalParameterList)
-    this.CONSUME(RParentheses)
+    this.CONSUME(RParenthesis)
     this.CONSUME(LCurly)
     this.SUBRULE(this.statementBlock)
     this.CONSUME(RCurly)
