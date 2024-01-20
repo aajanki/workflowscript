@@ -880,14 +880,6 @@ describe('Try-retry-catch statement parsing', () => {
       },
     })
   })
-
-  it('throws on raise with number ', () => {
-    const block = `
-    raise 3.1415
-    `
-
-    expect(() => parseStatement(block)).to.throw()
-  })
 })
 
 describe('For loop parsing', () => {

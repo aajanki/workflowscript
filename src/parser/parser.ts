@@ -220,11 +220,7 @@ export class WorfkflowScriptParser extends CstParser {
 
   raiseStatement = this.RULE('raiseStatement', () => {
     this.CONSUME(Raise)
-    this.OR([
-      { ALT: () => this.CONSUME(StringLiteral) },
-      { ALT: () => this.SUBRULE(this.object) },
-      { ALT: () => this.CONSUME(ExpressionLiteral) },
-    ])
+    this.SUBRULE(this.expression)
   })
 
   forStatement = this.RULE('forStatement', () => {

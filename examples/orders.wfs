@@ -2,21 +2,21 @@ workflow main() {
   orderIds = ["ord1", "ord2", "ord3"]
 
   for (oid in ${orderIds}) {
-    orders = getOrders(orderId=${oid})
+    orders = getOrders(orderId=oid)
 
-    sys.log(text=${"Orders: " + orders})
+    sys.log(text="Orders: " + orders)
   }
 }
 
 workflow getOrders(orderId) {
   try {
-    res = http.get(url=${"https://example.com/orders/" + orderId})
-    return ${res}
+    res = http.get(url="https://example.com/orders/" + orderId)
+    return res
   } catch (err) {
-    if (${err.code == 404}) {
+    if (err.code == 404) {
       return "Not found"
     } else {
-      raise ${err}
+      raise err
     }
   }
 }

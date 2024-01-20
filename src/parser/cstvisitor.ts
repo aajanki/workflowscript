@@ -348,22 +348,11 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     raiseStatement(ctx: any): NamedWorkflowStep {
-      let value: GWValue
-      if (ctx.StringLiteral) {
-        value = unescapeBackslashes(ctx.StringLiteral[0].image)
-      } else if (ctx.object) {
-        value = this.visit(ctx.object)
-      } else if (ctx.ExpressionLiteral) {
-        value = new GWExpressionLiteral(
-          ctx.ExpressionLiteral[0].image.slice(2, -1),
-        )
-      } else {
-        throw new Error('Raise unexpected value')
-      }
+      const ex: GWExpression = this.visit(ctx.expression)
 
       return {
         name: this.stepNameGenerator.generate('raise'),
-        step: new RaiseStep(value),
+        step: new RaiseStep(ex.render()),
       }
     }
 

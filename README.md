@@ -114,6 +114,7 @@ Quality-of-life improvements to be implemented later:
 - `return subworkflow()`
 - finally block in try?
 - index variable in a for loop
+- should `raise` with non-string or non-map value be allowed (`raise 3`)?
 
 ## License
 
