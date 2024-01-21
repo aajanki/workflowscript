@@ -16,7 +16,7 @@ workflow getOrders(orderId) {
     if (err.code == 404) {
       return "Not found"
     } else {
-      raise err
+      throw err
     }
   }
 }

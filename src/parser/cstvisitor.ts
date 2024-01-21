@@ -360,7 +360,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    raiseStatement(ctx: any): NamedWorkflowStep {
+    throwStatement(ctx: any): NamedWorkflowStep {
       const ex: GWExpression = this.visit(ctx.expression)
 
       return {
@@ -403,8 +403,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return this.visit(ctx.parallelStatement[0])
       } else if (ctx.tryStatement) {
         return this.visit(ctx.tryStatement[0])
-      } else if (ctx.raiseStatement) {
-        return this.visit(ctx.raiseStatement[0])
+      } else if (ctx.throwStatement) {
+        return this.visit(ctx.throwStatement[0])
       } else if (ctx.breakStatement) {
         return this.visit(ctx.breakStatement[0])
       } else if (ctx.continueStatement) {

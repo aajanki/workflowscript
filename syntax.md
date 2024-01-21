@@ -301,12 +301,12 @@ catch (err) {
 }
 ```
 
-## Raising errors
+## Throwing errors
 
 The WorkflowScript statement
 
 ```javascript
-raise "Error!"
+throw "Error!"
 ```
 
 will be compiled to the following [raise block](https://cloud.google.com/workflows/docs/reference/syntax/raising-errors)
@@ -318,7 +318,7 @@ raise1:
 
 The error can be a string, a map or an expression that evaluates to string or map.
 
-Raised errors can be handled by a try statement.
+Thrown errors can be handled by a try statement.
 
 ## For loops
 

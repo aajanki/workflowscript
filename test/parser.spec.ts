@@ -800,7 +800,7 @@ describe('Try-retry-catch statement parsing', () => {
       response = http.get("https://visit.dreamland.test/")
     }
     catch (err) {
-      raise \${err}
+      throw \${err}
     }
     catch (err) {
       if (\${err.code == 404}) {
@@ -824,9 +824,9 @@ describe('Try-retry-catch statement parsing', () => {
     expect(() => parseStatement(block)).to.throw()
   })
 
-  it('parses raise with a string', () => {
+  it('parses throw with a string', () => {
     const block = `
-    raise "Error!"
+    throw "Error!"
     `
     const ast = parseStatement(block)
 
@@ -835,9 +835,9 @@ describe('Try-retry-catch statement parsing', () => {
     })
   })
 
-  it('parses raise with an expression', () => {
+  it('parses throw with an expression', () => {
     const block = `
-    raise \${exception}
+    throw \${exception}
     `
     const ast = parseStatement(block)
 
@@ -846,9 +846,9 @@ describe('Try-retry-catch statement parsing', () => {
     })
   })
 
-  it('parses raise with a map value', () => {
+  it('parses throw with a map value', () => {
     const block = `
-    raise {
+    throw {
       "code": 98,
       "message": "Access denied"
     }

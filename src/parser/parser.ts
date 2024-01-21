@@ -25,7 +25,7 @@ import {
   RCurly,
   RParenthesis,
   RSquare,
-  Raise,
+  Throw,
   Retry,
   Return,
   StringLiteral,
@@ -241,8 +241,8 @@ export class WorfkflowScriptParser extends CstParser {
     // Check in post-processing that at least either retry or catch is specified
   })
 
-  raiseStatement = this.RULE('raiseStatement', () => {
-    this.CONSUME(Raise)
+  throwStatement = this.RULE('throwStatement', () => {
+    this.CONSUME(Throw)
     this.SUBRULE(this.expression)
   })
 
@@ -299,7 +299,7 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.SUBRULE(this.forStatement) },
       { ALT: () => this.SUBRULE(this.parallelStatement) },
       { ALT: () => this.SUBRULE(this.tryStatement) },
-      { ALT: () => this.SUBRULE(this.raiseStatement) },
+      { ALT: () => this.SUBRULE(this.throwStatement) },
       { ALT: () => this.SUBRULE(this.breakStatement) },
       { ALT: () => this.SUBRULE(this.continueStatement) },
       { ALT: () => this.SUBRULE(this.returnStatement) },

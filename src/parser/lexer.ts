@@ -147,9 +147,9 @@ export const Catch = createToken({
   pattern: 'catch',
   longer_alt: Identifier,
 })
-export const Raise = createToken({
-  name: 'Raise',
-  pattern: 'raise',
+export const Throw = createToken({
+  name: 'Throw',
+  pattern: 'throw',
   longer_alt: Identifier,
 })
 export const For = createToken({
@@ -238,7 +238,7 @@ export const tokens = [
   Try,
   Retry,
   Catch,
-  Raise,
+  Throw,
   For,
   In,
   Break,
