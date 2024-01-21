@@ -129,24 +129,22 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     subscriptReference(ctx: any): string {
       const reference = ctx.Identifier[0].image
-      const subscripts = (ctx.NumberLiteral ?? [])
-        .concat(ctx.StringLiteral ?? [])
-        .concat(ctx.ExpressionLiteral ?? [])
-        .sort(compareStartOffsets)
-        .map((x: IToken) => {
-          if (
-            x.tokenType.name === 'StringLiteral' ||
-            x.tokenType.name === 'ExpressionLiteral'
-          ) {
-            return `[${x.image}]`
-          } else if (x.tokenType.name === 'NumberLiteral') {
-            const i = parseFloat(x.image)
-            if (!Number.isInteger(i)) {
+      const subscripts: string = (ctx.expression ?? [])
+        .map((x: CstNode) => {
+          const expression: GWExpression = this.visit(x)
+          const value = expression.render()
+
+          if (typeof value === 'string') {
+            return `[${JSON.stringify(value)}]`
+          } else if (typeof value === 'number') {
+            if (!Number.isInteger(value)) {
               throw new TypeError('Subscript must be an integer')
             }
-            return `[${i}]`
+            return `[${value}]`
+          } else if (value instanceof GWExpressionLiteral) {
+            return `[${expression.toString()}]`
           } else {
-            throw new Error(`Unexpected subscription type: ${x.tokenType.name}`)
+            throw new Error(`Unexpected subscription type: ${String(value)}`)
           }
         })
         .join('')
@@ -528,10 +526,6 @@ function combineConsecutiveAssignments(
       return acc
     }
   }, [] as NamedWorkflowStep[])
-}
-
-function compareStartOffsets(a: IToken, b: IToken) {
-  return a.startOffset - b.startOffset
 }
 
 function setEqual<T>(a: Set<T>, b: Set<T>): boolean {

@@ -118,11 +118,7 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(Identifier)
     this.MANY(() => {
       this.CONSUME(LSquare)
-      this.OR([
-        { ALT: () => this.CONSUME(NumberLiteral) }, // TODO: should really be an integer literal
-        { ALT: () => this.CONSUME(StringLiteral) },
-        { ALT: () => this.CONSUME(ExpressionLiteral) },
-      ])
+      this.SUBRULE(this.expression)
       this.CONSUME(RSquare)
     })
   })

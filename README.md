@@ -103,14 +103,12 @@ At least the following features should be implemented before this can be conside
 
 - parallel for
 - A proper parsing of expressions. Get rid of `${...}`
-- Expressions in subscript: `customers[i]`
 - dynamic keys in maps: `{"${dynamicKey}": "myValue"}`
 - Better error messages
 
 Quality-of-life improvements to be implemented later:
 
 - `return` without a value
-- `return subworkflow()`
 - finally block in try?
 - index variable in a for loop
 - named arguments and assignment not currently not compatible: `response = http.get(url = "http://example.com")`

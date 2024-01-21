@@ -100,25 +100,21 @@ describe('Assign statement parsing', () => {
     })
   })
 
-  /*
   it('assigns to variable with a variable name as the subscript', () => {
     const block = `a_list[idx] = 2`
     const ast = parseStatement(block)
 
     expect(ast.step?.render()).to.deep.equal({
-      assign: [
-        { 'a_list[idx]': 2 },
-      ],
+      assign: [{ 'a_list[idx]': 2 }],
     })
   })
-  */
 
   it('assigns to variable with a complex expression subscript', () => {
-    const block = `a_list[\${len(a_list) - 1}] = 3`
+    const block = `a_list[len(a_list) - 1] = 3`
     const ast = parseStatement(block)
 
     expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_list[${len(a_list) - 1}]': 3 }],
+      assign: [{ 'a_list[len(a_list) - 1]': 3 }],
     })
   })
 
@@ -1059,12 +1055,10 @@ describe('Expressions', () => {
     assertExpression('host["ip_address"]', $('host["ip_address"]'))
   })
 
-  /*
   it('parses expression as subscript', () => {
     assertExpression('customers[i]', $('customers[i]'))
     assertExpression('customers[2*(a+b)]', $('customers[2 * (a + b)]'))
   })
-  */
 
   it('parses inequality operators', () => {
     assertExpression('value > 100', $('value > 100'))
