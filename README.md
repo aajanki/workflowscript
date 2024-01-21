@@ -7,15 +7,15 @@ Workflows YAML syntax.
 
 A sample program in WorkflowScript:
 
-```
+```javascript
 workflow main() {
   name = "workflows"
 
-  sys.log(text=${"Hello, " + name})
+  sys.log(text="Hello, " + name)
 }
 ```
 
-The [examples](examples) directory contains other sample programs.
+The [examples](examples) directory contains more sample programs.
 
 Compiling a samples program in `examples/hello.wfs`:
 
