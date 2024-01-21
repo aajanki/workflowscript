@@ -104,7 +104,6 @@ At least the following features should be implemented before this can be conside
 - parallel for
 - A proper parsing of expressions. Get rid of `${...}`
 - Expressions in subscript: `customers[i]`
-- function expressions: `sys.get_env("GOOGLE_CLOUD_PROJECT_ID")`
 - dynamic keys in maps: `{"${dynamicKey}": "myValue"}`
 - Better error messages
 
@@ -115,6 +114,7 @@ Quality-of-life improvements to be implemented later:
 - finally block in try?
 - index variable in a for loop
 - should `raise` with non-string or non-map value be allowed (`raise 3`)?
+- named arguments and assignment not currently not compatible: `response = http.get(url = "http://example.com")`
 
 ## License
 

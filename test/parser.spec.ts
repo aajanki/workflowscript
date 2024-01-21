@@ -182,6 +182,24 @@ describe('Assign statement parsing', () => {
     expect(() => parseStatement(block)).to.throw()
   })
 
+  it('assigns an expression value', () => {
+    const block = `res = a + 1`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ res: '${a + 1}' }],
+    })
+  })
+
+  it('assigns a call expression value', () => {
+    const block = `res = default(value, "")`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ res: '${default(value, "")}' }],
+    })
+  })
+
   it('disambiguates keywords from identifiers', () => {
     // The prefix "false" in "falseValue" should not be parsed as the boolean value false.
     const block = 'falseValue = False'
@@ -218,42 +236,6 @@ describe('Assign statement parsing', () => {
       },
     })
   })
-
-  it('splits combined assignment steps and call steps', () => {
-    const block = `
-    workflow test1() {
-      a = 1
-      b = 2
-      result = anotherWorkflow()
-      c = 3
-      d = 4
-    }
-    `
-    const ast = parseSubworkflow(block)
-
-    expect(ast.render()).to.deep.equal({
-      test1: {
-        steps: [
-          {
-            assign1: {
-              assign: [{ a: 1 }, { b: 2 }],
-            },
-          },
-          {
-            call1: {
-              call: 'anotherWorkflow',
-              result: 'result',
-            },
-          },
-          {
-            assign3: {
-              assign: [{ c: 3 }, { d: 4 }],
-            },
-          },
-        ],
-      },
-    })
-  })
 })
 
 describe('Call statement parsing', () => {
@@ -266,6 +248,7 @@ describe('Call statement parsing', () => {
     })
   })
 
+  /*
   it('parses a call with a result assignment', () => {
     const block = `my_result = my_workflow()`
     const ast = parseStatement(block)
@@ -289,7 +272,21 @@ describe('Call statement parsing', () => {
       result: 'product',
     })
   })
+  */
 
+  it('parses a call with arguments but without result variable', () => {
+    const block = `log.sys(text = "Hello log")`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      call: 'log.sys',
+      args: {
+        text: 'Hello log',
+      },
+    })
+  })
+
+  /*
   it('parses a standard library function call', () => {
     const block = `htmlPage = http.get(url = "https://visit.dreamland.test/things-to-do")`
     const ast = parseStatement(block)
@@ -302,6 +299,7 @@ describe('Call statement parsing', () => {
       result: 'htmlPage',
     })
   })
+  */
 })
 
 describe('If statement parsing', () => {
@@ -487,11 +485,11 @@ describe('Parallel step parsing', () => {
       exception_policy = "continueAll"
     )
     branch {
-      n = http.get(url = "https://forums.dreamland.test/numPosts/bean")
+      n = http.get("https://forums.dreamland.test/numPosts/bean")
       numPosts = \${numPosts + n}
     }
     branch {
-      n = http.get(url = "https://forums.dreamland.test/numPosts/elfo")
+      n = http.get("https://forums.dreamland.test/numPosts/elfo")
       numPosts = \${numPosts + n}
     }
     `
@@ -507,17 +505,13 @@ describe('Parallel step parsing', () => {
             branch1: {
               steps: [
                 {
-                  call1: {
-                    call: 'http.get',
-                    args: {
-                      url: 'https://forums.dreamland.test/numPosts/bean',
-                    },
-                    result: 'n',
-                  },
-                },
-                {
                   assign1: {
-                    assign: [{ numPosts: '${numPosts + n}' }],
+                    assign: [
+                      {
+                        n: '${http.get("https://forums.dreamland.test/numPosts/bean")}',
+                      },
+                      { numPosts: '${numPosts + n}' },
+                    ],
                   },
                 },
               ],
@@ -527,17 +521,13 @@ describe('Parallel step parsing', () => {
             branch2: {
               steps: [
                 {
-                  call2: {
-                    call: 'http.get',
-                    args: {
-                      url: 'https://forums.dreamland.test/numPosts/elfo',
-                    },
-                    result: 'n',
-                  },
-                },
-                {
-                  assign2: {
-                    assign: [{ numPosts: '${numPosts + n}' }],
+                  assign3: {
+                    assign: [
+                      {
+                        n: '${http.get("https://forums.dreamland.test/numPosts/elfo")}',
+                      },
+                      { numPosts: '${numPosts + n}' },
+                    ],
                   },
                 },
               ],
@@ -600,7 +590,7 @@ describe('Try-retry-catch statement parsing', () => {
   it('parses try-catch without errors', () => {
     const block = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     } catch (err) {
       if (\${err.code == 404}) {
         return "Not found"
@@ -613,12 +603,10 @@ describe('Try-retry-catch statement parsing', () => {
       try: {
         steps: [
           {
-            call1: {
-              call: 'http.get',
-              args: {
-                url: 'https://visit.dreamland.test/',
-              },
-              result: 'response',
+            assign1: {
+              assign: [
+                { response: '${http.get("https://visit.dreamland.test/")}' },
+              ],
             },
           },
         ],
@@ -650,7 +638,7 @@ describe('Try-retry-catch statement parsing', () => {
   it('parses a try with a default retry policy without errors', () => {
     const block = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     } retry (policy = \${http.default_retry})
     `
     const ast = parseStatement(block)
@@ -659,12 +647,10 @@ describe('Try-retry-catch statement parsing', () => {
       try: {
         steps: [
           {
-            call1: {
-              call: 'http.get',
-              args: {
-                url: 'https://visit.dreamland.test/',
-              },
-              result: 'response',
+            assign1: {
+              assign: [
+                { response: '${http.get("https://visit.dreamland.test/")}' },
+              ],
             },
           },
         ],
@@ -676,7 +662,7 @@ describe('Try-retry-catch statement parsing', () => {
   it('parses a try with a custom retry policy without errors', () => {
     const block = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     }
     retry (predicate = \${http.default_retry_predicate}, maxRetries = 10, initialDelay = 3.0, maxDelay = 60, multiplier = 1.5)
     `
@@ -686,12 +672,10 @@ describe('Try-retry-catch statement parsing', () => {
       try: {
         steps: [
           {
-            call1: {
-              call: 'http.get',
-              args: {
-                url: 'https://visit.dreamland.test/',
-              },
-              result: 'response',
+            assign1: {
+              assign: [
+                { response: '${http.get("https://visit.dreamland.test/")}' },
+              ],
             },
           },
         ],
@@ -711,7 +695,7 @@ describe('Try-retry-catch statement parsing', () => {
   it('parses a try-retry-catch without errors', () => {
     const block = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     }
     retry (policy = \${http.default_retry})
     catch (err) {
@@ -726,12 +710,10 @@ describe('Try-retry-catch statement parsing', () => {
       try: {
         steps: [
           {
-            call1: {
-              call: 'http.get',
-              args: {
-                url: 'https://visit.dreamland.test/',
-              },
-              result: 'response',
+            assign1: {
+              assign: [
+                { response: '${http.get("https://visit.dreamland.test/")}' },
+              ],
             },
           },
         ],
@@ -764,14 +746,14 @@ describe('Try-retry-catch statement parsing', () => {
   it('throws if a retry policy is not defined', () => {
     const block1 = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     }
     retry
     `
 
     const block2 = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     }
     retry ()
     `
@@ -783,7 +765,7 @@ describe('Try-retry-catch statement parsing', () => {
   it('throws an error if custom retry policy is only partially defined', () => {
     const block = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     }
     retry (predicate = \${http.default_retry_predicate}, maxRetries = 10)
     `
@@ -794,7 +776,7 @@ describe('Try-retry-catch statement parsing', () => {
   it('throws an error if both default and custom retry policy are defined', () => {
     const block = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     }
     retry (policy = \${http.default_retry}, predicate = \${http.default_retry_predicate}, maxRetries = 10, initialDelay = 3, maxDelay = 60, multiplier = 2)
     `
@@ -805,7 +787,7 @@ describe('Try-retry-catch statement parsing', () => {
   it('throws on try without catch', () => {
     const block = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     }
     `
 
@@ -815,7 +797,7 @@ describe('Try-retry-catch statement parsing', () => {
   it('try can have only one catch block', () => {
     const block = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     }
     catch (err) {
       raise \${err}
@@ -833,7 +815,7 @@ describe('Try-retry-catch statement parsing', () => {
   it('try can have only one retry block', () => {
     const block = `
     try {
-      response = http.get(url = "https://visit.dreamland.test/")
+      response = http.get("https://visit.dreamland.test/")
     }
     retry (policy = \${http.default_retry})
     retry (policy = \${http.default_retry})
@@ -1181,6 +1163,18 @@ describe('Expressions', () => {
     assertExpression(
       '{"isKnownLocation": location in {"Dreamland": 1, "Maru": 2}}',
       { isKnownLocation: $('location in {"Dreamland": 1, "Maru": 2}') },
+    )
+  })
+
+  it('parses function expressions', () => {
+    assertExpression('default(value, "")', $('default(value, "")'))
+    assertExpression('sys.now()', $('sys.now()'))
+    assertExpression('time.format(sys.now())', $('time.format(sys.now())'))
+    assertExpression(
+      'time.format(sys.now()) + " " + text.decode(base64.decode("VGlhYmVhbmll"))',
+      $(
+        'time.format(sys.now()) + " " + text.decode(base64.decode("VGlhYmVhbmll"))',
+      ),
     )
   })
 })

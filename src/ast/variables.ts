@@ -49,6 +49,21 @@ export class GWVariableReference {
   }
 }
 
+export class FunctionInvocation {
+  readonly funcName: string
+  readonly arguments: GWExpression[]
+
+  constructor(functionName: string, argumentExpressions: GWExpression[]) {
+    this.funcName = functionName
+    this.arguments = argumentExpressions
+  }
+
+  toString(): string {
+    const argumentStrings = this.arguments.map((x) => x.toString())
+    return `${this.funcName}(${argumentStrings.join(', ')})`
+  }
+}
+
 interface GWOperation {
   // Operator such as: +, -, <, ==, not
   operator: string
@@ -57,7 +72,11 @@ interface GWOperation {
 
 // expr: term (op term)*
 // term: VALUE | VARIABLE | LPAREN expr RPAREN
-export type GWTerm = GWValue | GWVariableReference | GWParenthesizedExpression
+export type GWTerm =
+  | GWValue
+  | GWVariableReference
+  | GWParenthesizedExpression
+  | FunctionInvocation
 export class GWExpression {
   readonly left: GWTerm
   readonly rest: GWOperation[]
@@ -71,7 +90,8 @@ export class GWExpression {
     if (this.rest.length === 0) {
       if (
         this.left instanceof GWVariableReference ||
-        this.left instanceof GWParenthesizedExpression
+        this.left instanceof GWParenthesizedExpression ||
+        this.left instanceof FunctionInvocation
       ) {
         return new GWExpressionLiteral(stringifyTerm(this.left))
       } else {
@@ -92,7 +112,8 @@ export class GWExpression {
     if (this.rest.length === 0) {
       if (
         this.left instanceof GWVariableReference ||
-        this.left instanceof GWParenthesizedExpression
+        this.left instanceof GWParenthesizedExpression ||
+        this.left instanceof FunctionInvocation
       ) {
         return stringifyTerm(this.left)
       } else {
@@ -145,6 +166,8 @@ function stringifyTerm(term: GWTerm): string {
     return term.toString()
   } else if (term instanceof GWParenthesizedExpression) {
     return `(${term.expression.toString()})`
+  } else if (term instanceof FunctionInvocation) {
+    return term.toString()
   } else if (Array.isArray(term)) {
     const elements = term.map((t) => {
       if (t instanceof GWExpression) {

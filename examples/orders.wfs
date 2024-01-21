@@ -2,7 +2,7 @@ workflow main() {
   orderIds = ["ord1", "ord2", "ord3"]
 
   for (oid in ${orderIds}) {
-    orders = getOrders(orderId=oid)
+    orders = getOrders(oid)
 
     sys.log(text="Orders: " + orders)
   }
@@ -10,7 +10,7 @@ workflow main() {
 
 workflow getOrders(orderId) {
   try {
-    res = http.get(url="https://example.com/orders/" + orderId)
+    res = http.get("https://example.com/orders/" + orderId)
     return res
   } catch (err) {
     if (err.code == 404) {

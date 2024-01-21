@@ -83,6 +83,10 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.CONSUME(True) },
       { ALT: () => this.CONSUME(False) },
       { ALT: () => this.CONSUME(Null) },
+      {
+        GATE: this.BACKTRACK(this.callExpression),
+        ALT: () => this.SUBRULE(this.callExpression),
+      },
       { ALT: () => this.SUBRULE(this.variableReference) },
       { ALT: () => this.SUBRULE(this.parenthesizedExpression) },
       { ALT: () => this.CONSUME(ExpressionLiteral) }, // TODO remove
@@ -134,13 +138,7 @@ export class WorfkflowScriptParser extends CstParser {
   assignmentStatement = this.RULE('assignmentStatement', () => {
     this.SUBRULE(this.variableReference)
     this.CONSUME(Assignment)
-    this.OR([
-      {
-        GATE: this.BACKTRACK(this.callExpression),
-        ALT: () => this.SUBRULE(this.callExpression),
-      },
-      { ALT: () => this.SUBRULE(this.expression) },
-    ])
+    this.SUBRULE(this.expression)
   })
 
   functionName = this.RULE('functionName', () => {
@@ -150,6 +148,18 @@ export class WorfkflowScriptParser extends CstParser {
       this.CONSUME2(Identifier)
     })
   })
+
+  actualAnonymousParameterList = this.RULE(
+    'actualAnonymousParameterList',
+    () => {
+      this.MANY_SEP({
+        SEP: Comma,
+        DEF: () => {
+          this.SUBRULE(this.expression)
+        },
+      })
+    },
+  )
 
   actualParameterList = this.RULE('actualParameterList', () => {
     this.MANY_SEP({
@@ -163,6 +173,19 @@ export class WorfkflowScriptParser extends CstParser {
   })
 
   callExpression = this.RULE('callExpression', () => {
+    this.SUBRULE(this.functionName)
+    this.CONSUME(LParenthesis)
+    this.SUBRULE(this.actualAnonymousParameterList)
+    this.CONSUME(RParenthesis)
+  })
+
+  callStepStatement = this.RULE('callStepStatement', () => {
+    /*
+    this.OPTION(() => {
+      this.SUBRULE(this.variableReference)
+      this.CONSUME(Assignment)
+    })
+    */
     this.SUBRULE(this.functionName)
     this.CONSUME(LParenthesis)
     this.SUBRULE(this.actualParameterList)
@@ -268,10 +291,10 @@ export class WorfkflowScriptParser extends CstParser {
       {
         // TODO: restructure the common parts in function name/variable name
         // grammar so that backtracking is not required
-        GATE: this.BACKTRACK(this.assignmentStatement),
-        ALT: () => this.SUBRULE(this.assignmentStatement),
+        GATE: this.BACKTRACK(this.callStepStatement),
+        ALT: () => this.SUBRULE(this.callStepStatement),
       },
-      { ALT: () => this.SUBRULE(this.callExpression) }, // a function call without assigning the return value
+      { ALT: () => this.SUBRULE(this.assignmentStatement) },
       { ALT: () => this.SUBRULE(this.ifStatement) },
       { ALT: () => this.SUBRULE(this.forStatement) },
       { ALT: () => this.SUBRULE(this.parallelStatement) },

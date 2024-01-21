@@ -96,20 +96,40 @@ will be compiled to an [assign step](https://cloud.google.com/workflows/docs/ref
 The WorkflowScript statement
 
 ```javascript
-response = http.get((url = "https://www.example.com/path"))
+response = http.get("https://www.example.com/path")
+```
+
+will be compiled to an [assign step](https://cloud.google.com/workflows/docs/reference/syntax/variables#assign-step):
+
+```yaml
+- assign1:
+    assign:
+      - response: ${http.get("https://www.example.com/path")}
+```
+
+This syntax can be used to call [standard library functions](https://cloud.google.com/workflows/docs/reference/stdlib/overview) or subworkflows.
+
+### Named function arguments
+
+It's also possible to use named function arguments. The following WorkflowScript statement
+
+```javascript
+sys.log(text="Log message", timeout=100)
 ```
 
 will be compiled to a [call step](https://cloud.google.com/workflows/docs/reference/syntax/calls):
 
 ```yaml
 - call1:
-    call: http.get
+    call: sys.log
     args:
-      url: https://www.example.com/path
-    result: response
+      text: Log message
+      timeout: 100
 ```
 
-This syntax can be used to call a [standard library function](https://cloud.google.com/workflows/docs/reference/stdlib/overview) or a subworkflow. The parameter names are required (and their order isn't significant).
+The order of arguments is not significant.
+
+Note! Currently named arguments can be used only if the return value of the function call is not assigned to a variable.
 
 ## Conditional statements
 

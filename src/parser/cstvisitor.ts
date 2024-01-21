@@ -24,6 +24,7 @@ import {
   WorkflowParameter,
 } from '../ast/workflows.js'
 import {
+  FunctionInvocation,
   GWExpression,
   GWExpressionLiteral,
   GWParenthesizedExpression,
@@ -82,6 +83,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         return expressions.map((x) => x.render())
       } else if (ctx.object) {
         return this.visit(ctx.object)
+      } else if (ctx.callExpression) {
+        return this.visit(ctx.callExpression)
       } else if (ctx.variableReference) {
         return this.visit(ctx.variableReference)
       } else if (ctx.parenthesizedExpression) {
@@ -161,21 +164,11 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     assignmentStatement(ctx: any): NamedWorkflowStep {
       const ref: GWVariableReference = this.visit(ctx.variableReference)
 
-      if (ctx.callExpression) {
-        const { name, step } = this.visit(ctx.callExpression)
-
-        // reconstruct the CallStep to supplement the result variable name
-        return {
-          name,
-          step: new CallStep(step.call, step.args, ref.name),
-        }
-      } else {
-        return {
-          name: this.stepNameGenerator.generate('assign'),
-          step: new AssignStep([
-            [ref.name, this.visit(ctx.expression[0]).render()],
-          ]),
-        }
+      return {
+        name: this.stepNameGenerator.generate('assign'),
+        step: new AssignStep([
+          [ref.name, this.visit(ctx.expression[0]).render()],
+        ]),
       }
     }
 
@@ -198,12 +191,32 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    callExpression(ctx: any): NamedWorkflowStep {
+    actualAnonymousParameterList(ctx: any): GWExpression[] {
+      if (ctx.expression) {
+        return ctx.expression.map((x: CstNode) => this.visit(x))
+      } else {
+        return []
+      }
+    }
+
+    callExpression(ctx: any): FunctionInvocation {
+      return new FunctionInvocation(
+        this.visit(ctx.functionName),
+        this.visit(ctx.actualAnonymousParameterList),
+      )
+    }
+
+    callStepStatement(ctx: any): NamedWorkflowStep {
+      const ref: GWVariableReference = ctx.variableReference
+        ? this.visit(ctx.variableReference)
+        : undefined
+
       return {
         name: this.stepNameGenerator.generate('call'),
         step: new CallStep(
           this.visit(ctx.functionName),
           this.visit(ctx.actualParameterList),
+          ref?.toString(),
         ),
       }
     }
@@ -380,8 +393,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     statement(ctx: any): NamedWorkflowStep {
       if (ctx.assignmentStatement) {
         return this.visit(ctx.assignmentStatement[0])
-      } else if (ctx.callExpression) {
-        return this.visit(ctx.callExpression)
+      } else if (ctx.callStepStatement) {
+        return this.visit(ctx.callStepStatement[0])
       } else if (ctx.ifStatement) {
         return this.visit(ctx.ifStatement[0])
       } else if (ctx.forStatement) {

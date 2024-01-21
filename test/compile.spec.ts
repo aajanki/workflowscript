@@ -34,7 +34,7 @@ describe('WorkflowScript compiler', () => {
     const program = `
     workflow main() {
       name = "Elfo"
-      greeting = makeGreeting(name = \${name})
+      greeting = makeGreeting(name)
     }
 
     workflow makeGreeting(name) {
@@ -51,17 +51,12 @@ describe('WorkflowScript compiler', () => {
           - assign1:
               assign:
                 - name: "Elfo"
-
-          - call1:
-              call: makeGreeting
-              args:
-                  name: \${name}
-              result: greeting
+                - greeting: "\${makeGreeting(name)}"
 
     makeGreeting:
         params: [name]
         steps:
-          - assign2:
+          - assign3:
               assign:
                 - greeting: \${"Hello " + name}
           - return1:
