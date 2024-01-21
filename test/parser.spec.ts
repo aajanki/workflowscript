@@ -248,31 +248,23 @@ describe('Call statement parsing', () => {
     })
   })
 
-  /*
   it('parses a call with a result assignment', () => {
     const block = `my_result = my_workflow()`
     const ast = parseStatement(block)
 
     expect(ast.step?.render()).to.deep.equal({
-      call: 'my_workflow',
-      result: 'my_result',
+      assign: [{ my_result: '${my_workflow()}' }],
     })
   })
 
   it('parses a call with arguments', () => {
-    const block = `product = multiply(firstFactor = 7, secondFactor = 8)`
+    const block = `product = multiply(7, 8)`
     const ast = parseStatement(block)
 
     expect(ast.step?.render()).to.deep.equal({
-      call: 'multiply',
-      args: {
-        firstFactor: 7,
-        secondFactor: 8,
-      },
-      result: 'product',
+      assign: [{ product: '${multiply(7, 8)}' }],
     })
   })
-  */
 
   it('parses a call with arguments but without result variable', () => {
     const block = `log.sys(text = "Hello log")`
@@ -286,20 +278,18 @@ describe('Call statement parsing', () => {
     })
   })
 
-  /*
   it('parses a standard library function call', () => {
-    const block = `htmlPage = http.get(url = "https://visit.dreamland.test/things-to-do")`
+    const block = `htmlPage = http.get("https://visit.dreamland.test/things-to-do")`
     const ast = parseStatement(block)
 
     expect(ast.step?.render()).to.deep.equal({
-      call: 'http.get',
-      args: {
-        url: 'https://visit.dreamland.test/things-to-do',
-      },
-      result: 'htmlPage',
+      assign: [
+        {
+          htmlPage: '${http.get("https://visit.dreamland.test/things-to-do")}',
+        },
+      ],
     })
   })
-  */
 })
 
 describe('If statement parsing', () => {
