@@ -28,7 +28,7 @@ import {
   GWExpression,
   GWExpressionLiteral,
   GWParenthesizedExpression,
-  GWTerm,
+  Term,
   GWValue,
   GWVariableName,
   GWVariableReference,
@@ -69,49 +69,54 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return ctx.expression.map((val: CstNode) => this.visit(val))
     }
 
-    term(ctx: any): GWTerm {
+    term(ctx: any): Term {
+      let val:
+        | GWValue
+        | GWVariableReference
+        | GWParenthesizedExpression
+        | FunctionInvocation
+      const op = ctx.UnaryOperator ? ctx.UnaryOperator[0].image : undefined
+
       if (ctx.StringLiteral) {
-        return unescapeBackslashes(ctx.StringLiteral[0].image)
+        val = unescapeBackslashes(ctx.StringLiteral[0].image)
       } else if (ctx.NumberLiteral) {
-        return parseFloat(ctx.NumberLiteral[0].image)
+        val = parseFloat(ctx.NumberLiteral[0].image)
       } else if (ctx.True) {
-        return true
+        val = true
       } else if (ctx.False) {
-        return false
+        val = false
       } else if (ctx.array) {
         const expressions: GWExpression[] = this.visit(ctx.array)
-        return expressions.map((x) => x.render())
+        val = expressions.map((x) => x.render())
       } else if (ctx.object) {
-        return this.visit(ctx.object)
+        val = this.visit(ctx.object)
       } else if (ctx.callExpression) {
-        return this.visit(ctx.callExpression)
+        val = this.visit(ctx.callExpression)
       } else if (ctx.variableReference) {
-        return this.visit(ctx.variableReference)
+        val = this.visit(ctx.variableReference)
       } else if (ctx.parenthesizedExpression) {
-        return this.visit(ctx.parenthesizedExpression)
+        val = this.visit(ctx.parenthesizedExpression)
       } else if (ctx.ExpressionLiteral) {
-        return new GWExpressionLiteral(
+        val = new GWExpressionLiteral(
           ctx.ExpressionLiteral[0].image.slice(2, -1),
         )
       } else {
         throw new Error('not implemented')
       }
+
+      return new Term(val, op)
     }
 
     expression(ctx: any): GWExpression {
-      const terms: GWTerm[] = ctx.term.map((t: CstNode) => this.visit(t))
-      let leftUnaryOperator: string | undefined = undefined
-      if (ctx.UnaryOperator) {
-        leftUnaryOperator = ctx.UnaryOperator[0].image
-      }
+      const terms: Term[] = ctx.term.map((t: CstNode) => this.visit(t))
       const binaryOperators: string[] | undefined = ctx.BinaryOperator?.map(
         (op: IToken) => op.image,
       )
       const rest = binaryOperators?.map((op, i) => {
-        return { operator: op, right: terms[i + 1] }
+        return { binaryOperator: op, right: terms[i + 1] }
       })
 
-      return new GWExpression(terms[0], rest ?? [], leftUnaryOperator)
+      return new GWExpression(terms[0], rest ?? [])
     }
 
     parenthesizedExpression(ctx: any): GWParenthesizedExpression {

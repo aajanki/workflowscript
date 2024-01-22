@@ -64,54 +64,62 @@ export class FunctionInvocation {
   }
 }
 
-interface GWOperation {
-  // Operator such as: +, -, <, ==, not
-  operator: string
-  right: GWTerm
+interface BinaryOperation {
+  // Operator such as: +, -, <, ==
+  binaryOperator: string
+  right: Term
+}
+
+// term: (unaryOperator)? ( VALUE | VARIABLE | LPAREN expr RPAREN )
+export class Term {
+  // Potentially a unary operator: -, +, not
+  readonly unaryOperator?: string
+  readonly value:
+    | GWValue
+    | GWVariableReference
+    | GWParenthesizedExpression
+    | FunctionInvocation
+
+  constructor(
+    value:
+      | GWValue
+      | GWVariableReference
+      | GWParenthesizedExpression
+      | FunctionInvocation,
+    unaryOperator?: string,
+  ) {
+    this.unaryOperator = unaryOperator
+    this.value = value
+  }
 }
 
 // expr: term (op term)*
-// term: VALUE | VARIABLE | LPAREN expr RPAREN
-export type GWTerm =
-  | GWValue
-  | GWVariableReference
-  | GWParenthesizedExpression
-  | FunctionInvocation
 export class GWExpression {
-  readonly leftUnaryOperator: string | undefined
-  readonly left: GWTerm
-  readonly rest: GWOperation[]
+  readonly left: Term
+  readonly rest: BinaryOperation[]
 
-  constructor(left: GWTerm, rest: GWOperation[], leftUnaryOperator?: string) {
-    this.leftUnaryOperator = leftUnaryOperator
+  constructor(left: Term, rest: BinaryOperation[]) {
     this.left = left
     this.rest = rest
   }
 
   render(): GWValue {
-    let leftOp = this.leftUnaryOperator ?? ''
-    if (leftOp && !['-', '+'].includes(leftOp)) {
-      leftOp += ' '
-    }
+    const leftVal = this.left.value
 
     if (this.rest.length === 0) {
       if (
-        this.left instanceof GWVariableReference ||
-        this.left instanceof GWParenthesizedExpression ||
-        this.left instanceof FunctionInvocation
+        leftVal instanceof GWVariableReference ||
+        leftVal instanceof GWParenthesizedExpression ||
+        leftVal instanceof FunctionInvocation
       ) {
-        return new GWExpressionLiteral(leftOp + stringifyTerm(this.left))
+        return new GWExpressionLiteral(stringifyTerm(this.left))
       } else {
-        if (this.leftUnaryOperator) {
-          return new GWExpressionLiteral(leftOp + stringifyTerm(this.left))
-        } else {
-          return this.left
-        }
+        return leftVal
       }
     } else {
-      const left = leftOp + stringifyTerm(this.left)
+      const left = stringifyTerm(this.left)
       const parts = this.rest.map(
-        (x) => `${x.operator} ${stringifyTerm(x.right)}`,
+        (x) => `${x.binaryOperator} ${stringifyTerm(x.right)}`,
       )
       parts.unshift(left)
 
@@ -120,25 +128,13 @@ export class GWExpression {
   }
 
   toString(): string {
-    if (this.rest.length === 0) {
-      if (
-        this.left instanceof GWVariableReference ||
-        this.left instanceof GWParenthesizedExpression ||
-        this.left instanceof FunctionInvocation
-      ) {
-        return stringifyTerm(this.left)
-      } else {
-        return JSON.stringify(this.left)
-      }
-    } else {
-      const left = stringifyTerm(this.left)
-      const parts = this.rest.map(
-        (x) => `${x.operator} ${stringifyTerm(x.right)}`,
-      )
-      parts.unshift(left)
+    const left = stringifyTerm(this.left)
+    const parts = this.rest.map(
+      (x) => `${x.binaryOperator} ${stringifyTerm(x.right)}`,
+    )
+    parts.unshift(left)
 
-      return parts.join(' ')
-    }
+    return parts.join(' ')
   }
 }
 
@@ -172,36 +168,43 @@ export function $(ex: string): GWExpressionLiteral {
   return new GWExpressionLiteral(ex)
 }
 
-function stringifyTerm(term: GWTerm): string {
-  if (term instanceof GWVariableReference) {
-    return term.toString()
-  } else if (term instanceof GWParenthesizedExpression) {
-    return `(${term.expression.toString()})`
-  } else if (term instanceof FunctionInvocation) {
-    return term.toString()
-  } else if (Array.isArray(term)) {
-    const elements = term.map((t) => {
+function stringifyTerm(term: Term): string {
+  let opString = term.unaryOperator ?? ''
+  if (opString && !['-', '+'].includes(opString)) {
+    opString += ' '
+  }
+
+  const val = term.value
+
+  if (val instanceof GWVariableReference) {
+    return `${opString}${val.toString()}`
+  } else if (val instanceof GWParenthesizedExpression) {
+    return `${opString}(${val.expression.toString()})`
+  } else if (val instanceof FunctionInvocation) {
+    return `${opString}${val.toString()}`
+  } else if (Array.isArray(val)) {
+    const elements = val.map((t) => {
       if (t instanceof GWExpression) {
         return t.toString()
       } else {
-        return stringifyTerm(t)
+        return JSON.stringify(renderGWValue(t))
       }
     })
-    return `[${elements.join(', ')}]`
-  } else if (isRecord(term)) {
-    const elements = Object.entries(term).map(([k, v]) => {
+    return `${opString}[${elements.join(', ')}]`
+  } else if (isRecord(val)) {
+    const elements = Object.entries(val).map(([k, v]) => {
       if (v instanceof GWExpression) {
         return `"${k}": ${v.toString()}`
       } else {
-        return `"${k}": ${stringifyTerm(v)}`
+        return `"${k}": ${JSON.stringify(renderGWValue(v))}`
       }
     })
-    return `{${elements.join(', ')}}`
-  } else if (term instanceof GWExpressionLiteral) {
+    return `${opString}{${elements.join(', ')}}`
+  } else if (val instanceof GWExpressionLiteral) {
     // TODO get rid of this
-    return term.expression
+    return `${opString}${val.expression}`
   } else {
-    return JSON.stringify(renderGWValue(term))
+    return `${opString}${JSON.stringify(renderGWValue(val))}`
   }
 }
 

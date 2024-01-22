@@ -1046,7 +1046,8 @@ describe('Expressions', () => {
   it('parses unary operators', () => {
     assertExpression('-25', -25)
     assertExpression('-a', $('-a'))
-    assertExpression('a - +b', $('a - +b'))
+    assertExpression('a - + b', $('a - +b'))
+    assertExpression('a * -b', $('a * -b'))
     assertExpression(
       'not (status in ["OK", "success"])',
       $('not (status in ["OK", "success"])'),

@@ -76,6 +76,9 @@ export class WorfkflowScriptParser extends CstParser {
   })
 
   term = this.RULE('term', () => {
+    this.OPTION(() => {
+      this.CONSUME(UnaryOperator)
+    })
     this.OR([
       { ALT: () => this.CONSUME(StringLiteral) },
       { ALT: () => this.CONSUME(NumberLiteral) },
@@ -95,9 +98,6 @@ export class WorfkflowScriptParser extends CstParser {
   })
 
   expression = this.RULE('expression', () => {
-    this.OPTION(() => {
-      this.CONSUME(UnaryOperator)
-    })
     this.SUBRULE(this.term)
     this.MANY(() => {
       this.CONSUME(BinaryOperator)
@@ -180,12 +180,6 @@ export class WorfkflowScriptParser extends CstParser {
   })
 
   callStepStatement = this.RULE('callStepStatement', () => {
-    /*
-    this.OPTION(() => {
-      this.SUBRULE(this.variableReference)
-      this.CONSUME(Assignment)
-    })
-    */
     this.SUBRULE(this.functionName)
     this.CONSUME(LParenthesis)
     this.SUBRULE(this.actualParameterList)
