@@ -111,7 +111,8 @@ Quality-of-life improvements to be implemented later:
 - `return` without a value
 - finally block in try?
 - index variable in a for loop
-- named arguments and assignment not currently not compatible: `response = http.get(url = "http://example.com")`
+- fix named arguments with an assignment: `response = http.get(url = "http://example.com")`
+- fix unnamed arguments without an assignment: `http.get("http://example.com")`
 
 ## License
 

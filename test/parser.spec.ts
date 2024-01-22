@@ -1043,6 +1043,20 @@ describe('Expressions', () => {
     assertExpression('"Queen" + " Dagmar"', $('"Queen" + " Dagmar"'))
   })
 
+  it('parses unary operators', () => {
+    assertExpression('-25', -25)
+    assertExpression('-a', $('-a'))
+    assertExpression('a - +b', $('a - +b'))
+    assertExpression(
+      'not (status in ["OK", "success"])',
+      $('not (status in ["OK", "success"])'),
+    )
+    assertExpression(
+      '(y >= 0) and not (x >= 0)',
+      $('(y >= 0) and not (x >= 0)'),
+    )
+  })
+
   it('parses variable references', () => {
     assertExpression('a - 1', $('a - 1'))
     assertExpression('100 + 2*x', $('100 + 2 * x'))

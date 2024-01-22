@@ -78,27 +78,38 @@ export type GWTerm =
   | GWParenthesizedExpression
   | FunctionInvocation
 export class GWExpression {
+  readonly leftUnaryOperator: string | undefined
   readonly left: GWTerm
   readonly rest: GWOperation[]
 
-  constructor(left: GWTerm, rest: GWOperation[]) {
+  constructor(left: GWTerm, rest: GWOperation[], leftUnaryOperator?: string) {
+    this.leftUnaryOperator = leftUnaryOperator
     this.left = left
     this.rest = rest
   }
 
   render(): GWValue {
+    let leftOp = this.leftUnaryOperator ?? ''
+    if (leftOp && !['-', '+'].includes(leftOp)) {
+      leftOp += ' '
+    }
+
     if (this.rest.length === 0) {
       if (
         this.left instanceof GWVariableReference ||
         this.left instanceof GWParenthesizedExpression ||
         this.left instanceof FunctionInvocation
       ) {
-        return new GWExpressionLiteral(stringifyTerm(this.left))
+        return new GWExpressionLiteral(leftOp + stringifyTerm(this.left))
       } else {
-        return this.left
+        if (this.leftUnaryOperator) {
+          return new GWExpressionLiteral(leftOp + stringifyTerm(this.left))
+        } else {
+          return this.left
+        }
       }
     } else {
-      const left = stringifyTerm(this.left)
+      const left = leftOp + stringifyTerm(this.left)
       const parts = this.rest.map(
         (x) => `${x.operator} ${stringifyTerm(x.right)}`,
       )

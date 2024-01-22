@@ -1,5 +1,9 @@
 import { Lexer, createToken } from 'chevrotain'
 
+export const UnaryOperator = createToken({
+  name: 'UnaryOperator',
+  pattern: Lexer.NA,
+})
 export const BinaryOperator = createToken({
   name: 'BinaryOperator',
   pattern: Lexer.NA,
@@ -48,12 +52,12 @@ export const Assignment = createToken({ name: 'Assignment', pattern: '=' })
 export const Plus = createToken({
   name: 'Plus',
   pattern: '+',
-  categories: [BinaryOperator],
+  categories: [BinaryOperator, UnaryOperator],
 })
 export const Minus = createToken({
   name: 'Minus',
   pattern: '-',
-  categories: [BinaryOperator],
+  categories: [BinaryOperator, UnaryOperator],
 })
 export const Multiplication = createToken({
   name: 'Multiplication',
@@ -105,6 +109,12 @@ export const Or = createToken({
   name: 'Or',
   pattern: 'or',
   categories: [BinaryOperator],
+  longer_alt: Identifier,
+})
+export const Not = createToken({
+  name: 'Not',
+  pattern: 'not',
+  categories: [UnaryOperator],
   longer_alt: Identifier,
 })
 export const If = createToken({
@@ -202,6 +212,7 @@ export const WhiteSpace = createToken({
 })
 
 export const tokens = [
+  UnaryOperator,
   BinaryOperator,
   WhiteSpace,
   SingleLineComment,
@@ -224,6 +235,7 @@ export const tokens = [
   NotEqualTo,
   And,
   Or,
+  Not,
   Colon,
   Assignment,
   Plus,

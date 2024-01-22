@@ -100,14 +100,18 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     expression(ctx: any): GWExpression {
       const terms: GWTerm[] = ctx.term.map((t: CstNode) => this.visit(t))
-      const operators: string[] | undefined = ctx.BinaryOperator?.map(
+      let leftUnaryOperator: string | undefined = undefined
+      if (ctx.UnaryOperator) {
+        leftUnaryOperator = ctx.UnaryOperator[0].image
+      }
+      const binaryOperators: string[] | undefined = ctx.BinaryOperator?.map(
         (op: IToken) => op.image,
       )
-      const rest = operators?.map((op, i) => {
+      const rest = binaryOperators?.map((op, i) => {
         return { operator: op, right: terms[i + 1] }
       })
 
-      return new GWExpression(terms[0], rest ?? [])
+      return new GWExpression(terms[0], rest ?? [], leftUnaryOperator)
     }
 
     parenthesizedExpression(ctx: any): GWParenthesizedExpression {

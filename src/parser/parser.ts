@@ -33,6 +33,7 @@ import {
   Try,
   Workflow,
   tokens,
+  UnaryOperator,
 } from './lexer.js'
 
 export class WorfkflowScriptParser extends CstParser {
@@ -94,6 +95,9 @@ export class WorfkflowScriptParser extends CstParser {
   })
 
   expression = this.RULE('expression', () => {
+    this.OPTION(() => {
+      this.CONSUME(UnaryOperator)
+    })
     this.SUBRULE(this.term)
     this.MANY(() => {
       this.CONSUME(BinaryOperator)
