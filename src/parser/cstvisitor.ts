@@ -247,7 +247,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       const listExpression: GWExpression = this.visit(ctx.expression)
       const listValue = listExpression.render()
 
-      if (!(Array.isArray(listValue) || listValue instanceof GWExpressionLiteral)) {
+      if (
+        !(Array.isArray(listValue) || listValue instanceof GWExpressionLiteral)
+      ) {
         throw new Error('Invalid value in a for loop')
       }
 

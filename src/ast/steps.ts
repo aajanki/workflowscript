@@ -1,7 +1,4 @@
-import type {
-  GWValue,
-  GWVariableName,
-} from './variables.js'
+import type { GWValue, GWVariableName } from './variables.js'
 import { renderGWValue } from './variables.js'
 
 export type GWStepName = string

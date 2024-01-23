@@ -1066,6 +1066,11 @@ describe('Expressions', () => {
     )
   })
 
+  it('parses remaider divisions', () => {
+    assertExpression('x % 3', $('x % 3'))
+    assertExpression('x % t == 0', $('x % t == 0'))
+  })
+
   it('parses variable references', () => {
     assertExpression('a - 1', $('a - 1'))
     assertExpression('100 + 2*x', $('100 + 2 * x'))

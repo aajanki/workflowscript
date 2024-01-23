@@ -69,6 +69,11 @@ export const Division = createToken({
   pattern: '/',
   categories: [BinaryOperator],
 })
+export const RemainderDivision = createToken({
+  name: 'RemainderDivision',
+  pattern: '%',
+  categories: [BinaryOperator],
+})
 export const LessThanOrEqualTo = createToken({
   name: 'LessThanOrEqualTo',
   pattern: '<=',
@@ -242,6 +247,7 @@ export const tokens = [
   Minus,
   Multiplication,
   Division,
+  RemainderDivision,
   True,
   False,
   Null,
