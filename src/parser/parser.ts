@@ -10,7 +10,6 @@ import {
   Dot,
   Else,
   Assignment,
-  ExpressionLiteral,
   False,
   For,
   Identifier,
@@ -93,7 +92,6 @@ export class WorfkflowScriptParser extends CstParser {
       },
       { ALT: () => this.SUBRULE(this.variableReference) },
       { ALT: () => this.SUBRULE(this.parenthesizedExpression) },
-      { ALT: () => this.CONSUME(ExpressionLiteral) }, // TODO remove
     ])
   })
 

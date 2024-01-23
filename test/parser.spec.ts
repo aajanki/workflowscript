@@ -47,8 +47,8 @@ describe('workflow definition parsing', () => {
 
   it('parses subworkflow definition with body', () => {
     const block = `workflow addOne(a) {
-      res = \${a + 1}
-      return \${res}
+      res = a + 1
+      return res
     }`
     const ast = parseSubworkflow(block)
 
@@ -291,7 +291,7 @@ describe('Call statement parsing', () => {
 describe('If statement parsing', () => {
   it('parses if statement without an else branch', () => {
     const block = `
-    if (\${nickname == ""}) {
+    if (nickname == "") {
       nickname = "Bean"
     }
     `
@@ -315,7 +315,7 @@ describe('If statement parsing', () => {
 
   it('parses if statement with an else branch', () => {
     const block = `
-    if (\${name == "Oona"}) {
+    if (name == "Oona") {
       isPirate = true
     } else {
       isPirate = false
@@ -351,9 +351,9 @@ describe('If statement parsing', () => {
 
   it('parses if statement multiple branches', () => {
     const block = `
-    if (\${name == "Mora"}) {
+    if (name == "Mora") {
       homeland = "Mermaid Island"
-    } else if (\${name == "Alva Gunderson"}) {
+    } else if (name == "Alva Gunderson") {
       homeland = "Steamland"
     } else {
       homeland = "Dreamland"
@@ -472,11 +472,11 @@ describe('Parallel step parsing', () => {
     )
     branch {
       n = http.get("https://forums.dreamland.test/numPosts/bean")
-      numPosts = \${numPosts + n}
+      numPosts = numPosts + n
     }
     branch {
       n = http.get("https://forums.dreamland.test/numPosts/elfo")
-      numPosts = \${numPosts + n}
+      numPosts = numPosts + n
     }
     `
     const ast = parseStatement(block)
@@ -531,12 +531,12 @@ describe('Parallel step parsing', () => {
       this_is_an_unknown_parameter = true
     )
     branch {
-      n = http.get(url = "https://forums.dreamland.test/numPosts/bean")
-      numPosts = \${numPosts + n}
+      n = http.get("https://forums.dreamland.test/numPosts/bean")
+      numPosts = numPosts + n
     }
     branch {
-      n = http.get(url = "https://forums.dreamland.test/numPosts/elfo")
-      numPosts = \${numPosts + n}
+      n = http.get("https://forums.dreamland.test/numPosts/elfo")
+      numPosts = numPosts + n
     }
     `
 
@@ -547,8 +547,8 @@ describe('Parallel step parsing', () => {
     const block = `
     parallel (shared = ["numPosts"])
 
-    n = http.get(url = "https://forums.dreamland.test/numPosts/bean")
-    numPosts = \${numPosts + n}
+    n = http.get("https://forums.dreamland.test/numPosts/bean")
+    numPosts = numPosts + n
     `
 
     expect(() => parseStatement(block)).to.throw()
@@ -559,12 +559,12 @@ describe('Parallel step parsing', () => {
     numPosts = 0
 
     branch {
-      n = http.get(url = "https://forums.dreamland.test/numPosts/bean")
-      numPosts = \${numPosts + n}
+      n = http.get("https://forums.dreamland.test/numPosts/bean")
+      numPosts = numPosts + n
     }
     branch {
-      n = http.get(url = "https://forums.dreamland.test/numPosts/elfo")
-      numPosts = \${numPosts + n}
+      n = http.get("https://forums.dreamland.test/numPosts/elfo")
+      numPosts = numPosts + n
     }
     `
 
@@ -578,7 +578,7 @@ describe('Try-retry-catch statement parsing', () => {
     try {
       response = http.get("https://visit.dreamland.test/")
     } catch (err) {
-      if (\${err.code == 404}) {
+      if (err.code == 404) {
         return "Not found"
       }
     }
@@ -625,7 +625,7 @@ describe('Try-retry-catch statement parsing', () => {
     const block = `
     try {
       response = http.get("https://visit.dreamland.test/")
-    } retry (policy = \${http.default_retry})
+    } retry (policy = http.default_retry)
     `
     const ast = parseStatement(block)
 
@@ -650,7 +650,7 @@ describe('Try-retry-catch statement parsing', () => {
     try {
       response = http.get("https://visit.dreamland.test/")
     }
-    retry (predicate = \${http.default_retry_predicate}, maxRetries = 10, initialDelay = 3.0, maxDelay = 60, multiplier = 1.5)
+    retry (predicate = http.default_retry_predicate, maxRetries = 10, initialDelay = 3.0, maxDelay = 60, multiplier = 1.5)
     `
     const ast = parseStatement(block)
 
@@ -683,9 +683,9 @@ describe('Try-retry-catch statement parsing', () => {
     try {
       response = http.get("https://visit.dreamland.test/")
     }
-    retry (policy = \${http.default_retry})
+    retry (policy = http.default_retry)
     catch (err) {
-      if (\${err.code == 404}) {
+      if (err.code == 404) {
         return "Not found"
       }
     }
@@ -753,7 +753,7 @@ describe('Try-retry-catch statement parsing', () => {
     try {
       response = http.get("https://visit.dreamland.test/")
     }
-    retry (predicate = \${http.default_retry_predicate}, maxRetries = 10)
+    retry (predicate = http.default_retry_predicate, maxRetries = 10)
     `
 
     expect(() => parseStatement(block)).to.throw()
@@ -764,7 +764,7 @@ describe('Try-retry-catch statement parsing', () => {
     try {
       response = http.get("https://visit.dreamland.test/")
     }
-    retry (policy = \${http.default_retry}, predicate = \${http.default_retry_predicate}, maxRetries = 10, initialDelay = 3, maxDelay = 60, multiplier = 2)
+    retry (policy = http.default_retry, predicate = http.default_retry_predicate, maxRetries = 10, initialDelay = 3, maxDelay = 60, multiplier = 2)
     `
 
     expect(() => parseStatement(block)).to.throw()
@@ -786,10 +786,10 @@ describe('Try-retry-catch statement parsing', () => {
       response = http.get("https://visit.dreamland.test/")
     }
     catch (err) {
-      throw \${err}
+      throw err
     }
     catch (err) {
-      if (\${err.code == 404}) {
+      if (err.code == 404) {
         return "Not found"
       }
     }
@@ -803,8 +803,8 @@ describe('Try-retry-catch statement parsing', () => {
     try {
       response = http.get("https://visit.dreamland.test/")
     }
-    retry (policy = \${http.default_retry})
-    retry (policy = \${http.default_retry})
+    retry (policy = http.default_retry)
+    retry (policy = http.default_retry)
     `
 
     expect(() => parseStatement(block)).to.throw()
@@ -823,7 +823,7 @@ describe('Try-retry-catch statement parsing', () => {
 
   it('parses throw with an expression', () => {
     const block = `
-    throw \${exception}
+    throw exception
     `
     const ast = parseStatement(block)
 
@@ -854,7 +854,7 @@ describe('For loop parsing', () => {
   it('parses for loop without errors', () => {
     const block = `
     for (x in [1, 2, 3]) {
-      total = \${total + x}
+      total = total + x
     }
     `
     const ast = parseStatement(block)
@@ -877,7 +877,7 @@ describe('For loop parsing', () => {
   it('parses a for loop over an list expression', () => {
     const block = `
     for (key in keys(map)) {
-      total = \${total + map[key]}
+      total = total + map[key]
     }
     `
     const ast = parseStatement(block)
@@ -915,11 +915,11 @@ describe('For loop parsing', () => {
   it('parses continue in a for loop', () => {
     const block = `
     for (x in [1, 2, 3, 4]) {
-      if (\${x % 2 == 0}) {
+      if (x % 2 == 0) {
         continue
       }
 
-      total = \${total + x}
+      total = total + x
     }
     `
     const ast = parseStatement(block)
@@ -958,11 +958,11 @@ describe('For loop parsing', () => {
   it('parses break in a for loop', () => {
     const block = `
     for (x in [1, 2, 3, 4]) {
-      if (\${total > 5}) {
+      if (total > 5) {
         break
       }
 
-      total = \${total + x}
+      total = total + x
     }
     `
     const ast = parseStatement(block)

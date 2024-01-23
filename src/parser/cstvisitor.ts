@@ -96,10 +96,6 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         val = this.visit(ctx.variableReference)
       } else if (ctx.parenthesizedExpression) {
         val = this.visit(ctx.parenthesizedExpression)
-      } else if (ctx.ExpressionLiteral) {
-        val = new GWExpressionLiteral(
-          ctx.ExpressionLiteral[0].image.slice(2, -1),
-        )
       } else {
         throw new Error('not implemented')
       }

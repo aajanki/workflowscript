@@ -38,8 +38,8 @@ describe('WorkflowScript compiler', () => {
     }
 
     workflow makeGreeting(name) {
-      greeting = \${"Hello " + name}
-      return \${greeting}
+      greeting = "Hello " + name
+      return greeting
     }
     `
 
@@ -83,7 +83,7 @@ describe('WorkflowScript compiler', () => {
 
       !!!***
 
-      greeting = makeGreeting(name = \${name})
+      greeting = makeGreeting(name = name)
     }
     `
     expect(() => compile(program)).to.throw

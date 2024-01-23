@@ -12,23 +12,35 @@
 
 ## Expressions
 
-All expressions must begin with a `$` and be enclosed in curly brackets. The plan is to write a proper expression parser in the future and to get rid of the `${}`.
-
 Examples:
 
+```javascript
+a + b
+
+args.users[3].id
+
+name == "Bean"
+
+sys.get_env("GOOGLE_CLOUD_PROJECT_ID")
+
+default(map.get(myMap, "id"), "(missing)")
 ```
-${a + b}
 
-${args.user.id}
+Operators:
 
-${name == "Bean"}
+| Operator     | Explanation                                  |
+|--------------|----------------------------------------------|
+| +            | arithmetic addition and string concatenation |
+| -            | arithmetic subtraction or unary negation     |
+| *            | multiplication                               |
+| /            | float division                               |
+| %            | remainder division                           |
+| ==           | equal to                                     |
+| !=           | not equal to                                 |
+| <, >, <=, >= | inequality comparisons                       |
+| and, or, not | logical operators                            |
 
-${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
-
-${default(map.get(myMap, "id"), "(missing)")}
-```
-
-See [expression in GCP Workflows](https://cloud.google.com/workflows/docs/reference/syntax/expressions).
+See [expression in GCP Workflows](https://cloud.google.com/workflows/docs/reference/syntax/expressions) for more information.
 
 ## Subworkflow definitions
 
@@ -41,7 +53,7 @@ workflow main() {
 
 workflow anotherWorkflow() {
   b = 10
-  return ${2 * b}
+  return 2 * b
 }
 ```
 
@@ -49,7 +61,7 @@ Workflows can have parameters:
 
 ```
 workflow multiply(firstFactor, secondFactor) {
-  return ${firstFactor * secondFactor}
+  return firstFactor * secondFactor
 }
 ```
 
@@ -57,7 +69,7 @@ Parameters can be optional and have a default value that is used if a value is n
 
 ```
 workflow log(x, base=10) {
-  return ${"Compute logarithm of x"}
+  return "Compute logarithm of x"
 }
 ```
 
@@ -70,7 +82,7 @@ return "Success"
 The returned value can be an expression:
 
 ```javascript
-return ${firstFactor * secondFactor}
+return firstFactor * secondFactor
 ```
 
 At the moment, return must always have a value. A plain `return` is not supported.
@@ -136,11 +148,11 @@ Note! Currently named arguments can be used only if the return value of the func
 The WorkflowScript statement
 
 ```javascript
-if (${hour < 12}) {
+if (hour < 12) {
   part_of_the_day = "morning"
-} else if (${hour < 17}) {
+} else if (hour < 17) {
   part_of_the_day = "afternoon"
-} else if (${hour < 21}) {
+} else if (hour < 21) {
   part_of_the_day = "evening"
 } else {
   part_of_the_day = "night"
@@ -224,12 +236,12 @@ parallel (
   concurrency_limit = 2
 )
 branch {
-  n = http.get(url = "https://forum.dreamland.test/numPosts/bean")
-  numPosts = ${numPosts + n}
+  n = http.get("https://forum.dreamland.test/numPosts/bean")
+  numPosts = numPosts + n
 }
 branch {
-  n = http.get(url = "https://forum.dreamland.test/numPosts/elfo")
-  numPosts = ${numPosts + n}
+  n = http.get("https://forum.dreamland.test/numPosts/elfo")
+  numPosts = numPosts + n
 }
 ```
 
@@ -239,7 +251,7 @@ The WorkflowScript statement
 
 ```javascript
 try {
-  http.get((url = "https://visit.dreamland.test/"))
+  http.get(url = "https://visit.dreamland.test/")
 } catch (err) {
   return "Error!"
 }
@@ -270,7 +282,7 @@ There are two default retry policies: `http.default_retry` and `http.default_ret
 
 ```javascript
 try {
-  http.get((url = "https://visit.dreamland.test/"))
+  http.get(url = "https://visit.dreamland.test/")
 }
 retry (policy = "http.default_retry")
 ```
@@ -284,7 +296,7 @@ A custom retry policy is defined by specifying all of the following parameters:
 
 ```javascript
 try {
-  http.get((url = "https://visit.dreamland.test/"))
+  http.get(url = "https://visit.dreamland.test/")
 }
 retry (predicate = http.default_retry_predicate, maxRetries = 10, initialDelay = 2.5, maxDelay = 60, multiplier = 1.5)
 ```
@@ -293,7 +305,7 @@ Retry and catch blocks can be combined like this:
 
 ```javascript
 try {
-  http.get((url = "https://visit.dreamland.test/"))
+  http.get(url = "https://visit.dreamland.test/")
 }
 retry (policy = "http.default_retry")
 catch (err) {
@@ -327,7 +339,7 @@ The WorkflowScript fragment
 ```javascript
 total = 0
 for (i in [1, 2, 3]) {
-  total = ${total + i}
+  total = total + i
 }
 ```
 
@@ -358,11 +370,11 @@ Breaking out of loop:
 ```javascript
 total = 0
 for (i in [1, 2, 3, 4]) {
-  if (${total > 5}) {
+  if (total > 5) {
     break
   }
 
-  total = ${total + i}
+  total = total + i
 }
 ```
 
@@ -371,11 +383,11 @@ Continuing from the next iteration of a loop:
 ```javascript
 total = 0
 for (i in [1, 2, 3, 4]) {
-  if (${i % 2 == 0}) {
+  if (i % 2 == 0) {
     continue
   }
 
-  total = ${total + i}
+  total = total + i
 }
 ```
 
