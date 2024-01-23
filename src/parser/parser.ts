@@ -111,13 +111,6 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(RParenthesis)
   })
 
-  arrayOrArrayExpression = this.RULE('arrayOrArrayExpression', () => {
-    this.OR([
-      { ALT: () => this.SUBRULE(this.array) },
-      { ALT: () => this.CONSUME(ExpressionLiteral) },
-    ])
-  })
-
   subscriptReference = this.RULE('subscriptReference', () => {
     this.CONSUME(Identifier)
     this.MANY(() => {
@@ -245,7 +238,7 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(LParenthesis)
     this.CONSUME(Identifier)
     this.CONSUME(In)
-    this.SUBRULE(this.arrayOrArrayExpression)
+    this.SUBRULE(this.expression)
     this.CONSUME(RParenthesis)
     this.CONSUME(LCurly)
     this.SUBRULE(this.statementBlock)

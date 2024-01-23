@@ -123,19 +123,6 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return new GWParenthesizedExpression(this.visit(ctx.expression))
     }
 
-    arrayOrArrayExpression(ctx: any): GWExpressionLiteral | GWValue[] {
-      if (ctx.array) {
-        const expressionArray: GWExpression[] = this.visit(ctx.array)
-        return expressionArray.map((x) => x.render())
-      } else if (ctx.ExpressionLiteral) {
-        return new GWExpressionLiteral(
-          ctx.ExpressionLiteral[0].image.slice(2, -1),
-        )
-      } else {
-        throw new Error('not implemented')
-      }
-    }
-
     subscriptReference(ctx: any): string {
       const reference = ctx.Identifier[0].image
       const subscripts: string = (ctx.expression ?? [])
@@ -257,13 +244,16 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     forStatement(ctx: any): NamedWorkflowStep {
       const loopVariable = ctx.Identifier[0].image
       const steps = this.visit(ctx.statementBlock)
-      const expression = this.visit(ctx.arrayOrArrayExpression) as
-        | GWExpressionLiteral
-        | GWValue[]
+      const listExpression: GWExpression = this.visit(ctx.expression)
+      const listValue = listExpression.render()
+
+      if (!(Array.isArray(listValue) || listValue instanceof GWExpressionLiteral)) {
+        throw new Error('Invalid value in a for loop')
+      }
 
       return {
         name: this.stepNameGenerator.generate('for'),
-        step: new ForStep(steps, loopVariable, expression),
+        step: new ForStep(steps, loopVariable, listValue),
       }
     }
 

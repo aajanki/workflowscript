@@ -876,7 +876,7 @@ describe('For loop parsing', () => {
 
   it('parses a for loop over an list expression', () => {
     const block = `
-    for (key in \${keys(map)}) {
+    for (key in keys(map)) {
       total = \${total + map[key]}
     }
     `
@@ -1001,6 +1001,14 @@ describe('For loop parsing', () => {
   it('fails to parse for in number', () => {
     const block = `
     for (x in 999) { }
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
+  it('fails to parse for in map', () => {
+    const block = `
+    for (x in {"key": 1}) { }
     `
 
     expect(() => parseStatement(block)).to.throw()

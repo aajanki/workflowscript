@@ -1,5 +1,4 @@
 import type {
-  GWExpressionLiteral,
   GWValue,
   GWVariableName,
 } from './variables.js'
@@ -176,14 +175,14 @@ export class ForStep implements WorkflowStep {
   readonly steps: NamedWorkflowStep[]
   readonly loopVariableName: GWVariableName
   readonly indexVariableName?: GWVariableName
-  readonly listExpression?: GWExpressionLiteral | GWValue[]
+  readonly listExpression?: GWValue
   readonly rangeStart?: number
   readonly rangeEnd?: number
 
   constructor(
     steps: NamedWorkflowStep[],
     loopVariable: GWVariableName,
-    listExpression?: GWExpressionLiteral | GWValue[],
+    listExpression?: GWValue,
     indexVariable?: GWVariableName,
     rangeStart?: number,
     rangeEnd?: number,

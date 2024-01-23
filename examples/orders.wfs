@@ -1,7 +1,7 @@
 workflow main() {
   orderIds = ["ord1", "ord2", "ord3"]
 
-  for (oid in ${orderIds}) {
+  for (oid in orderIds) {
     orders = getOrders(oid)
 
     sys.log(text="Orders: " + orders)
