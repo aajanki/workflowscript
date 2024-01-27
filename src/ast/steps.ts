@@ -77,12 +77,12 @@ export class CallStep implements WorkflowStep {
 }
 
 export class SwitchCondition {
-  readonly condition: GWValue
+  readonly condition: GWExpression
   readonly next?: GWStepName
   readonly steps: NamedWorkflowStep[]
 
   constructor(
-    condition: GWValue,
+    condition: GWExpression,
     options: { next: GWStepName } | { steps: NamedWorkflowStep[] },
   ) {
     this.condition = condition
@@ -98,7 +98,7 @@ export class SwitchCondition {
 
   render(): object {
     return {
-      condition: renderGWValue(this.condition),
+      condition: renderGWValue(this.condition.render()),
       ...(this.next && { next: this.next }),
       ...(this.steps.length > 0 && { steps: renderSteps(this.steps) }),
     }

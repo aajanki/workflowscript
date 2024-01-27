@@ -212,7 +212,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     ifStatement(ctx: any): NamedWorkflowStep {
       const branches: SwitchCondition[] = ctx.expression.map(
         (ex: CstNode, i: number) => {
-          return new SwitchCondition(this.visit(ex).render(), {
+          return new SwitchCondition(this.visit(ex), {
             steps: this.visit(ctx.statementBlock[i]),
           })
         },
@@ -221,7 +221,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       if (ctx.statementBlock.length > ctx.expression.length) {
         // The last branch is an else branch
         branches.push(
-          new SwitchCondition(true, {
+          new SwitchCondition(new GWExpression(new Term(true), []), {
             steps: this.visit(
               ctx.statementBlock[ctx.statementBlock.length - 1],
             ),

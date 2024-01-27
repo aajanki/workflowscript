@@ -109,10 +109,10 @@ describe('workflow step AST', () => {
       'step1',
       new SwitchStep(
         [
-          new SwitchCondition($('city = "New New York"'), {
+          new SwitchCondition(parseEx('city == "New New York"'), {
             next: 'destination_new_new_york',
           }),
-          new SwitchCondition($('city = "Mars Vegas"'), {
+          new SwitchCondition(parseEx('city == "Mars Vegas"'), {
             steps: [assign1, return1],
           }),
         ],
@@ -122,9 +122,9 @@ describe('workflow step AST', () => {
 
     const expected2 = YAML.parse(`
     switch:
-        - condition: \${city = "New New York"}
+        - condition: \${city == "New New York"}
           next: destination_new_new_york
-        - condition: \${city = "Mars Vegas"}
+        - condition: \${city == "Mars Vegas"}
           steps:
             - increase_counter:
                 assign:
@@ -151,7 +151,7 @@ describe('workflow step AST', () => {
     const knownErrors = namedStep(
       'known_errors',
       new SwitchStep([
-        new SwitchCondition($('e.code == 404'), {
+        new SwitchCondition(parseEx('e.code == 404'), {
           steps: [
             namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
           ],
@@ -207,7 +207,7 @@ describe('workflow step AST', () => {
     const knownErrors = namedStep(
       'known_errors',
       new SwitchStep([
-        new SwitchCondition($('e.code == 404'), {
+        new SwitchCondition(parseEx('e.code == 404'), {
           steps: [
             namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
           ],
@@ -264,7 +264,7 @@ describe('workflow step AST', () => {
     const knownErrors = namedStep(
       'known_errors',
       new SwitchStep([
-        new SwitchCondition($('e.code == 404'), {
+        new SwitchCondition(parseEx('e.code == 404'), {
           steps: [
             namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
           ],
@@ -341,7 +341,7 @@ describe('workflow step AST', () => {
     const knownErrors = namedStep(
       'known_errors',
       new SwitchStep([
-        new SwitchCondition($('e.code == 404'), {
+        new SwitchCondition(parseEx('e.code == 404'), {
           steps: [
             namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
           ],
