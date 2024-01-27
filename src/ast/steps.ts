@@ -1,9 +1,9 @@
-import type { GWExpression, GWValue, GWVariableName } from './variables.js'
+import type { GWExpression, GWVariableName } from './variables.js'
 import { renderGWValue } from './variables.js'
 
 export type GWStepName = string
 export type GWAssignment = readonly [GWVariableName, GWExpression]
-export type GWArguments = Record<GWVariableName, GWValue>
+export type GWArguments = Record<GWVariableName, GWExpression>
 
 export interface WorkflowStep {
   render(): object
@@ -59,7 +59,7 @@ export class CallStep implements WorkflowStep {
     if (this.args) {
       args = Object.fromEntries(
         Object.entries(this.args).map(([k, v]) => {
-          return [k, renderGWValue(v)]
+          return [k, renderGWValue(v.render())]
         }),
       )
     }

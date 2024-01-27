@@ -167,9 +167,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     actualParameterList(ctx: any): GWArguments | undefined {
       if (ctx.Identifier) {
-        const namedArgumentList = ctx.Identifier.map(
+        const namedArgumentList: [string, GWExpression][] = ctx.Identifier.map(
           (identifier: IToken, i: number) => {
-            return [identifier.image, this.visit(ctx.expression[i]).render()]
+            return [identifier.image, this.visit(ctx.expression[i])]
           },
         )
 
@@ -298,21 +298,19 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
             shared = maybeStringArray.value
           } else if (key === 'concurrency_limit') {
-            if (typeof val !== 'number') {
+            concurrencyLimit = extractNumber(val)
+            if (typeof concurrencyLimit === 'undefined') {
               throw new Error(
                 'The optional branch parameter "concurrency_limit" must be an integer',
               )
             }
-
-            concurrencyLimit = val
           } else if (key === 'exception_policy') {
-            if (val !== 'continueAll') {
+            exceptionPolicy = extractString(val)
+            if (exceptionPolicy !== 'continueAll') {
               throw new Error(
                 'Invalid value for the optional branch parameter "exception_policy"',
               )
             }
-
-            exceptionPolicy = val
           } else {
             throw new Error(`Unknown branch parameter: ${key}`)
           }
@@ -542,40 +540,38 @@ function parseRetryPolicy(
 
   if (setEqual(actualKeys, defaultPolicyRequiredKays)) {
     // default policy
-    if (policyParameters.policy instanceof GWExpressionLiteral) {
-      return policyParameters.policy.expression
-    } else {
-      throw new Error('Invalid retry policy')
-    }
+    return policyParameters.policy.toString()
   } else if (setEqual(actualKeys, customPolicyRequiredKays)) {
     // custom policy
-    if (!(policyParameters.predicate instanceof GWExpressionLiteral)) {
-      throw new Error('Invalid custom retry policy predicate')
-    }
+    const predicate = policyParameters.predicate.toString()
 
-    if (typeof policyParameters.maxRetries !== 'number') {
+    const maxRetries = extractNumber(policyParameters.maxRetries)
+    if (typeof maxRetries !== 'number') {
       throw new Error('Invalid custom retry policy maxRetries')
     }
 
-    if (typeof policyParameters.initialDelay !== 'number') {
+    const initialDelay = extractNumber(policyParameters.initialDelay)
+    if (typeof initialDelay !== 'number') {
       throw new Error('Invalid custom retry policy initalDelay')
     }
 
-    if (typeof policyParameters.maxDelay !== 'number') {
+    const maxDelay = extractNumber(policyParameters.maxDelay)
+    if (typeof maxDelay !== 'number') {
       throw new Error('Invalid custom retry policy maxDelay')
     }
 
-    if (typeof policyParameters.multiplier !== 'number') {
+    const multiplier = extractNumber(policyParameters.multiplier)
+    if (typeof multiplier !== 'number') {
       throw new Error('Invalid custom retry policy multiplier')
     }
 
     return {
-      predicate: policyParameters.predicate.expression,
-      maxRetries: policyParameters.maxRetries,
+      predicate: predicate,
+      maxRetries: maxRetries,
       backoff: {
-        initialDelay: policyParameters.initialDelay,
-        maxDelay: policyParameters.maxDelay,
-        multiplier: policyParameters.multiplier,
+        initialDelay: initialDelay,
+        maxDelay: maxDelay,
+        multiplier: multiplier,
       },
     }
   } else {
@@ -584,14 +580,15 @@ function parseRetryPolicy(
 }
 
 function extractStringArray(
-  val: GWValue,
+  ex: GWExpression,
 ): { success: false } | { success: true; value: string[] } {
-  if (!Array.isArray(val)) {
+  const primitive: GWValue = ex.render()
+  if (!Array.isArray(primitive)) {
     return { success: false }
   }
 
   const res: string[] = []
-  for (const x of val) {
+  for (const x of primitive) {
     const primitive = x instanceof GWExpression ? x.render() : x
 
     if (typeof primitive === 'string') {
@@ -602,4 +599,20 @@ function extractStringArray(
   }
 
   return { success: true, value: res }
+}
+
+function extractNumber(ex: GWExpression): number | undefined {
+  if (ex.rest.length === 0 && typeof ex.left.value === 'number') {
+    return ex.left.value
+  } else {
+    return undefined
+  }
+}
+
+function extractString(ex: GWExpression): string | undefined {
+  if (ex.rest.length === 0 && typeof ex.left.value === 'string') {
+    return ex.left.value
+  } else {
+    return undefined
+  }
 }

@@ -1,6 +1,5 @@
 import { expect } from 'chai'
 import * as YAML from 'yaml'
-import { $ } from '../src/ast/variables.js'
 import {
   AssignStep,
   CallStep,
@@ -68,8 +67,8 @@ describe('workflow step AST', () => {
     const step = new CallStep(
       'deliver_package',
       {
-        destination: 'Atlanta',
-        deliveryCompany: 'Planet Express',
+        destination: primitiveEx('Atlanta'),
+        deliveryCompany: primitiveEx('Planet Express'),
       },
       'deliveryResult',
     )
@@ -87,7 +86,7 @@ describe('workflow step AST', () => {
 
   it('renders a call step with an expression as an argument', () => {
     const step = new CallStep('deliver_package', {
-      destination: parseEx('destinations[i]').render(),
+      destination: parseEx('destinations[i]'),
     })
 
     const expected = YAML.parse(`
@@ -143,7 +142,7 @@ describe('workflow step AST', () => {
       new CallStep(
         'http.get',
         {
-          url: 'https://maybe.failing.test/',
+          url: primitiveEx('https://maybe.failing.test/'),
         },
         'response',
       ),
@@ -199,7 +198,7 @@ describe('workflow step AST', () => {
       new CallStep(
         'http.get',
         {
-          url: 'https://maybe.failing.test/',
+          url: primitiveEx('https://maybe.failing.test/'),
         },
         'response',
       ),
@@ -256,7 +255,7 @@ describe('workflow step AST', () => {
       new CallStep(
         'http.get',
         {
-          url: 'https://maybe.failing.test/',
+          url: primitiveEx('https://maybe.failing.test/'),
         },
         'response',
       ),
@@ -333,7 +332,7 @@ describe('workflow step AST', () => {
       new CallStep(
         'http.get',
         {
-          url: 'https://maybe.failing.test/',
+          url: primitiveEx('https://maybe.failing.test/'),
         },
         'response',
       ),
@@ -469,7 +468,7 @@ describe('workflow step AST', () => {
         namedStep(
           'say_hello_1',
           new CallStep('sys.log', {
-            text: 'Hello from branch 1',
+            text: primitiveEx('Hello from branch 1'),
           }),
         ),
       ]),
@@ -477,7 +476,7 @@ describe('workflow step AST', () => {
         namedStep(
           'say_hello_2',
           new CallStep('sys.log', {
-            text: 'Hello from branch 2',
+            text: primitiveEx('Hello from branch 2'),
           }),
         ),
       ]),
@@ -552,7 +551,7 @@ describe('workflow step AST', () => {
             new CallStep(
               'http.get',
               {
-                url: $('"https://example.com/balance/" + userId'),
+                url: parseEx('"https://example.com/balance/" + userId'),
               },
               'balance',
             ),

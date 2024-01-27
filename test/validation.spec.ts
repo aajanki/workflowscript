@@ -10,7 +10,6 @@ import {
   namedStep,
 } from '../src/ast/steps.js'
 import { WorkflowValidationError, validate } from '../src/ast/validation.js'
-import { $ } from '../src/ast/variables.js'
 import { parseEx, primitiveEx, cstVisitor } from './testutils.js'
 
 describe('Validator', () => {
@@ -24,7 +23,7 @@ describe('Validator', () => {
       namedStep(
         'say_hello',
         new CallStep('sys.log', {
-          text: $('"Hello, " + name'),
+          text: parseEx('"Hello, " + name'),
         }),
       ),
     ]
@@ -42,7 +41,7 @@ describe('Validator', () => {
       namedStep(
         'duplicated_name',
         new CallStep('sys.log', {
-          text: $('"Hello, " + name'),
+          text: parseEx('"Hello, " + name'),
         }),
       ),
     ]
@@ -61,7 +60,7 @@ describe('Validator', () => {
       namedStep(
         'duplicated_name',
         new CallStep('sys.log', {
-          text: $('"Hello, " + name'),
+          text: parseEx('"Hello, " + name'),
         }),
       ),
     ]
@@ -78,7 +77,7 @@ describe('Validator', () => {
         namedStep(
           'duplicated_name',
           new CallStep('sys.log', {
-            text: $('"Hello, " + name'),
+            text: parseEx('"Hello, " + name'),
           }),
         ),
         namedStep('duplicated_name', new ReturnStep(primitiveEx(1))),
@@ -89,7 +88,7 @@ describe('Validator', () => {
       namedStep(
         'call_subworkflow',
         new CallStep(subworkflow.name, {
-          name: 'Leela',
+          name: primitiveEx('Leela'),
         }),
       ),
     ])
@@ -111,7 +110,7 @@ describe('Validator', () => {
           namedStep(
             'switch_step',
             new SwitchStep([
-              new SwitchCondition($('name == "Fry"'), {
+              new SwitchCondition(parseEx('name == "Fry"'), {
                 steps: [
                   namedStep(
                     'fry_quote',
@@ -124,7 +123,7 @@ describe('Validator', () => {
                   ),
                 ],
               }),
-              new SwitchCondition($('name == "Zoidberg"'), {
+              new SwitchCondition(parseEx('name == "Zoidberg"'), {
                 steps: [
                   namedStep(
                     'duplicated_name',
@@ -139,7 +138,7 @@ describe('Validator', () => {
                   ),
                 ],
               }),
-              new SwitchCondition($('name == "Leela"'), {
+              new SwitchCondition(parseEx('name == "Leela"'), {
                 steps: [
                   namedStep(
                     'leela_quote',
@@ -159,7 +158,7 @@ describe('Validator', () => {
           namedStep(
             'step2',
             new CallStep('sys.log', {
-              text: $('name + ": " + quote'),
+              text: parseEx('name + ": " + quote'),
             }),
           ),
         ]),
@@ -178,7 +177,7 @@ describe('Validator', () => {
         namedStep(
           'step1',
           new CallStep('sys.log', {
-            text: $('"Hello, " + name'),
+            text: parseEx('"Hello, " + name'),
           }),
         ),
         namedStep('step2', new ReturnStep(primitiveEx(1))),
@@ -189,7 +188,7 @@ describe('Validator', () => {
       namedStep(
         'step1',
         new CallStep(subworkflow.name, {
-          name: 'Leela',
+          name: primitiveEx('Leela'),
         }),
       ),
     ])
@@ -227,14 +226,14 @@ describe('Validator', () => {
     const step3 = namedStep(
       'step3',
       new CallStep('sys.log', {
-        text: 'Logging from step 3',
+        text: primitiveEx('Logging from step 3'),
       }),
     )
     const switch1 = namedStep(
       'step1',
       new SwitchStep(
         [
-          new SwitchCondition($('input == 1'), {
+          new SwitchCondition(parseEx('input == 1'), {
             next: 'step3',
           }),
         ],
@@ -279,7 +278,7 @@ describe('Validator', () => {
       namedStep(
         'call1',
         new CallStep(subworkflow.name, {
-          required_arg_1: 1,
+          required_arg_1: primitiveEx(1),
         }),
       ),
     ])
@@ -305,7 +304,7 @@ describe('Validator', () => {
       namedStep(
         'call1',
         new CallStep(subworkflow.name, {
-          required_arg_1: 1,
+          required_arg_1: primitiveEx(1),
         }),
       ),
     ])
@@ -330,9 +329,9 @@ describe('Validator', () => {
       namedStep(
         'step1',
         new CallStep(subworkflow.name, {
-          required_arg_1: 1,
-          required_arg_2: 2,
-          extra_argument: 'X',
+          required_arg_1: primitiveEx(1),
+          required_arg_2: primitiveEx(2),
+          extra_argument: primitiveEx('X'),
         }),
       ),
     ])
@@ -358,8 +357,8 @@ describe('Validator', () => {
       namedStep(
         'step1',
         new CallStep(subworkflow.name, {
-          required_arg_1: 1,
-          optional_arg_2: 2,
+          required_arg_1: primitiveEx(1),
+          optional_arg_2: primitiveEx(2),
         }),
       ),
     ])

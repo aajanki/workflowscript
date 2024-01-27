@@ -3,8 +3,7 @@ import * as YAML from 'yaml'
 
 import { Subworkflow, WorkflowApp, toYAMLString } from '../src/ast/workflows.js'
 import { AssignStep, CallStep, namedStep } from '../src/ast/steps.js'
-import { $ } from '../src/ast/variables.js'
-import { parseEx } from './testutils.js'
+import { parseEx, primitiveEx } from './testutils.js'
 
 describe('workflow AST', () => {
   it('renders a main workflow', () => {
@@ -16,7 +15,7 @@ describe('workflow AST', () => {
       namedStep(
         'say_hello',
         new CallStep('sys.log', {
-          text: $('"Hello, " + name'),
+          text: parseEx('"Hello, " + name'),
         }),
       ),
     ]
@@ -43,7 +42,7 @@ describe('workflow AST', () => {
       namedStep(
         'log_greetings',
         new CallStep('sys.log', {
-          text: $('greeting + ", " + name'),
+          text: parseEx('greeting + ", " + name'),
         }),
       ),
     ]
@@ -72,7 +71,7 @@ describe('workflow AST', () => {
         namedStep(
           'log_greetings',
           new CallStep('sys.log', {
-            text: $('"Hello, " + name'),
+            text: parseEx('"Hello, " + name'),
           }),
         ),
       ],
@@ -82,7 +81,7 @@ describe('workflow AST', () => {
       namedStep(
         'call_subworkflow',
         new CallStep(subworkflow.name, {
-          name: 'Leela',
+          name: primitiveEx('Leela'),
         }),
       ),
     ])
@@ -116,7 +115,7 @@ describe('workflow AST', () => {
       namedStep(
         'say_hello',
         new CallStep('sys.log', {
-          text: $('"Hello, " + name'),
+          text: parseEx('"Hello, " + name'),
         }),
       ),
     ]
