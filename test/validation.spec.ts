@@ -11,11 +11,16 @@ import {
 } from '../src/ast/steps.js'
 import { WorkflowValidationError, validate } from '../src/ast/validation.js'
 import { $ } from '../src/ast/variables.js'
+import { parseEx, primitiveEx, cstVisitor } from './testutils.js'
 
 describe('Validator', () => {
+  beforeEach(() => {
+    cstVisitor.reset()
+  })
+
   it('accepts a valid workflow', () => {
     const steps = [
-      namedStep('assign_name', new AssignStep([['name', 'Fry']])),
+      namedStep('assign_name', new AssignStep([['name', primitiveEx('Fry')]])),
       namedStep(
         'say_hello',
         new CallStep('sys.log', {
@@ -30,7 +35,10 @@ describe('Validator', () => {
 
   it('detects duplicate step names in the main workflow', () => {
     const steps = [
-      namedStep('duplicated_name', new AssignStep([['name', 'Fry']])),
+      namedStep(
+        'duplicated_name',
+        new AssignStep([['name', primitiveEx('Fry')]]),
+      ),
       namedStep(
         'duplicated_name',
         new CallStep('sys.log', {
@@ -46,7 +54,10 @@ describe('Validator', () => {
 
   it('can disable selected validators', () => {
     const steps = [
-      namedStep('duplicated_name', new AssignStep([['name', 'Fry']])),
+      namedStep(
+        'duplicated_name',
+        new AssignStep([['name', primitiveEx('Fry')]]),
+      ),
       namedStep(
         'duplicated_name',
         new CallStep('sys.log', {
@@ -70,7 +81,7 @@ describe('Validator', () => {
             text: $('"Hello, " + name'),
           }),
         ),
-        namedStep('duplicated_name', new ReturnStep('1')),
+        namedStep('duplicated_name', new ReturnStep(primitiveEx(1))),
       ],
       [{ name: 'name' }],
     )
@@ -93,7 +104,10 @@ describe('Validator', () => {
       namedStep(
         'print_quotes',
         new StepsStep([
-          namedStep('duplicated_name', new AssignStep([['name', 'Fry']])),
+          namedStep(
+            'duplicated_name',
+            new AssignStep([['name', primitiveEx('Fry')]]),
+          ),
           namedStep(
             'switch_step',
             new SwitchStep([
@@ -102,7 +116,10 @@ describe('Validator', () => {
                   namedStep(
                     'fry_quote',
                     new AssignStep([
-                      ['quote', 'Space. It seems to go on forever.'],
+                      [
+                        'quote',
+                        primitiveEx('Space. It seems to go on forever.'),
+                      ],
                     ]),
                   ),
                 ],
@@ -114,7 +131,9 @@ describe('Validator', () => {
                     new AssignStep([
                       [
                         'quote',
-                        "Casual hello. It's me, Zoidberg. Act naturally.",
+                        primitiveEx(
+                          "Casual hello. It's me, Zoidberg. Act naturally.",
+                        ),
                       ],
                     ]),
                   ),
@@ -127,7 +146,9 @@ describe('Validator', () => {
                     new AssignStep([
                       [
                         'quote',
-                        "Look, I don't know about your previous captains, but I intend to do as little dying as possible.",
+                        primitiveEx(
+                          "Look, I don't know about your previous captains, but I intend to do as little dying as possible.",
+                        ),
                       ],
                     ]),
                   ),
@@ -160,7 +181,7 @@ describe('Validator', () => {
             text: $('"Hello, " + name'),
           }),
         ),
-        namedStep('step2', new ReturnStep('1')),
+        namedStep('step2', new ReturnStep(primitiveEx(1))),
       ],
       [{ name: 'name' }],
     )
@@ -179,16 +200,16 @@ describe('Validator', () => {
 
   it("doesn't allow duplicate subworkflow names", () => {
     const main = new Subworkflow('main', [
-      namedStep('step1', new AssignStep([['a', '"a"']])),
+      namedStep('step1', new AssignStep([['a', primitiveEx('a')]])),
     ])
     const sub1 = new Subworkflow('mysubworkflow', [
-      namedStep('return1', new ReturnStep('1')),
+      namedStep('return1', new ReturnStep(primitiveEx(1))),
     ])
     const sub2 = new Subworkflow('anotherworkflow', [
-      namedStep('return2', new ReturnStep('2')),
+      namedStep('return2', new ReturnStep(primitiveEx(2))),
     ])
     const sub3 = new Subworkflow('mysubworkflow', [
-      namedStep('return3', new ReturnStep('3')),
+      namedStep('return3', new ReturnStep(primitiveEx(3))),
     ])
     const wf = new WorkflowApp([main, sub1, sub2, sub3])
 
@@ -198,10 +219,10 @@ describe('Validator', () => {
 
   it('detects a missing next target', () => {
     const sub1 = new Subworkflow('subworkflow1', [
-      namedStep('return1', new ReturnStep('1')),
+      namedStep('return1', new ReturnStep(primitiveEx(1))),
     ])
     const sub2 = new Subworkflow('subworkflow2', [
-      namedStep('return2', new ReturnStep('2')),
+      namedStep('return2', new ReturnStep(primitiveEx(2))),
     ])
     const step3 = namedStep(
       'step3',
@@ -229,10 +250,10 @@ describe('Validator', () => {
 
   it('detects a missing call target subworkflow', () => {
     const sub1 = new Subworkflow('subworkflow1', [
-      namedStep('return1', new ReturnStep('1')),
+      namedStep('return1', new ReturnStep(primitiveEx(1))),
     ])
     const sub2 = new Subworkflow('subworkflow2', [
-      namedStep('return2', new ReturnStep('2')),
+      namedStep('return2', new ReturnStep(primitiveEx(2))),
     ])
     const call1 = namedStep('call1', new CallStep(sub1.name))
     const main = new Subworkflow('main', [call1], [{ name: 'input' }])
@@ -248,7 +269,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep($('required_arg_1 + required_arg_2')),
+          new ReturnStep(parseEx('required_arg_1 + required_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'required_arg_2' }],
@@ -274,7 +295,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep($('required_arg_1 + optional_arg_2')),
+          new ReturnStep(parseEx('required_arg_1 + optional_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'optional_arg_2', default: 2 }],
@@ -299,7 +320,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep($('required_arg_1 + required_arg_2')),
+          new ReturnStep(parseEx('required_arg_1 + required_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'required_arg_2' }],
@@ -327,7 +348,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep($('required_arg_1 + optional_arg_2')),
+          new ReturnStep(parseEx('required_arg_1 + optional_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'optional_arg_2', default: 2 }],

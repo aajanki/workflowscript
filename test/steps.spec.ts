@@ -1,6 +1,5 @@
 import { expect } from 'chai'
 import * as YAML from 'yaml'
-
 import { $ } from '../src/ast/variables.js'
 import {
   AssignStep,
@@ -16,12 +15,13 @@ import {
   SwitchCondition,
 } from '../src/ast/steps.js'
 import { Subworkflow } from '../src/ast/workflows.js'
+import { parseEx, primitiveEx } from './testutils.js'
 
 describe('workflow step AST', () => {
   it('renders an assign step', () => {
     const step = new AssignStep([
-      ['city', 'New New York'],
-      ['value', $('1 + 2')],
+      ['city', primitiveEx('New New York')],
+      ['value', parseEx('1 + 2')],
     ])
 
     const expected = YAML.parse(`
@@ -35,11 +35,11 @@ describe('workflow step AST', () => {
 
   it('assigns variables with index notation', () => {
     const step = new AssignStep([
-      ['my_list', [0, 1, 2, 3, 4]],
-      ['idx', 0],
-      ['my_list[0]', 'Value0'],
-      ['my_list[idx + 1]', 'Value1'],
-      ['my_list[len(my_list) - 1]', 'LastValue'],
+      ['my_list', primitiveEx([0, 1, 2, 3, 4])],
+      ['idx', primitiveEx(0)],
+      ['my_list[0]', primitiveEx('Value0')],
+      ['my_list[idx + 1]', primitiveEx('Value1')],
+      ['my_list[len(my_list) - 1]', primitiveEx('LastValue')],
     ])
 
     const expected = YAML.parse(`
@@ -87,7 +87,7 @@ describe('workflow step AST', () => {
 
   it('renders a call step with an expression as an argument', () => {
     const step = new CallStep('deliver_package', {
-      destination: $('destinations[i]'),
+      destination: parseEx('destinations[i]').render(),
     })
 
     const expected = YAML.parse(`
@@ -102,9 +102,9 @@ describe('workflow step AST', () => {
   it('renders a switch step', () => {
     const assign1 = namedStep(
       'increase_counter',
-      new AssignStep([['a', $('mars_counter + 1')]]),
+      new AssignStep([['a', parseEx('mars_counter + 1')]]),
     )
-    const return1 = namedStep('return_counter', new ReturnStep($('a')))
+    const return1 = namedStep('return_counter', new ReturnStep(parseEx('a')))
     const { step } = namedStep(
       'step1',
       new SwitchStep(
@@ -152,11 +152,16 @@ describe('workflow step AST', () => {
       'known_errors',
       new SwitchStep([
         new SwitchCondition($('e.code == 404'), {
-          steps: [namedStep('return_error', new ReturnStep('Not found'))],
+          steps: [
+            namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
+          ],
         }),
       ]),
     )
-    const unknownErrors = namedStep('unknown_errors', new RaiseStep($('e')))
+    const unknownErrors = namedStep(
+      'unknown_errors',
+      new RaiseStep(parseEx('e')),
+    )
     const step = new TryExceptStep(
       [potentiallyFailingStep],
       [knownErrors, unknownErrors],
@@ -203,11 +208,16 @@ describe('workflow step AST', () => {
       'known_errors',
       new SwitchStep([
         new SwitchCondition($('e.code == 404'), {
-          steps: [namedStep('return_error', new ReturnStep('Not found'))],
+          steps: [
+            namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
+          ],
         }),
       ]),
     )
-    const unknownErrors = namedStep('unknown_errors', new RaiseStep($('e')))
+    const unknownErrors = namedStep(
+      'unknown_errors',
+      new RaiseStep(parseEx('e')),
+    )
     const step = new TryExceptStep(
       [potentiallyFailingStep],
       [knownErrors, unknownErrors],
@@ -255,11 +265,16 @@ describe('workflow step AST', () => {
       'known_errors',
       new SwitchStep([
         new SwitchCondition($('e.code == 404'), {
-          steps: [namedStep('return_error', new ReturnStep('Not found'))],
+          steps: [
+            namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
+          ],
         }),
       ]),
     )
-    const unknownErrors = namedStep('unknown_errors', new RaiseStep($('e')))
+    const unknownErrors = namedStep(
+      'unknown_errors',
+      new RaiseStep(parseEx('e')),
+    )
     const step = new TryExceptStep(
       [potentiallyFailingStep],
       [knownErrors, unknownErrors],
@@ -309,7 +324,7 @@ describe('workflow step AST', () => {
   it('renders a try step with a subworkflow as a retry predicate', () => {
     const predicateSubworkflow = new Subworkflow(
       'my_retry_predicate',
-      [namedStep('always_retry', new ReturnStep(true))],
+      [namedStep('always_retry', new ReturnStep(primitiveEx(true)))],
       [{ name: 'e' }],
     )
 
@@ -327,11 +342,16 @@ describe('workflow step AST', () => {
       'known_errors',
       new SwitchStep([
         new SwitchCondition($('e.code == 404'), {
-          steps: [namedStep('return_error', new ReturnStep('Not found'))],
+          steps: [
+            namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
+          ],
         }),
       ]),
     )
-    const unknownErrors = namedStep('unknown_errors', new RaiseStep($('e')))
+    const unknownErrors = namedStep(
+      'unknown_errors',
+      new RaiseStep(parseEx('e')),
+    )
     const step = new TryExceptStep(
       [potentiallyFailingStep],
       [knownErrors, unknownErrors],
@@ -380,9 +400,9 @@ describe('workflow step AST', () => {
 
   it('renders a for step', () => {
     const step = new ForStep(
-      [namedStep('addStep', new AssignStep([['sum', $('sum + v')]]))],
+      [namedStep('addStep', new AssignStep([['sum', parseEx('sum + v')]]))],
       'v',
-      [1, 2, 3],
+      primitiveEx([1, 2, 3]),
     )
 
     const expected = YAML.parse(`
@@ -400,9 +420,9 @@ describe('workflow step AST', () => {
 
   it('renders an index-based for step', () => {
     const step = new ForStep(
-      [namedStep('addStep', new AssignStep([['sum', $('sum + i*v')]]))],
+      [namedStep('addStep', new AssignStep([['sum', parseEx('sum + i*v')]]))],
       'v',
-      [10, 20, 30],
+      primitiveEx([10, 20, 30]),
       'i',
     )
 
@@ -414,7 +434,7 @@ describe('workflow step AST', () => {
         steps:
           - addStep:
               assign:
-                - sum: \${sum + i*v}
+                - sum: \${sum + i * v}
     `)
 
     expect(step.render()).to.deep.equal(expected)
@@ -422,7 +442,7 @@ describe('workflow step AST', () => {
 
   it('renders a for-range step', () => {
     const step = new ForStep(
-      [namedStep('addStep', new AssignStep([['sum', $('sum + v')]]))],
+      [namedStep('addStep', new AssignStep([['sum', parseEx('sum + v')]]))],
       'v',
       undefined,
       undefined,
@@ -489,13 +509,13 @@ describe('workflow step AST', () => {
         branch1: new StepsStep([
           namedStep(
             'assign_1',
-            new AssignStep([['myVariable[0]', 'Set in branch 1']]),
+            new AssignStep([['myVariable[0]', primitiveEx('Set in branch 1')]]),
           ),
         ]),
         branch2: new StepsStep([
           namedStep(
             'assign_2',
-            new AssignStep([['myVariable[1]', 'Set in branch 2']]),
+            new AssignStep([['myVariable[1]', primitiveEx('Set in branch 2')]]),
           ),
         ]),
       },
@@ -537,10 +557,13 @@ describe('workflow step AST', () => {
               'balance',
             ),
           ),
-          namedStep('add', new AssignStep([['total', $('total + balance')]])),
+          namedStep(
+            'add',
+            new AssignStep([['total', parseEx('total + balance')]]),
+          ),
         ],
         'userId',
-        ['11', '12', '13', '14'],
+        primitiveEx(['11', '12', '13', '14']),
       ),
       ['total'],
     )

@@ -1,8 +1,8 @@
-import type { GWValue, GWVariableName } from './variables.js'
+import type { GWExpression, GWValue, GWVariableName } from './variables.js'
 import { renderGWValue } from './variables.js'
 
 export type GWStepName = string
-export type GWAssignment = readonly [GWVariableName, GWValue]
+export type GWAssignment = readonly [GWVariableName, GWExpression]
 export type GWArguments = Record<GWVariableName, GWValue>
 
 export interface WorkflowStep {
@@ -30,7 +30,7 @@ export class AssignStep implements WorkflowStep {
   render(): object {
     return {
       assign: this.assignments.map(([key, val]) => {
-        return { [key]: renderGWValue(val) }
+        return { [key]: renderGWValue(val.render()) }
       }),
     }
   }
@@ -172,14 +172,14 @@ export class ForStep implements WorkflowStep {
   readonly steps: NamedWorkflowStep[]
   readonly loopVariableName: GWVariableName
   readonly indexVariableName?: GWVariableName
-  readonly listExpression?: GWValue
+  readonly listExpression?: GWExpression
   readonly rangeStart?: number
   readonly rangeEnd?: number
 
   constructor(
     steps: NamedWorkflowStep[],
     loopVariable: GWVariableName,
-    listExpression?: GWValue,
+    listExpression?: GWExpression,
     indexVariable?: GWVariableName,
     rangeStart?: number,
     rangeEnd?: number,
@@ -198,13 +198,13 @@ export class ForStep implements WorkflowStep {
     }
   }
   renderBody(): object {
-    let range
-    let inValue
+    let range: (number | undefined)[] | undefined
+    let inValue: null | string | number | boolean | object | undefined
     if (typeof this.listExpression === 'undefined') {
       range = [this.rangeStart, this.rangeEnd]
       inValue = undefined
     } else {
-      inValue = renderGWValue(this.listExpression)
+      inValue = renderGWValue(this.listExpression.render())
       range = undefined
     }
 
@@ -271,15 +271,15 @@ export class ParallelStep implements WorkflowStep {
 
 // https://cloud.google.com/workflows/docs/reference/syntax/completing
 export class ReturnStep implements WorkflowStep {
-  readonly value: GWValue
+  readonly value: GWExpression
 
-  constructor(value: GWValue) {
+  constructor(value: GWExpression) {
     this.value = value
   }
 
   render(): object {
     return {
-      return: renderGWValue(this.value),
+      return: renderGWValue(this.value.render()),
     }
   }
 
@@ -364,15 +364,15 @@ export class TryExceptStep implements WorkflowStep {
 
 // https://cloud.google.com/workflows/docs/reference/syntax/raising-errors
 export class RaiseStep implements WorkflowStep {
-  readonly value: GWValue
+  readonly value: GWExpression
 
-  constructor(value: GWValue) {
+  constructor(value: GWExpression) {
     this.value = value
   }
 
   render(): object {
     return {
-      raise: renderGWValue(this.value),
+      raise: renderGWValue(this.value.render()),
     }
   }
 

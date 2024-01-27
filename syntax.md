@@ -28,7 +28,7 @@ default(map.get(myMap, "id"), "(missing)")
 
 Operators:
 
-| Operator     | Explanation                                  |
+| Operator     | Description                                  |
 |--------------|----------------------------------------------|
 | +            | arithmetic addition and string concatenation |
 | -            | arithmetic subtraction or unary negation     |
@@ -39,6 +39,8 @@ Operators:
 | !=           | not equal to                                 |
 | <, >, <=, >= | inequality comparisons                       |
 | and, or, not | logical operators                            |
+
+The [precendence order of operators](https://cloud.google.com/workflows/docs/reference/syntax/datatypes#order-operations) is the same as in GCP Workflows.
 
 See [expression in GCP Workflows](https://cloud.google.com/workflows/docs/reference/syntax/expressions) for more information.
 

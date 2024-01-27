@@ -4,11 +4,15 @@ import * as YAML from 'yaml'
 import { Subworkflow, WorkflowApp, toYAMLString } from '../src/ast/workflows.js'
 import { AssignStep, CallStep, namedStep } from '../src/ast/steps.js'
 import { $ } from '../src/ast/variables.js'
+import { parseEx } from './testutils.js'
 
 describe('workflow AST', () => {
   it('renders a main workflow', () => {
     const steps = [
-      namedStep('assign_name', new AssignStep([['name', $('args.name')]])),
+      namedStep(
+        'assign_name',
+        new AssignStep([['name', parseEx('args.name')]]),
+      ),
       namedStep(
         'say_hello',
         new CallStep('sys.log', {
@@ -105,7 +109,10 @@ describe('workflow AST', () => {
 
   it('outputs the workflow definition in YAML', () => {
     const steps = [
-      namedStep('assign_name', new AssignStep([['name', $('args.name')]])),
+      namedStep(
+        'assign_name',
+        new AssignStep([['name', parseEx('args.name')]]),
+      ),
       namedStep(
         'say_hello',
         new CallStep('sys.log', {

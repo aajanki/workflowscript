@@ -113,6 +113,24 @@ export class GWExpression {
         leftVal instanceof FunctionInvocation
       ) {
         return new GWExpressionLiteral(stringifyTerm(this.left))
+      } else if (Array.isArray(leftVal)) {
+        return leftVal.map((x) => {
+          if (x instanceof GWExpression) {
+            return x.render()
+          } else {
+            return x
+          }
+        })
+      } else if (leftVal !== null && typeof leftVal === 'object') {
+        return Object.fromEntries(
+          Object.entries(leftVal).map(([k, v]) => {
+            if (v instanceof GWExpression) {
+              return [k, v.render()]
+            } else {
+              return [k, v]
+            }
+          }),
+        )
       } else {
         return leftVal
       }

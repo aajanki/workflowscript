@@ -86,8 +86,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.False) {
         val = false
       } else if (ctx.array) {
-        const expressions: GWExpression[] = this.visit(ctx.array)
-        val = expressions.map((x) => x.render())
+        val = this.visit(ctx.array)
       } else if (ctx.object) {
         val = this.visit(ctx.object)
       } else if (ctx.callExpression) {
@@ -153,12 +152,11 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     assignmentStatement(ctx: any): NamedWorkflowStep {
       const ref: GWVariableReference = this.visit(ctx.variableReference)
+      const ex: GWExpression = this.visit(ctx.expression[0])
 
       return {
         name: this.stepNameGenerator.generate('assign'),
-        step: new AssignStep([
-          [ref.name, this.visit(ctx.expression[0]).render()],
-        ]),
+        step: new AssignStep([[ref.name, ex]]),
       }
     }
 
@@ -251,7 +249,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
       return {
         name: this.stepNameGenerator.generate('for'),
-        step: new ForStep(steps, loopVariable, listValue),
+        step: new ForStep(steps, loopVariable, listExpression),
       }
     }
 
@@ -291,15 +289,14 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
           const val = optionalParameters[key]
 
           if (key === 'shared') {
-            if (
-              !(Array.isArray(val) && val.every((x) => typeof x === 'string'))
-            ) {
+            const maybeStringArray = extractStringArray(val)
+            if (!maybeStringArray.success) {
               throw new Error(
                 'The optional branch parameter "shared" must be an array of strings',
               )
             }
 
-            shared = val as string[]
+            shared = maybeStringArray.value
           } else if (key === 'concurrency_limit') {
             if (typeof val !== 'number') {
               throw new Error(
@@ -360,7 +357,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
       return {
         name: this.stepNameGenerator.generate('raise'),
-        step: new RaiseStep(ex.render()),
+        step: new RaiseStep(ex),
       }
     }
 
@@ -379,9 +376,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     returnStatement(ctx: any): NamedWorkflowStep {
+      const ex: GWExpression = this.visit(ctx.expression[0])
       return {
         name: this.stepNameGenerator.generate('return'),
-        step: new ReturnStep(this.visit(ctx.expression[0]).render()),
+        step: new ReturnStep(ex),
       }
     }
 
@@ -583,4 +581,25 @@ function parseRetryPolicy(
   } else {
     throw new Error('Invalid retry policy options')
   }
+}
+
+function extractStringArray(
+  val: GWValue,
+): { success: false } | { success: true; value: string[] } {
+  if (!Array.isArray(val)) {
+    return { success: false }
+  }
+
+  const res: string[] = []
+  for (const x of val) {
+    const primitive = x instanceof GWExpression ? x.render() : x
+
+    if (typeof primitive === 'string') {
+      res.push(primitive)
+    } else {
+      return { success: false }
+    }
+  }
+
+  return { success: true, value: res }
 }

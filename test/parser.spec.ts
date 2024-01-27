@@ -1,12 +1,14 @@
 import { expect } from 'chai'
-import { CstNode } from 'chevrotain'
-import { workflowScriptLexer } from '../src/parser/lexer.js'
-import { WorfkflowScriptParser } from '../src/parser/parser.js'
-import { createVisitor } from '../src/parser/cstvisitor.js'
 import { GWExpression, GWValue, $ } from '../src/ast/variables.js'
+import {
+  parseEx,
+  parseStatement,
+  parseSubworkflow,
+  cstVisitor,
+} from './testutils.js'
 
 beforeEach(() => {
-  visitor.reset()
+  cstVisitor.reset()
 })
 
 describe('workflow definition parsing', () => {
@@ -1176,6 +1178,9 @@ describe('Expressions', () => {
       '{"isKnownLocation": location in {"Dreamland": 1, "Maru": 2}}',
       { isKnownLocation: $('location in {"Dreamland": 1, "Maru": 2}') },
     )
+    assertExpression('{"values": {"next": a + 1}}', {
+      values: { next: $('a + 1') },
+    })
   })
 
   it('parses function expressions', () => {
@@ -1191,39 +1196,9 @@ describe('Expressions', () => {
   })
 })
 
-const parser = new WorfkflowScriptParser()
-const visitor = createVisitor(parser)
-
-function parseOneRule(
-  codeBlock: string,
-  parseRule: (parser: WorfkflowScriptParser) => CstNode,
-) {
-  const lexResult = workflowScriptLexer.tokenize(codeBlock)
-  parser.input = lexResult.tokens
-
-  const cst = parseRule(parser)
-  const ast = visitor.visit(cst)
-
-  if (lexResult.errors.length > 0) {
-    throw new Error('Lex error: ' + JSON.stringify(lexResult.errors))
-  }
-  if (parser.errors.length > 0) {
-    throw new Error('Parsing error: ' + JSON.stringify(parser.errors))
-  }
-
-  return ast
-}
-
 function assertExpression(
   expression: string,
   expected: GWValue | GWExpression,
 ): void {
-  expect(parseExpression(expression).render()).to.deep.equal(expected)
+  expect(parseEx(expression).render()).to.deep.equal(expected)
 }
-
-const parseExpression = (codeBlock: string) =>
-  parseOneRule(codeBlock, (p) => p.expression())
-const parseStatement = (codeBlock: string) =>
-  parseOneRule(codeBlock, (p) => p.statement())
-const parseSubworkflow = (codeBlock: string) =>
-  parseOneRule(codeBlock, (p) => p.subworkflowDefinition())
