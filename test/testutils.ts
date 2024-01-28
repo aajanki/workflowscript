@@ -29,11 +29,13 @@ function parseOneRule(
   return ast
 }
 
-export function parseEx(codeBlock: string): GWExpression {
+export function parseExpression(codeBlock: string): GWExpression {
   return parseOneRule(codeBlock, (p) => p.expression())
 }
 
-export function primitiveEx(primitive: GWValue): GWExpression {
+export function primitiveEx(
+  primitive: string | number | boolean | null | (string | number | boolean | null)[],
+): GWExpression {
   return new GWExpression(new Term(primitive), [])
 }
 

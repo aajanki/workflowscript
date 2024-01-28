@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { TransformedPrimitive } from '../src/ast/expressions.js'
-import { parseEx } from './testutils.js'
+import { parseExpression } from './testutils.js'
 
 describe('Primitives', () => {
   /*
@@ -204,5 +204,7 @@ function assertExpression(
   expression: string,
   expected: TransformedPrimitive,
 ): void {
-  expect(parseEx(expression).toWorkflowsFormat()).to.deep.equal(expected)
+  expect(parseExpression(expression).toWorkflowsFormat()).to.deep.equal(
+    expected,
+  )
 }

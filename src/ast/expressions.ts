@@ -257,11 +257,6 @@ export class GWExpressionLiteral {
   }
 }
 
-// A short-hand syntax for writing an expression literal: $('a + 1')
-export function $(ex: string): GWExpressionLiteral {
-  return new GWExpressionLiteral(ex)
-}
-
 function stringifyTerm(term: Term): string {
   let opString = term.unaryOperator ?? ''
   if (opString && !['-', '+'].includes(opString)) {

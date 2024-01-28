@@ -14,13 +14,13 @@ import {
   SwitchCondition,
 } from '../src/ast/steps.js'
 import { Subworkflow } from '../src/ast/workflows.js'
-import { parseEx, primitiveEx } from './testutils.js'
+import { parseExpression, primitiveEx } from './testutils.js'
 
 describe('workflow step AST', () => {
   it('renders an assign step', () => {
     const step = new AssignStep([
       ['city', primitiveEx('New New York')],
-      ['value', parseEx('1 + 2')],
+      ['value', parseExpression('1 + 2')],
     ])
 
     const expected = YAML.parse(`
@@ -86,7 +86,7 @@ describe('workflow step AST', () => {
 
   it('renders a call step with an expression as an argument', () => {
     const step = new CallStep('deliver_package', {
-      destination: parseEx('destinations[i]'),
+      destination: parseExpression('destinations[i]'),
     })
 
     const expected = YAML.parse(`
@@ -101,17 +101,20 @@ describe('workflow step AST', () => {
   it('renders a switch step', () => {
     const assign1 = namedStep(
       'increase_counter',
-      new AssignStep([['a', parseEx('mars_counter + 1')]]),
+      new AssignStep([['a', parseExpression('mars_counter + 1')]]),
     )
-    const return1 = namedStep('return_counter', new ReturnStep(parseEx('a')))
+    const return1 = namedStep(
+      'return_counter',
+      new ReturnStep(parseExpression('a')),
+    )
     const { step } = namedStep(
       'step1',
       new SwitchStep(
         [
-          new SwitchCondition(parseEx('city == "New New York"'), {
+          new SwitchCondition(parseExpression('city == "New New York"'), {
             next: 'destination_new_new_york',
           }),
-          new SwitchCondition(parseEx('city == "Mars Vegas"'), {
+          new SwitchCondition(parseExpression('city == "Mars Vegas"'), {
             steps: [assign1, return1],
           }),
         ],
@@ -150,7 +153,7 @@ describe('workflow step AST', () => {
     const knownErrors = namedStep(
       'known_errors',
       new SwitchStep([
-        new SwitchCondition(parseEx('e.code == 404'), {
+        new SwitchCondition(parseExpression('e.code == 404'), {
           steps: [
             namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
           ],
@@ -159,7 +162,7 @@ describe('workflow step AST', () => {
     )
     const unknownErrors = namedStep(
       'unknown_errors',
-      new RaiseStep(parseEx('e')),
+      new RaiseStep(parseExpression('e')),
     )
     const step = new TryExceptStep(
       [potentiallyFailingStep],
@@ -206,7 +209,7 @@ describe('workflow step AST', () => {
     const knownErrors = namedStep(
       'known_errors',
       new SwitchStep([
-        new SwitchCondition(parseEx('e.code == 404'), {
+        new SwitchCondition(parseExpression('e.code == 404'), {
           steps: [
             namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
           ],
@@ -215,7 +218,7 @@ describe('workflow step AST', () => {
     )
     const unknownErrors = namedStep(
       'unknown_errors',
-      new RaiseStep(parseEx('e')),
+      new RaiseStep(parseExpression('e')),
     )
     const step = new TryExceptStep(
       [potentiallyFailingStep],
@@ -263,7 +266,7 @@ describe('workflow step AST', () => {
     const knownErrors = namedStep(
       'known_errors',
       new SwitchStep([
-        new SwitchCondition(parseEx('e.code == 404'), {
+        new SwitchCondition(parseExpression('e.code == 404'), {
           steps: [
             namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
           ],
@@ -272,7 +275,7 @@ describe('workflow step AST', () => {
     )
     const unknownErrors = namedStep(
       'unknown_errors',
-      new RaiseStep(parseEx('e')),
+      new RaiseStep(parseExpression('e')),
     )
     const step = new TryExceptStep(
       [potentiallyFailingStep],
@@ -340,7 +343,7 @@ describe('workflow step AST', () => {
     const knownErrors = namedStep(
       'known_errors',
       new SwitchStep([
-        new SwitchCondition(parseEx('e.code == 404'), {
+        new SwitchCondition(parseExpression('e.code == 404'), {
           steps: [
             namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
           ],
@@ -349,7 +352,7 @@ describe('workflow step AST', () => {
     )
     const unknownErrors = namedStep(
       'unknown_errors',
-      new RaiseStep(parseEx('e')),
+      new RaiseStep(parseExpression('e')),
     )
     const step = new TryExceptStep(
       [potentiallyFailingStep],
@@ -399,7 +402,12 @@ describe('workflow step AST', () => {
 
   it('renders a for step', () => {
     const step = new ForStep(
-      [namedStep('addStep', new AssignStep([['sum', parseEx('sum + v')]]))],
+      [
+        namedStep(
+          'addStep',
+          new AssignStep([['sum', parseExpression('sum + v')]]),
+        ),
+      ],
       'v',
       primitiveEx([1, 2, 3]),
     )
@@ -419,7 +427,12 @@ describe('workflow step AST', () => {
 
   it('renders an index-based for step', () => {
     const step = new ForStep(
-      [namedStep('addStep', new AssignStep([['sum', parseEx('sum + i*v')]]))],
+      [
+        namedStep(
+          'addStep',
+          new AssignStep([['sum', parseExpression('sum + i*v')]]),
+        ),
+      ],
       'v',
       primitiveEx([10, 20, 30]),
       'i',
@@ -441,7 +454,12 @@ describe('workflow step AST', () => {
 
   it('renders a for-range step', () => {
     const step = new ForStep(
-      [namedStep('addStep', new AssignStep([['sum', parseEx('sum + v')]]))],
+      [
+        namedStep(
+          'addStep',
+          new AssignStep([['sum', parseExpression('sum + v')]]),
+        ),
+      ],
       'v',
       undefined,
       undefined,
@@ -551,14 +569,14 @@ describe('workflow step AST', () => {
             new CallStep(
               'http.get',
               {
-                url: parseEx('"https://example.com/balance/" + userId'),
+                url: parseExpression('"https://example.com/balance/" + userId'),
               },
               'balance',
             ),
           ),
           namedStep(
             'add',
-            new AssignStep([['total', parseEx('total + balance')]]),
+            new AssignStep([['total', parseExpression('total + balance')]]),
           ),
         ],
         'userId',

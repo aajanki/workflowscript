@@ -3,19 +3,19 @@ import * as YAML from 'yaml'
 
 import { Subworkflow, WorkflowApp, toYAMLString } from '../src/ast/workflows.js'
 import { AssignStep, CallStep, namedStep } from '../src/ast/steps.js'
-import { parseEx, primitiveEx } from './testutils.js'
+import { parseExpression } from './testutils.js'
 
 describe('workflow AST', () => {
   it('renders a main workflow', () => {
     const steps = [
       namedStep(
         'assign_name',
-        new AssignStep([['name', parseEx('args.name')]]),
+        new AssignStep([['name', parseExpression('args.name')]]),
       ),
       namedStep(
         'say_hello',
         new CallStep('sys.log', {
-          text: parseEx('"Hello, " + name'),
+          text: parseExpression('"Hello, " + name'),
         }),
       ),
     ]
@@ -42,7 +42,7 @@ describe('workflow AST', () => {
       namedStep(
         'log_greetings',
         new CallStep('sys.log', {
-          text: parseEx('greeting + ", " + name'),
+          text: parseExpression('greeting + ", " + name'),
         }),
       ),
     ]
@@ -71,7 +71,7 @@ describe('workflow AST', () => {
         namedStep(
           'log_greetings',
           new CallStep('sys.log', {
-            text: parseEx('"Hello, " + name'),
+            text: parseExpression('"Hello, " + name'),
           }),
         ),
       ],
@@ -81,7 +81,7 @@ describe('workflow AST', () => {
       namedStep(
         'call_subworkflow',
         new CallStep(subworkflow.name, {
-          name: primitiveEx('Leela'),
+          name: parseExpression('"Leela"'),
         }),
       ),
     ])
@@ -110,12 +110,12 @@ describe('workflow AST', () => {
     const steps = [
       namedStep(
         'assign_name',
-        new AssignStep([['name', parseEx('args.name')]]),
+        new AssignStep([['name', parseExpression('args.name')]]),
       ),
       namedStep(
         'say_hello',
         new CallStep('sys.log', {
-          text: parseEx('"Hello, " + name'),
+          text: parseExpression('"Hello, " + name'),
         }),
       ),
     ]

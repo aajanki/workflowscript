@@ -10,7 +10,7 @@ import {
   namedStep,
 } from '../src/ast/steps.js'
 import { WorkflowValidationError, validate } from '../src/ast/validation.js'
-import { parseEx, primitiveEx, cstVisitor } from './testutils.js'
+import { parseExpression, primitiveEx, cstVisitor } from './testutils.js'
 
 describe('Validator', () => {
   beforeEach(() => {
@@ -23,7 +23,7 @@ describe('Validator', () => {
       namedStep(
         'say_hello',
         new CallStep('sys.log', {
-          text: parseEx('"Hello, " + name'),
+          text: parseExpression('"Hello, " + name'),
         }),
       ),
     ]
@@ -41,7 +41,7 @@ describe('Validator', () => {
       namedStep(
         'duplicated_name',
         new CallStep('sys.log', {
-          text: parseEx('"Hello, " + name'),
+          text: parseExpression('"Hello, " + name'),
         }),
       ),
     ]
@@ -60,7 +60,7 @@ describe('Validator', () => {
       namedStep(
         'duplicated_name',
         new CallStep('sys.log', {
-          text: parseEx('"Hello, " + name'),
+          text: parseExpression('"Hello, " + name'),
         }),
       ),
     ]
@@ -77,7 +77,7 @@ describe('Validator', () => {
         namedStep(
           'duplicated_name',
           new CallStep('sys.log', {
-            text: parseEx('"Hello, " + name'),
+            text: parseExpression('"Hello, " + name'),
           }),
         ),
         namedStep('duplicated_name', new ReturnStep(primitiveEx(1))),
@@ -110,7 +110,7 @@ describe('Validator', () => {
           namedStep(
             'switch_step',
             new SwitchStep([
-              new SwitchCondition(parseEx('name == "Fry"'), {
+              new SwitchCondition(parseExpression('name == "Fry"'), {
                 steps: [
                   namedStep(
                     'fry_quote',
@@ -123,7 +123,7 @@ describe('Validator', () => {
                   ),
                 ],
               }),
-              new SwitchCondition(parseEx('name == "Zoidberg"'), {
+              new SwitchCondition(parseExpression('name == "Zoidberg"'), {
                 steps: [
                   namedStep(
                     'duplicated_name',
@@ -138,7 +138,7 @@ describe('Validator', () => {
                   ),
                 ],
               }),
-              new SwitchCondition(parseEx('name == "Leela"'), {
+              new SwitchCondition(parseExpression('name == "Leela"'), {
                 steps: [
                   namedStep(
                     'leela_quote',
@@ -158,7 +158,7 @@ describe('Validator', () => {
           namedStep(
             'step2',
             new CallStep('sys.log', {
-              text: parseEx('name + ": " + quote'),
+              text: parseExpression('name + ": " + quote'),
             }),
           ),
         ]),
@@ -177,7 +177,7 @@ describe('Validator', () => {
         namedStep(
           'step1',
           new CallStep('sys.log', {
-            text: parseEx('"Hello, " + name'),
+            text: parseExpression('"Hello, " + name'),
           }),
         ),
         namedStep('step2', new ReturnStep(primitiveEx(1))),
@@ -233,7 +233,7 @@ describe('Validator', () => {
       'step1',
       new SwitchStep(
         [
-          new SwitchCondition(parseEx('input == 1'), {
+          new SwitchCondition(parseExpression('input == 1'), {
             next: 'step3',
           }),
         ],
@@ -268,7 +268,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep(parseEx('required_arg_1 + required_arg_2')),
+          new ReturnStep(parseExpression('required_arg_1 + required_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'required_arg_2' }],
@@ -294,7 +294,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep(parseEx('required_arg_1 + optional_arg_2')),
+          new ReturnStep(parseExpression('required_arg_1 + optional_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'optional_arg_2', default: 2 }],
@@ -319,7 +319,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep(parseEx('required_arg_1 + required_arg_2')),
+          new ReturnStep(parseExpression('required_arg_1 + required_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'required_arg_2' }],
@@ -347,7 +347,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep(parseEx('required_arg_1 + optional_arg_2')),
+          new ReturnStep(parseExpression('required_arg_1 + optional_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'optional_arg_2', default: 2 }],
