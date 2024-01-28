@@ -259,23 +259,6 @@ export class ParenthesizedExpression {
   }
 }
 
-export class ExpressionLiteral {
-  readonly expression: string
-
-  constructor(ex: string) {
-    // Detect injections. I don't know if these can be escaped somehow if used in string for example.
-    if (ex.includes('${')) {
-      throw new Error(`Unsupported expression: ${ex}`)
-    }
-
-    this.expression = ex
-  }
-
-  toString(): string {
-    return '${' + this.expression + '}'
-  }
-}
-
 function isRecord(object: unknown): object is Record<keyof never, unknown> {
   return object instanceof Object && object.constructor === Object
 }
