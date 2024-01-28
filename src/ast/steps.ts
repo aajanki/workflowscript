@@ -1,5 +1,5 @@
-import type { GWExpression, GWVariableName } from './variables.js'
-import { renderGWValue } from './variables.js'
+import type { GWExpression, GWVariableName } from './expressions.js'
+import { renderGWValue } from './expressions.js'
 
 export type GWStepName = string
 export type GWAssignment = readonly [GWVariableName, GWExpression]

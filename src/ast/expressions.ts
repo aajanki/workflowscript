@@ -8,6 +8,22 @@ export type GWValue =
   | { [key: string]: GWValue | GWExpression }
   | GWExpressionLiteral
 
+export type Primitive =
+  | null
+  | string
+  | number
+  | boolean
+  | (Primitive | GWExpression)[]
+  | { [key: string]: Primitive | GWExpression }
+
+export type TransformedPrimitive =
+  | null
+  | string
+  | number
+  | boolean
+  | TransformedPrimitive[]
+  | { [key: string]: TransformedPrimitive }
+
 export function renderGWValue(
   val: GWValue,
 ): null | string | number | boolean | object {
@@ -91,6 +107,58 @@ export class Term {
     this.unaryOperator = unaryOperator
     this.value = value
   }
+
+  toWorkflowsFormat(): TransformedPrimitive {
+    if (typeof this.value === 'number') {
+      if (this.unaryOperator === '-') {
+        return -this.value
+      } else {
+        return this.value
+      }
+    } else if (typeof this.value === 'string' && !this.unaryOperator) {
+      return this.value
+    } else if (typeof this.value === 'boolean' && !this.unaryOperator) {
+      return this.value
+    } else if (this.value === null) {
+      return this.value
+    } else if (Array.isArray(this.value)) {
+      return this.value.map((x) => {
+        if (x instanceof GWExpression) {
+          return x.toWorkflowsFormat()
+        } else if (
+          x === null ||
+          typeof x === 'string' ||
+          typeof x === 'number' ||
+          typeof x === 'boolean'
+        ) {
+          return x
+        } else {
+          const tempTerm = new Term(x)
+          return tempTerm.toWorkflowsFormat()
+        }
+      })
+    } else if (isRecord(this.value)) {
+      return Object.fromEntries(
+        Object.entries(this.value).map(([k, v]) => {
+          if (v instanceof GWExpression) {
+            return [k, v.toWorkflowsFormat()]
+          } else if (
+            v === null ||
+            typeof v === 'string' ||
+            typeof v === 'number' ||
+            typeof v === 'boolean'
+          ) {
+            return [k, v]
+          } else {
+            const tempTerm = new Term(v)
+            return [k, tempTerm.toWorkflowsFormat()]
+          }
+        }),
+      )
+    } else {
+      return `\${${stringifyTerm(this)}}`
+    }
+  }
 }
 
 // expr: term (op term)*
@@ -153,6 +221,14 @@ export class GWExpression {
     parts.unshift(left)
 
     return parts.join(' ')
+  }
+
+  toWorkflowsFormat(): TransformedPrimitive {
+    if (this.rest.length === 0) {
+      return this.left.toWorkflowsFormat()
+    } else {
+      return `\${${this.toString()}}`
+    }
   }
 }
 

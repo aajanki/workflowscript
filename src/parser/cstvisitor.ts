@@ -32,7 +32,7 @@ import {
   GWValue,
   GWVariableName,
   GWVariableReference,
-} from '../ast/variables.js'
+} from '../ast/expressions.js'
 import { WorfkflowScriptParser } from './parser.js'
 
 export function createVisitor(parserInstance: WorfkflowScriptParser) {

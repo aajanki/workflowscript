@@ -1,7 +1,7 @@
 import * as YAML from 'yaml'
 
 import { NamedWorkflowStep } from './steps.js'
-import { GWValue, GWVariableName } from './variables.js'
+import { GWValue, GWVariableName } from './expressions.js'
 
 export interface WorkflowParameter {
   name: GWVariableName

@@ -2,7 +2,7 @@ import { CstNode } from 'chevrotain'
 import { workflowScriptLexer } from '../src/parser/lexer.js'
 import { WorfkflowScriptParser } from '../src/parser/parser.js'
 import { createVisitor } from '../src/parser/cstvisitor.js'
-import { GWExpression, GWValue, Term } from '../src/ast/variables.js'
+import { GWExpression, GWValue, Term } from '../src/ast/expressions.js'
 import { NamedWorkflowStep } from '../src/ast/steps.js'
 import { Subworkflow } from '../src/ast/workflows.js'
 

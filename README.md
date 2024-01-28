@@ -104,6 +104,7 @@ At least the following features should be implemented before this can be conside
 - parallel for
 - dynamic keys in maps: `{"${dynamicKey}": "myValue"}`
 - Better error messages
+- null
 
 Quality-of-life improvements to be implemented later:
 
