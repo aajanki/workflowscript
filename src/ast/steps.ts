@@ -1,5 +1,4 @@
 import type { GWExpression, GWVariableName } from './expressions.js'
-import { renderGWValue } from './expressions.js'
 
 export type GWStepName = string
 export type GWAssignment = readonly [GWVariableName, GWExpression]
@@ -30,7 +29,7 @@ export class AssignStep implements WorkflowStep {
   render(): object {
     return {
       assign: this.assignments.map(([key, val]) => {
-        return { [key]: renderGWValue(val.render()) }
+        return { [key]: val.toWorkflowsFormat() }
       }),
     }
   }
@@ -59,7 +58,7 @@ export class CallStep implements WorkflowStep {
     if (this.args) {
       args = Object.fromEntries(
         Object.entries(this.args).map(([k, v]) => {
-          return [k, renderGWValue(v.render())]
+          return [k, v.toWorkflowsFormat()]
         }),
       )
     }
@@ -98,7 +97,7 @@ export class SwitchCondition {
 
   render(): object {
     return {
-      condition: renderGWValue(this.condition.render()),
+      condition: this.condition.toWorkflowsFormat(),
       ...(this.next && { next: this.next }),
       ...(this.steps.length > 0 && { steps: renderSteps(this.steps) }),
     }
@@ -204,7 +203,7 @@ export class ForStep implements WorkflowStep {
       range = [this.rangeStart, this.rangeEnd]
       inValue = undefined
     } else {
-      inValue = renderGWValue(this.listExpression.render())
+      inValue = this.listExpression.toWorkflowsFormat()
       range = undefined
     }
 
@@ -279,7 +278,7 @@ export class ReturnStep implements WorkflowStep {
 
   render(): object {
     return {
-      return: renderGWValue(this.value.render()),
+      return: this.value.toWorkflowsFormat(),
     }
   }
 
@@ -372,7 +371,7 @@ export class RaiseStep implements WorkflowStep {
 
   render(): object {
     return {
-      raise: renderGWValue(this.value.render()),
+      raise: this.value.toWorkflowsFormat(),
     }
   }
 
