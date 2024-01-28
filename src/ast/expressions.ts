@@ -1,12 +1,10 @@
-export type GWVariableName = string
-
 export type Primitive =
   | null
   | string
   | number
   | boolean
-  | (Primitive | GWExpression)[]
-  | { [key: string]: Primitive | GWExpression }
+  | (Primitive | Expression)[]
+  | { [key: string]: Primitive | Expression }
 
 export type LiteralValueOrLiteralExpression =
   | null
@@ -21,7 +19,7 @@ export type LiteralValueOrLiteralExpression =
 function primitiveToString(val: Primitive): string {
   if (Array.isArray(val)) {
     const elements = val.map((x) => {
-      if (x instanceof GWExpression) {
+      if (x instanceof Expression) {
         return x.toString()
       } else {
         return primitiveToString(x)
@@ -31,7 +29,7 @@ function primitiveToString(val: Primitive): string {
     return `[${elements.join(', ')}]`
   } else if (val !== null && typeof val === 'object') {
     const items = Object.entries(val).map(([k, v]) => {
-      if (v instanceof GWExpression) {
+      if (v instanceof Expression) {
         return [k, v.toString()]
       } else {
         return [k, primitiveToString(v)]
@@ -45,11 +43,13 @@ function primitiveToString(val: Primitive): string {
   }
 }
 
-// A plain identifier (y, year), property access (person.name), list element accessor (names[3])
-export class GWVariableReference {
-  readonly name: GWVariableName
+export type VariableName = string
 
-  constructor(name: GWVariableName) {
+// A plain identifier (y, year), property access (person.name), list element accessor (names[3])
+export class VariableReference {
+  readonly name: VariableName
+
+  constructor(name: VariableName) {
     this.name = name
   }
 
@@ -60,9 +60,9 @@ export class GWVariableReference {
 
 export class FunctionInvocation {
   readonly funcName: string
-  readonly arguments: GWExpression[]
+  readonly arguments: Expression[]
 
-  constructor(functionName: string, argumentExpressions: GWExpression[]) {
+  constructor(functionName: string, argumentExpressions: Expression[]) {
     this.funcName = functionName
     this.arguments = argumentExpressions
   }
@@ -85,15 +85,15 @@ export class Term {
   readonly unaryOperator?: string
   readonly value:
     | Primitive
-    | GWVariableReference
-    | GWParenthesizedExpression
+    | VariableReference
+    | ParenthesizedExpression
     | FunctionInvocation
 
   constructor(
     value:
       | Primitive
-      | GWVariableReference
-      | GWParenthesizedExpression
+      | VariableReference
+      | ParenthesizedExpression
       | FunctionInvocation,
     unaryOperator?: string,
   ) {
@@ -110,15 +110,15 @@ export class Term {
 
     const val = this.value
 
-    if (val instanceof GWVariableReference) {
+    if (val instanceof VariableReference) {
       return `${opString}${val.toString()}`
-    } else if (val instanceof GWParenthesizedExpression) {
+    } else if (val instanceof ParenthesizedExpression) {
       return `${opString}(${val.expression.toString()})`
     } else if (val instanceof FunctionInvocation) {
       return `${opString}${val.toString()}`
     } else if (Array.isArray(val)) {
       const elements = val.map((t) => {
-        if (t instanceof GWExpression) {
+        if (t instanceof Expression) {
           return t.toString()
         } else {
           return primitiveToString(t)
@@ -127,7 +127,7 @@ export class Term {
       return `${opString}[${elements.join(', ')}]`
     } else if (isRecord(val)) {
       const elements = Object.entries(val).map(([k, v]) => {
-        if (v instanceof GWExpression) {
+        if (v instanceof Expression) {
           return `"${k}": ${v.toString()}`
         } else {
           return `"${k}": ${primitiveToString(v)}`
@@ -155,7 +155,7 @@ export class Term {
       return this.value
     } else if (Array.isArray(this.value)) {
       return this.value.map((x) => {
-        if (x instanceof GWExpression) {
+        if (x instanceof Expression) {
           return x.toLiteralValueOrLiteralExpression()
         } else if (
           x === null ||
@@ -171,7 +171,7 @@ export class Term {
     } else if (isRecord(this.value)) {
       return Object.fromEntries(
         Object.entries(this.value).map(([k, v]) => {
-          if (v instanceof GWExpression) {
+          if (v instanceof Expression) {
             return [k, v.toLiteralValueOrLiteralExpression()]
           } else if (
             v === null ||
@@ -192,7 +192,7 @@ export class Term {
 }
 
 // expr: term (op term)*
-export class GWExpression {
+export class Expression {
   readonly left: Term
   readonly rest: BinaryOperation[]
 
@@ -222,15 +222,15 @@ export class GWExpression {
   }
 }
 
-export class GWParenthesizedExpression {
-  readonly expression: GWExpression
+export class ParenthesizedExpression {
+  readonly expression: Expression
 
-  constructor(expression: GWExpression) {
+  constructor(expression: Expression) {
     this.expression = expression
   }
 }
 
-export class GWExpressionLiteral {
+export class ExpressionLiteral {
   readonly expression: string
 
   constructor(ex: string) {
