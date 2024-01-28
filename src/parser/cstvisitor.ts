@@ -84,6 +84,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         val = true
       } else if (ctx.False) {
         val = false
+      } else if (ctx.Null) {
+        val = null
       } else if (ctx.array) {
         val = this.visit(ctx.array)
       } else if (ctx.object) {

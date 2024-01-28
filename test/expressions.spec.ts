@@ -2,12 +2,10 @@ import { expect } from 'chai'
 import { LiteralValueOrLiteralExpression } from '../src/ast/expressions.js'
 import { parseExpression } from './testutils.js'
 
-describe('Primitives', () => {
-  /*
+describe('Literals', () => {
   it('parses null', () => {
     assertExpression('null', null)
   })
-  */
 
   it('parses a number', () => {
     assertExpression('9', 9)
@@ -43,6 +41,25 @@ describe('Primitives', () => {
   it('parses lists', () => {
     assertExpression('[1, 2, 3]', [1, 2, 3])
     assertExpression('["Y", "Yes", 1, True]', ['Y', 'Yes', 1, true])
+  })
+
+  it('parses nested lists', () => {
+    assertExpression('[["first", 1], ["second", 2], ["null", null]]', [
+      ['first', 1],
+      ['second', 2],
+      ['null', null],
+    ])
+    assertExpression('[{"name": "Dagmar"}, {"name": "Oona"}]', [
+      { name: 'Dagmar' },
+      { name: 'Oona' },
+    ])
+  })
+
+  it('parses nested maps', () => {
+    assertExpression(
+      '{"address": {"building": "The Dreamland Castle", "kingdom": "Dreamland"}}',
+      { address: { building: 'The Dreamland Castle', kingdom: 'Dreamland' } },
+    )
   })
 
   it('parses maps', () => {
@@ -148,14 +165,6 @@ describe('Expressions', () => {
   })
 
   it('parses nested expressions in lists', () => {
-    assertExpression('[["first", 1], ["second", 2]]', [
-      ['first', 1],
-      ['second', 2],
-    ])
-    assertExpression('[{"name": "Dagmar"}, {"name": "Oona"}]', [
-      { name: 'Dagmar' },
-      { name: 'Oona' },
-    ])
     assertExpression('["Bean" in ["Oona", "Bean"]]', [
       '${"Bean" in ["Oona", "Bean"]}',
     ])
@@ -173,10 +182,6 @@ describe('Expressions', () => {
   })
 
   it('parses nested expression in map values', () => {
-    assertExpression(
-      '{"address": {"building": "The Dreamland Castle", "kingdom": "Dreamland"}}',
-      { address: { building: 'The Dreamland Castle', kingdom: 'Dreamland' } },
-    )
     assertExpression('{"success": code in [200, 201]}', {
       success: '${code in [200, 201]}',
     })
@@ -191,6 +196,7 @@ describe('Expressions', () => {
 
   it('parses function expressions', () => {
     assertExpression('default(value, "")', '${default(value, "")}')
+    assertExpression('default(null, "")', '${default(null, "")}')
     assertExpression('sys.now()', '${sys.now()}')
     assertExpression('time.format(sys.now())', '${time.format(sys.now())}')
     assertExpression(
