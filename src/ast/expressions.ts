@@ -45,7 +45,8 @@ function primitiveToString(val: Primitive): string {
 
 export type VariableName = string
 
-// A plain identifier (y, year), property access (person.name), list element accessor (names[3])
+// Variable name: a plain identifier (y, year), property access (person.name) or list
+// element accessor (names[3]) or a combination of the above
 export class VariableReference {
   readonly name: VariableName
 
@@ -58,6 +59,7 @@ export class VariableReference {
   }
 }
 
+// Function invocation with unnamed parameters: http.get("http://example.com")
 export class FunctionInvocation {
   readonly funcName: string
   readonly arguments: Expression[]
@@ -73,13 +75,14 @@ export class FunctionInvocation {
   }
 }
 
+// The operator and right-hand side expression of a binary operation. See Term for more details
 interface BinaryOperation {
   // Operator such as: +, -, <, ==
   binaryOperator: string
   right: Term
 }
 
-// term: (unaryOperator)? ( VALUE | VARIABLE | LPAREN expr RPAREN )
+// term: (unaryOperator)? ( LITERAL | VARIABLE | LPAREN expr RPAREN | FUNCTION() )
 export class Term {
   // Potentially a unary operator: -, +, not
   readonly unaryOperator?: string
@@ -138,7 +141,7 @@ export class Term {
     if (val instanceof VariableReference) {
       return `${opString}${val.toString()}`
     } else if (val instanceof ParenthesizedExpression) {
-      return `${opString}(${val.expression.toString()})`
+      return `${opString}${val.toString()}`
     } else if (val instanceof FunctionInvocation) {
       return `${opString}${val.toString()}`
     } else if (Array.isArray(val)) {
@@ -251,11 +254,17 @@ export class Expression {
   }
 }
 
+// LPAREN expr RPAREN
 export class ParenthesizedExpression {
   readonly expression: Expression
 
   constructor(expression: Expression) {
     this.expression = expression
+  }
+
+  // Does not add ${}.
+  toString(): string {
+    return `(${this.expression.toString()})`
   }
 }
 
