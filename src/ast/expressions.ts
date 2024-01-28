@@ -1,12 +1,4 @@
 export type GWVariableName = string
-export type GWValue =
-  | null
-  | string
-  | number
-  | boolean
-  | (GWValue | GWExpression)[]
-  | { [key: string]: GWValue | GWExpression }
-  | GWExpressionLiteral
 
 export type Primitive =
   | null
@@ -24,31 +16,32 @@ export type LiteralValueOrLiteralExpression =
   | LiteralValueOrLiteralExpression[]
   | { [key: string]: LiteralValueOrLiteralExpression }
 
-export function renderGWValue(
-  val: GWValue,
-): null | string | number | boolean | object {
-  if (val instanceof GWExpressionLiteral) {
-    return val.render()
-  } else if (Array.isArray(val)) {
-    return val.map((x) => {
+// Convert a Primitive to a string representation.
+// Does not add ${}.
+function primitiveToString(val: Primitive): string {
+  if (Array.isArray(val)) {
+    const elements = val.map((x) => {
       if (x instanceof GWExpression) {
-        return x.render()
+        return x.toString()
       } else {
-        return renderGWValue(x)
+        return primitiveToString(x)
       }
     })
+
+    return `[${elements.join(', ')}]`
   } else if (val !== null && typeof val === 'object') {
-    return Object.fromEntries(
-      Object.entries(val).map(([k, v]) => {
-        if (v instanceof GWExpression) {
-          return [k, v.render()]
-        } else {
-          return [k, renderGWValue(v)]
-        }
-      }),
-    )
+    const items = Object.entries(val).map(([k, v]) => {
+      if (v instanceof GWExpression) {
+        return [k, v.toString()]
+      } else {
+        return [k, primitiveToString(v)]
+      }
+    })
+    const elements = items.map(([k, v]) => `"${k}":${v}`)
+
+    return `{${elements.join(',')}}`
   } else {
-    return val
+    return JSON.stringify(val)
   }
 }
 
@@ -108,6 +101,45 @@ export class Term {
     this.value = value
   }
 
+  // Does not add ${}.
+  toString(): string {
+    let opString = this.unaryOperator ?? ''
+    if (opString && !['-', '+'].includes(opString)) {
+      opString += ' '
+    }
+
+    const val = this.value
+
+    if (val instanceof GWVariableReference) {
+      return `${opString}${val.toString()}`
+    } else if (val instanceof GWParenthesizedExpression) {
+      return `${opString}(${val.expression.toString()})`
+    } else if (val instanceof FunctionInvocation) {
+      return `${opString}${val.toString()}`
+    } else if (Array.isArray(val)) {
+      const elements = val.map((t) => {
+        if (t instanceof GWExpression) {
+          return t.toString()
+        } else {
+          return primitiveToString(t)
+        }
+      })
+      return `${opString}[${elements.join(', ')}]`
+    } else if (isRecord(val)) {
+      const elements = Object.entries(val).map(([k, v]) => {
+        if (v instanceof GWExpression) {
+          return `"${k}": ${v.toString()}`
+        } else {
+          return `"${k}": ${primitiveToString(v)}`
+        }
+      })
+      return `${opString}{${elements.join(', ')}}`
+    } else {
+      return `${opString}${JSON.stringify(val)}`
+    }
+  }
+
+  // Returns a literal for simple terms and a literal expression enclosed in ${} for complex terms.
   toLiteralValueOrLiteralExpression(): LiteralValueOrLiteralExpression {
     if (typeof this.value === 'number') {
       if (this.unaryOperator === '-') {
@@ -133,8 +165,7 @@ export class Term {
         ) {
           return x
         } else {
-          const tempTerm = new Term(x)
-          return tempTerm.toLiteralValueOrLiteralExpression()
+          return `\${${primitiveToString(x)}}`
         }
       })
     } else if (isRecord(this.value)) {
@@ -150,13 +181,12 @@ export class Term {
           ) {
             return [k, v]
           } else {
-            const tempTerm = new Term(v)
-            return [k, tempTerm.toLiteralValueOrLiteralExpression()]
+            return [k, `\${${primitiveToString(v)}}`]
           }
         }),
       )
     } else {
-      return `\${${stringifyTerm(this)}}`
+      return `\${${this.toString()}}`
     }
   }
 }
@@ -171,58 +201,18 @@ export class GWExpression {
     this.rest = rest
   }
 
-  render(): GWValue {
-    const leftVal = this.left.value
-
-    if (this.rest.length === 0) {
-      if (
-        leftVal instanceof GWVariableReference ||
-        leftVal instanceof GWParenthesizedExpression ||
-        leftVal instanceof FunctionInvocation
-      ) {
-        return new GWExpressionLiteral(stringifyTerm(this.left))
-      } else if (Array.isArray(leftVal)) {
-        return leftVal.map((x) => {
-          if (x instanceof GWExpression) {
-            return x.render()
-          } else {
-            return x
-          }
-        })
-      } else if (leftVal !== null && typeof leftVal === 'object') {
-        return Object.fromEntries(
-          Object.entries(leftVal).map(([k, v]) => {
-            if (v instanceof GWExpression) {
-              return [k, v.render()]
-            } else {
-              return [k, v]
-            }
-          }),
-        )
-      } else {
-        return leftVal
-      }
-    } else {
-      const left = stringifyTerm(this.left)
-      const parts = this.rest.map(
-        (x) => `${x.binaryOperator} ${stringifyTerm(x.right)}`,
-      )
-      parts.unshift(left)
-
-      return new GWExpressionLiteral(parts.join(' '))
-    }
-  }
-
+  // Does not add ${}.
   toString(): string {
-    const left = stringifyTerm(this.left)
+    const left = this.left.toString()
     const parts = this.rest.map(
-      (x) => `${x.binaryOperator} ${stringifyTerm(x.right)}`,
+      (x) => `${x.binaryOperator} ${x.right.toString()}`,
     )
     parts.unshift(left)
 
     return parts.join(' ')
   }
 
+  // Returns a literal for simple expressions and a literal expression enclosed in ${} for complex expressions.
   toLiteralValueOrLiteralExpression(): LiteralValueOrLiteralExpression {
     if (this.rest.length === 0) {
       return this.left.toLiteralValueOrLiteralExpression()
@@ -254,43 +244,6 @@ export class GWExpressionLiteral {
 
   render(): string {
     return '${' + this.expression + '}'
-  }
-}
-
-function stringifyTerm(term: Term): string {
-  let opString = term.unaryOperator ?? ''
-  if (opString && !['-', '+'].includes(opString)) {
-    opString += ' '
-  }
-
-  const val = term.value
-
-  if (val instanceof GWVariableReference) {
-    return `${opString}${val.toString()}`
-  } else if (val instanceof GWParenthesizedExpression) {
-    return `${opString}(${val.expression.toString()})`
-  } else if (val instanceof FunctionInvocation) {
-    return `${opString}${val.toString()}`
-  } else if (Array.isArray(val)) {
-    const elements = val.map((t) => {
-      if (t instanceof GWExpression) {
-        return t.toString()
-      } else {
-        return JSON.stringify(renderGWValue(t))
-      }
-    })
-    return `${opString}[${elements.join(', ')}]`
-  } else if (isRecord(val)) {
-    const elements = Object.entries(val).map(([k, v]) => {
-      if (v instanceof GWExpression) {
-        return `"${k}": ${v.toString()}`
-      } else {
-        return `"${k}": ${JSON.stringify(renderGWValue(v))}`
-      }
-    })
-    return `${opString}{${elements.join(', ')}}`
-  } else {
-    return `${opString}${JSON.stringify(renderGWValue(val))}`
   }
 }
 
