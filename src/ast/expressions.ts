@@ -16,13 +16,13 @@ export type Primitive =
   | (Primitive | GWExpression)[]
   | { [key: string]: Primitive | GWExpression }
 
-export type PlainPrimitive =
+export type LiteralValueOrLiteralExpression =
   | null
   | string
   | number
   | boolean
-  | PlainPrimitive[]
-  | { [key: string]: PlainPrimitive }
+  | LiteralValueOrLiteralExpression[]
+  | { [key: string]: LiteralValueOrLiteralExpression }
 
 export function renderGWValue(
   val: GWValue,
@@ -108,7 +108,7 @@ export class Term {
     this.value = value
   }
 
-  toWorkflowsFormat(): PlainPrimitive {
+  toLiteralValueOrLiteralExpression(): LiteralValueOrLiteralExpression {
     if (typeof this.value === 'number') {
       if (this.unaryOperator === '-') {
         return -this.value
@@ -124,7 +124,7 @@ export class Term {
     } else if (Array.isArray(this.value)) {
       return this.value.map((x) => {
         if (x instanceof GWExpression) {
-          return x.toWorkflowsFormat()
+          return x.toLiteralValueOrLiteralExpression()
         } else if (
           x === null ||
           typeof x === 'string' ||
@@ -134,14 +134,14 @@ export class Term {
           return x
         } else {
           const tempTerm = new Term(x)
-          return tempTerm.toWorkflowsFormat()
+          return tempTerm.toLiteralValueOrLiteralExpression()
         }
       })
     } else if (isRecord(this.value)) {
       return Object.fromEntries(
         Object.entries(this.value).map(([k, v]) => {
           if (v instanceof GWExpression) {
-            return [k, v.toWorkflowsFormat()]
+            return [k, v.toLiteralValueOrLiteralExpression()]
           } else if (
             v === null ||
             typeof v === 'string' ||
@@ -151,7 +151,7 @@ export class Term {
             return [k, v]
           } else {
             const tempTerm = new Term(v)
-            return [k, tempTerm.toWorkflowsFormat()]
+            return [k, tempTerm.toLiteralValueOrLiteralExpression()]
           }
         }),
       )
@@ -223,9 +223,9 @@ export class GWExpression {
     return parts.join(' ')
   }
 
-  toWorkflowsFormat(): PlainPrimitive {
+  toLiteralValueOrLiteralExpression(): LiteralValueOrLiteralExpression {
     if (this.rest.length === 0) {
-      return this.left.toWorkflowsFormat()
+      return this.left.toLiteralValueOrLiteralExpression()
     } else {
       return `\${${this.toString()}}`
     }

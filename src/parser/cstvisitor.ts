@@ -26,7 +26,6 @@ import {
 import {
   FunctionInvocation,
   GWExpression,
-  GWExpressionLiteral,
   GWParenthesizedExpression,
   Term,
   GWValue,
@@ -61,7 +60,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     objectItem(ctx: any): [string, GWExpression] {
       return [
         unescapeBackslashes(ctx.StringLiteral[0].image),
-        this.visit(ctx.expression[0]).render(),
+        this.visit(ctx.expression[0]),
       ]
     }
 
@@ -148,17 +147,19 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       const subscripts: string = (ctx.expression ?? [])
         .map((x: CstNode) => {
           const expression: GWExpression = this.visit(x)
-          const value = expression.render()
+          const value = expression.toLiteralValueOrLiteralExpression()
 
           if (typeof value === 'string') {
-            return `[${JSON.stringify(value)}]`
+            if (value.startsWith('${') && value.endsWith('}')) {
+              return `[${value.slice(2, -1)}]`
+            } else {
+              return `[${JSON.stringify(value)}]`
+            }
           } else if (typeof value === 'number') {
             if (!Number.isInteger(value)) {
               throw new TypeError('Subscript must be an integer')
             }
             return `[${value}]`
-          } else if (value instanceof GWExpressionLiteral) {
-            return `[${expression.toString()}]`
           } else {
             throw new Error(`Unexpected subscription type: ${String(value)}`)
           }
@@ -264,10 +265,15 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       const loopVariable = ctx.Identifier[0].image
       const steps = this.visit(ctx.statementBlock)
       const listExpression: GWExpression = this.visit(ctx.expression)
-      const listValue = listExpression.render()
+      const listValue = listExpression.toLiteralValueOrLiteralExpression()
 
       if (
-        !(Array.isArray(listValue) || listValue instanceof GWExpressionLiteral)
+        !(
+          Array.isArray(listValue) ||
+          (typeof listValue === 'string' &&
+            listValue.startsWith('${') &&
+            listValue.endsWith('}'))
+        )
       ) {
         throw new Error('Invalid value in a for loop')
       }
@@ -608,17 +614,15 @@ function parseRetryPolicy(
 function extractStringArray(
   ex: GWExpression,
 ): { success: false } | { success: true; value: string[] } {
-  const primitive: GWValue = ex.render()
-  if (!Array.isArray(primitive)) {
+  const literal = ex.toLiteralValueOrLiteralExpression()
+  if (!Array.isArray(literal)) {
     return { success: false }
   }
 
   const res: string[] = []
-  for (const x of primitive) {
-    const primitive = x instanceof GWExpression ? x.render() : x
-
-    if (typeof primitive === 'string') {
-      res.push(primitive)
+  for (const val of literal) {
+    if (typeof val === 'string' && !val.startsWith('${')) {
+      res.push(val)
     } else {
       return { success: false }
     }

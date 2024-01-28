@@ -29,7 +29,7 @@ export class AssignStep implements WorkflowStep {
   render(): object {
     return {
       assign: this.assignments.map(([key, val]) => {
-        return { [key]: val.toWorkflowsFormat() }
+        return { [key]: val.toLiteralValueOrLiteralExpression() }
       }),
     }
   }
@@ -58,7 +58,7 @@ export class CallStep implements WorkflowStep {
     if (this.args) {
       args = Object.fromEntries(
         Object.entries(this.args).map(([k, v]) => {
-          return [k, v.toWorkflowsFormat()]
+          return [k, v.toLiteralValueOrLiteralExpression()]
         }),
       )
     }
@@ -97,7 +97,7 @@ export class SwitchCondition {
 
   render(): object {
     return {
-      condition: this.condition.toWorkflowsFormat(),
+      condition: this.condition.toLiteralValueOrLiteralExpression(),
       ...(this.next && { next: this.next }),
       ...(this.steps.length > 0 && { steps: renderSteps(this.steps) }),
     }
@@ -203,7 +203,7 @@ export class ForStep implements WorkflowStep {
       range = [this.rangeStart, this.rangeEnd]
       inValue = undefined
     } else {
-      inValue = this.listExpression.toWorkflowsFormat()
+      inValue = this.listExpression.toLiteralValueOrLiteralExpression()
       range = undefined
     }
 
@@ -278,7 +278,7 @@ export class ReturnStep implements WorkflowStep {
 
   render(): object {
     return {
-      return: this.value.toWorkflowsFormat(),
+      return: this.value.toLiteralValueOrLiteralExpression(),
     }
   }
 
@@ -371,7 +371,7 @@ export class RaiseStep implements WorkflowStep {
 
   render(): object {
     return {
-      raise: this.value.toWorkflowsFormat(),
+      raise: this.value.toLiteralValueOrLiteralExpression(),
     }
   }
 
