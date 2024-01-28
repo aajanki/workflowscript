@@ -2,7 +2,7 @@ import { CstNode } from 'chevrotain'
 import { workflowScriptLexer } from '../src/parser/lexer.js'
 import { WorfkflowScriptParser } from '../src/parser/parser.js'
 import { createVisitor } from '../src/parser/cstvisitor.js'
-import { GWExpression, GWValue, Term } from '../src/ast/expressions.js'
+import { GWExpression, Term } from '../src/ast/expressions.js'
 import { NamedWorkflowStep } from '../src/ast/steps.js'
 import { Subworkflow } from '../src/ast/workflows.js'
 
@@ -34,7 +34,12 @@ export function parseExpression(codeBlock: string): GWExpression {
 }
 
 export function primitiveEx(
-  primitive: string | number | boolean | null | (string | number | boolean | null)[],
+  primitive:
+    | string
+    | number
+    | boolean
+    | null
+    | (string | number | boolean | null)[],
 ): GWExpression {
   return new GWExpression(new Term(primitive), [])
 }

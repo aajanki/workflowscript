@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { TransformedPrimitive } from '../src/ast/expressions.js'
+import { PlainPrimitive } from '../src/ast/expressions.js'
 import { parseExpression } from './testutils.js'
 
 describe('Primitives', () => {
@@ -200,10 +200,7 @@ describe('Expressions', () => {
   })
 })
 
-function assertExpression(
-  expression: string,
-  expected: TransformedPrimitive,
-): void {
+function assertExpression(expression: string, expected: PlainPrimitive): void {
   expect(parseExpression(expression).toWorkflowsFormat()).to.deep.equal(
     expected,
   )

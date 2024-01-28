@@ -41,6 +41,11 @@ describe('workflow definition parsing', () => {
     })
   })
 
+  it('subworkflow parameter default values must be literals', () => {
+    const block = 'workflow mySubworkflow(color, age=[1, 2]) { }'
+    expect(() => parseSubworkflow(block)).to.throw()
+  })
+
   it('parses subworkflow definition with body', () => {
     const block = `workflow addOne(a) {
       res = a + 1

@@ -102,6 +102,31 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return new Term(val, op)
     }
 
+    literal(ctx: any): string | number | boolean | null {
+      const opString: string = ctx.UnaryOperator
+        ? ctx.UnaryOperator[0].image
+        : ''
+
+      if (ctx.StringLiteral) {
+        return `${opString}${unescapeBackslashes(ctx.StringLiteral[0].image)}`
+      } else if (ctx.NumberLiteral) {
+        const val = parseFloat(ctx.NumberLiteral[0].image)
+        if (opString === '-') {
+          return -val
+        } else {
+          return val
+        }
+      } else if (ctx.True) {
+        return true
+      } else if (ctx.False) {
+        return false
+      } else if (ctx.Null) {
+        return null
+      } else {
+        throw new Error('not implemented')
+      }
+    }
+
     expression(ctx: any): GWExpression {
       const terms: Term[] = ctx.term.map((t: CstNode) => this.visit(t))
       const binaryOperators: string[] | undefined = ctx.BinaryOperator?.map(
@@ -421,8 +446,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     formalParameter(ctx: any): WorkflowParameter {
       const name = ctx.Identifier[0].image
-      if (ctx.expression) {
-        return { name, default: this.visit(ctx.expression).render() }
+      if (ctx.literal) {
+        const value: string | number | boolean | null = this.visit(ctx.literal)
+        return { name, default: value }
       } else {
         return { name }
       }

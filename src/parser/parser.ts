@@ -95,6 +95,19 @@ export class WorfkflowScriptParser extends CstParser {
     ])
   })
 
+  literal = this.RULE('literal', () => {
+    this.OPTION(() => {
+      this.CONSUME(UnaryOperator)
+    })
+    this.OR([
+      { ALT: () => this.CONSUME(StringLiteral) },
+      { ALT: () => this.CONSUME(NumberLiteral) },
+      { ALT: () => this.CONSUME(True) },
+      { ALT: () => this.CONSUME(False) },
+      { ALT: () => this.CONSUME(Null) },
+    ])
+  })
+
   expression = this.RULE('expression', () => {
     this.SUBRULE(this.term)
     this.MANY(() => {
@@ -301,7 +314,7 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(Identifier)
     this.OPTION(() => {
       this.CONSUME(Assignment)
-      this.SUBRULE(this.expression)
+      this.SUBRULE(this.literal)
     })
   })
 

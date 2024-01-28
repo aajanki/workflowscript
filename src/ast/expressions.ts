@@ -16,13 +16,13 @@ export type Primitive =
   | (Primitive | GWExpression)[]
   | { [key: string]: Primitive | GWExpression }
 
-export type TransformedPrimitive =
+export type PlainPrimitive =
   | null
   | string
   | number
   | boolean
-  | TransformedPrimitive[]
-  | { [key: string]: TransformedPrimitive }
+  | PlainPrimitive[]
+  | { [key: string]: PlainPrimitive }
 
 export function renderGWValue(
   val: GWValue,
@@ -108,7 +108,7 @@ export class Term {
     this.value = value
   }
 
-  toWorkflowsFormat(): TransformedPrimitive {
+  toWorkflowsFormat(): PlainPrimitive {
     if (typeof this.value === 'number') {
       if (this.unaryOperator === '-') {
         return -this.value
@@ -223,7 +223,7 @@ export class GWExpression {
     return parts.join(' ')
   }
 
-  toWorkflowsFormat(): TransformedPrimitive {
+  toWorkflowsFormat(): PlainPrimitive {
     if (this.rest.length === 0) {
       return this.left.toWorkflowsFormat()
     } else {
