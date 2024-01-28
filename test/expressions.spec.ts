@@ -194,6 +194,15 @@ describe('Expressions', () => {
     })
   })
 
+  it('parses non-alphanumeric keys', () => {
+    assertExpression('{"important!key": "value"}', {'important!key': 'value'})
+    assertExpression('myMap["important!key"]', '${myMap["important!key"]}')
+  })
+
+  it('parses variable as key in maps', () => {
+    assertExpression('myMap[dynamicKey]', '${myMap[dynamicKey]}')
+  })
+
   it('parses function expressions', () => {
     assertExpression('default(value, "")', '${default(value, "")}')
     assertExpression('default(null, "")', '${default(null, "")}')

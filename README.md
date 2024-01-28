@@ -102,8 +102,8 @@ This is alpha quality software! Not all workflow features are supported yet.
 At least the following features should be implemented before this can be considered usable:
 
 - parallel for
-- dynamic keys in maps: `{"${dynamicKey}": "myValue"}`
 - Better error messages
+- blocking functions (http.* etc.) must be invoced from a call step
 
 Quality-of-life improvements to be implemented later:
 
