@@ -101,6 +101,31 @@ export class Term {
     this.value = value
   }
 
+  isLiteral(): boolean {
+    // TODO: literal maps
+    if (Array.isArray(this.value)) {
+      return this.value.every((x) => {
+        if (x instanceof Expression) {
+          return x.isLiteral()
+        } else {
+          return (
+            typeof x === 'string' ||
+            typeof x === 'number' ||
+            typeof x === 'boolean' ||
+            this.value === null
+          )
+        }
+      })
+    } else {
+      return (
+        typeof this.value === 'string' ||
+        typeof this.value === 'number' ||
+        typeof this.value === 'boolean' ||
+        this.value === null
+      )
+    }
+  }
+
   // Does not add ${}.
   toString(): string {
     let opString = this.unaryOperator ?? ''
@@ -201,6 +226,10 @@ export class Expression {
     this.rest = rest
   }
 
+  isLiteral(): boolean {
+    return this.rest.length === 0 && this.left.isLiteral()
+  }
+
   // Does not add ${}.
   toString(): string {
     const left = this.left.toString()
@@ -242,7 +271,7 @@ export class ExpressionLiteral {
     this.expression = ex
   }
 
-  render(): string {
+  toString(): string {
     return '${' + this.expression + '}'
   }
 }

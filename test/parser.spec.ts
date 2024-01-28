@@ -999,9 +999,17 @@ describe('For loop parsing', () => {
     })
   })
 
-  it('fails to parse for in number', () => {
+  it('fails to parse for in a number', () => {
     const block = `
     for (x in 999) { }
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
+  it('fails to parse for in a string', () => {
+    const block = `
+    for (x in "\${fails}") { }
     `
 
     expect(() => parseStatement(block)).to.throw()

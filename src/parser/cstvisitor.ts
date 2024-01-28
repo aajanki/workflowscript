@@ -147,21 +147,21 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       const subscripts: string = (ctx.expression ?? [])
         .map((x: CstNode) => {
           const expression: Expression = this.visit(x)
-          const value = expression.toLiteralValueOrLiteralExpression()
 
-          if (typeof value === 'string') {
-            if (value.startsWith('${') && value.endsWith('}')) {
-              return `[${value.slice(2, -1)}]`
-            } else {
+          if (expression.isLiteral()) {
+            const value = expression.toLiteralValueOrLiteralExpression()
+            if (typeof value === 'string') {
               return `[${JSON.stringify(value)}]`
+            } else if (typeof value === 'number') {
+              if (!Number.isInteger(value)) {
+                throw new TypeError('Subscript must be an integer')
+              }
+              return `[${value}]`
+            } else {
+              throw new Error(`Unexpected subscription type: ${String(value)}`)
             }
-          } else if (typeof value === 'number') {
-            if (!Number.isInteger(value)) {
-              throw new TypeError('Subscript must be an integer')
-            }
-            return `[${value}]`
           } else {
-            throw new Error(`Unexpected subscription type: ${String(value)}`)
+            return `[${expression.toString()}]`
           }
         })
         .join('')
@@ -270,9 +270,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       if (
         !(
           Array.isArray(listValue) ||
-          (typeof listValue === 'string' &&
-            listValue.startsWith('${') &&
-            listValue.endsWith('}'))
+          (!listExpression.isLiteral() && typeof listValue === 'string')
         )
       ) {
         throw new Error('Invalid value in a for loop')
@@ -614,6 +612,10 @@ function parseRetryPolicy(
 function extractStringArray(
   ex: Expression,
 ): { success: false } | { success: true; value: string[] } {
+  if (!ex.isLiteral()) {
+    return { success: false }
+  }
+
   const literal = ex.toLiteralValueOrLiteralExpression()
   if (!Array.isArray(literal)) {
     return { success: false }
@@ -621,7 +623,7 @@ function extractStringArray(
 
   const res: string[] = []
   for (const val of literal) {
-    if (typeof val === 'string' && !val.startsWith('${')) {
+    if (typeof val === 'string') {
       res.push(val)
     } else {
       return { success: false }
