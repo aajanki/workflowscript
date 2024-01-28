@@ -91,14 +91,14 @@ export class Term {
   // Potentially a unary operator: -, +, not
   readonly unaryOperator?: string
   readonly value:
-    | GWValue
+    | Primitive
     | GWVariableReference
     | GWParenthesizedExpression
     | FunctionInvocation
 
   constructor(
     value:
-      | GWValue
+      | Primitive
       | GWVariableReference
       | GWParenthesizedExpression
       | FunctionInvocation,
@@ -289,9 +289,6 @@ function stringifyTerm(term: Term): string {
       }
     })
     return `${opString}{${elements.join(', ')}}`
-  } else if (val instanceof GWExpressionLiteral) {
-    // TODO get rid of this
-    return `${opString}${val.expression}`
   } else {
     return `${opString}${JSON.stringify(renderGWValue(val))}`
   }

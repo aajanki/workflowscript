@@ -28,9 +28,9 @@ import {
   GWExpression,
   GWParenthesizedExpression,
   Term,
-  GWValue,
   GWVariableName,
   GWVariableReference,
+  Primitive,
 } from '../ast/expressions.js'
 import { WorfkflowScriptParser } from './parser.js'
 
@@ -70,7 +70,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     term(ctx: any): Term {
       let val:
-        | GWValue
+        | Primitive
         | GWVariableReference
         | GWParenthesizedExpression
         | FunctionInvocation
