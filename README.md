@@ -103,15 +103,12 @@ At least the following features should be implemented before this can be conside
 
 - parallel for
 - Better error messages
-- blocking functions (http.* etc.) must be invoced from a call step
 
 Quality-of-life improvements to be implemented later:
 
 - `return` without a value
 - finally block in try?
 - index variable in a for loop
-- fix named arguments with an assignment: `response = http.get(url = "http://example.com")`
-- fix unnamed arguments without an assignment: `http.get("http://example.com")`
 - floor division: `x // 2`. Comments?
 
 ## License

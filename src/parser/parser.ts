@@ -165,7 +165,7 @@ export class WorfkflowScriptParser extends CstParser {
     },
   )
 
-  actualParameterList = this.RULE('actualParameterList', () => {
+  actualNamedParameterList = this.RULE('actualNamedParameterList', () => {
     this.MANY_SEP({
       SEP: Comma,
       DEF: () => {
@@ -176,6 +176,16 @@ export class WorfkflowScriptParser extends CstParser {
     })
   })
 
+  actualParameterList = this.RULE('actualParameterList', () => {
+    this.OR([
+      {
+        GATE: () => this.LA(2).tokenType === Assignment,
+        ALT: () => this.SUBRULE(this.actualNamedParameterList),
+      },
+      { ALT: () => this.SUBRULE(this.actualAnonymousParameterList) },
+    ])
+  })
+
   callExpression = this.RULE('callExpression', () => {
     this.SUBRULE(this.functionName)
     this.CONSUME(LParenthesis)
@@ -183,7 +193,12 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(RParenthesis)
   })
 
-  callStepStatement = this.RULE('callStepStatement', () => {
+  callStatement = this.RULE('callStatement', () => {
+    this.OPTION(() => {
+      // TODO: assign step should allow a variableReference here
+      this.CONSUME(Identifier)
+      this.CONSUME(Assignment)
+    })
     this.SUBRULE(this.functionName)
     this.CONSUME(LParenthesis)
     this.SUBRULE(this.actualParameterList)
@@ -224,7 +239,7 @@ export class WorfkflowScriptParser extends CstParser {
     this.OPTION(() => {
       this.CONSUME(Retry)
       this.CONSUME(LParenthesis)
-      this.SUBRULE(this.actualParameterList)
+      this.SUBRULE(this.actualNamedParameterList)
       this.CONSUME(RParenthesis)
     })
     this.OPTION2(() => {
@@ -268,7 +283,7 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(Parallel)
     this.OPTION(() => {
       this.CONSUME(LParenthesis)
-      this.SUBRULE(this.actualParameterList)
+      this.SUBRULE(this.actualNamedParameterList)
       this.CONSUME(RParenthesis)
     })
     this.AT_LEAST_ONE(() => {
@@ -289,8 +304,8 @@ export class WorfkflowScriptParser extends CstParser {
       {
         // TODO: restructure the common parts in function name/variable name
         // grammar so that backtracking is not required
-        GATE: this.BACKTRACK(this.callStepStatement),
-        ALT: () => this.SUBRULE(this.callStepStatement),
+        GATE: this.BACKTRACK(this.callStatement),
+        ALT: () => this.SUBRULE(this.callStatement),
       },
       { ALT: () => this.SUBRULE(this.assignmentStatement) },
       { ALT: () => this.SUBRULE(this.ifStatement) },

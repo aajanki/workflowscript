@@ -104,17 +104,6 @@ describe('Expressions', () => {
     assertExpression('host.ip_address', '${host.ip_address}')
   })
 
-  it('parses subscript references', () => {
-    assertExpression('customers[4]', '${customers[4]}')
-    assertExpression('customers[99].name', '${customers[99].name}')
-    assertExpression('host["ip_address"]', '${host["ip_address"]}')
-  })
-
-  it('parses expression as subscript', () => {
-    assertExpression('customers[i]', '${customers[i]}')
-    assertExpression('customers[2*(a+b)]', '${customers[2 * (a + b)]}')
-  })
-
   it('parses inequality operators', () => {
     assertExpression('value > 100', '${value > 100}')
     assertExpression('status >= 0', '${status >= 0}')
@@ -195,7 +184,7 @@ describe('Expressions', () => {
   })
 
   it('parses non-alphanumeric keys', () => {
-    assertExpression('{"important!key": "value"}', {'important!key': 'value'})
+    assertExpression('{"important!key": "value"}', { 'important!key': 'value' })
     assertExpression('myMap["important!key"]', '${myMap["important!key"]}')
   })
 
@@ -212,6 +201,54 @@ describe('Expressions', () => {
       'time.format(sys.now()) + " " + text.decode(base64.decode("VGlhYmVhbmll"))',
       '${time.format(sys.now()) + " " + text.decode(base64.decode("VGlhYmVhbmll"))}',
     )
+  })
+})
+
+describe('Variable references', () => {
+  it('parses subscript references', () => {
+    assertExpression('customers[4]', '${customers[4]}')
+    assertExpression('host["ip_address"]', '${host["ip_address"]}')
+  })
+
+  it('parses expression as subscript', () => {
+    assertExpression('customers[i]', '${customers[i]}')
+    assertExpression('customers[2*(a+b)]', '${customers[2 * (a + b)]}')
+  })
+
+  it('parses complex variable references', () => {
+    const block = 'results["first"].children[1][2].id'
+    assertExpression(block, '${results["first"].children[1][2].id}')
+  })
+
+  it('must not start or end with a dot', () => {
+    const block1 = '.results.values'
+    expect(() => parseExpression(block1)).to.throw()
+
+    const block2 = 'results.values.'
+    expect(() => parseExpression(block2)).to.throw()
+  })
+
+  it('can not have empty components', () => {
+    const block1 = 'results..values'
+    expect(() => parseExpression(block1)).to.throw()
+  })
+
+  it('must not start with subscripts', () => {
+    const block1 = '[3]results'
+    expect(() => parseExpression(block1)).to.throw()
+  })
+
+  it('subscript can not be empty', () => {
+    const block = 'results[]'
+    expect(() => parseExpression(block)).to.throw()
+  })
+
+  it('do not include incompleted subscripts', () => {
+    const block1 = 'results[0'
+    expect(() => parseExpression(block1)).to.throw()
+
+    const block2 = 'results0]'
+    expect(() => parseExpression(block2)).to.throw()
   })
 })
 

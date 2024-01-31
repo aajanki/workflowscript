@@ -41,7 +41,7 @@ describe('workflow definition parsing', () => {
     })
   })
 
-  it('subworkflow parameter default values must be literals', () => {
+  it('subworkflow parameter default values must be simple literals', () => {
     const block = 'workflow mySubworkflow(color, age=[1, 2]) { }'
     expect(() => parseSubworkflow(block)).to.throw()
   })
@@ -263,6 +263,24 @@ describe('Call statement parsing', () => {
     })
   })
 
+  it('parses a call assigned to a complicated result variable', () => {
+    const block = `values[1].result = my_workflow()`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'values[1].result': '${my_workflow()}' }],
+    })
+  })
+
+  it('parses a call with parameters assigned to a complicated result variable', () => {
+    const block = `results[0].multiplication.product = multiply(7, 8)`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      assign: [{ 'results[0].multiplication.product': '${multiply(7, 8)}' }],
+    })
+  })
+
   it('parses a call with arguments but without result variable', () => {
     const block = `log.sys(text = "Hello log")`
     const ast = parseStatement(block)
@@ -285,6 +303,32 @@ describe('Call statement parsing', () => {
           htmlPage: '${http.get("https://visit.dreamland.test/things-to-do")}',
         },
       ],
+    })
+  })
+
+  it('parses a call with named parameters and expression values', () => {
+    const block = 'sys.log(text="Hello " + name)'
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      call: 'sys.log',
+      args: {
+        text: '${"Hello " + name}',
+      },
+    })
+  })
+
+  it('parses a call with named parameters and result variable', () => {
+    const block =
+      'page = http.get(url="https://visit.dreamland.test/things-to-do")'
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      call: 'http.get',
+      args: {
+        url: 'https://visit.dreamland.test/things-to-do',
+      },
+      result: 'page',
     })
   })
 })

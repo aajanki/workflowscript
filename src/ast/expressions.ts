@@ -1,3 +1,5 @@
+import { isRecord } from '../utils.js'
+
 export type Primitive =
   | null
   | string
@@ -266,8 +268,4 @@ export class ParenthesizedExpression {
   toString(): string {
     return `(${this.expression.toString()})`
   }
-}
-
-function isRecord(object: unknown): object is Record<keyof never, unknown> {
-  return object instanceof Object && object.constructor === Object
 }

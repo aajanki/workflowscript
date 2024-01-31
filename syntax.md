@@ -110,7 +110,7 @@ will be compiled to an [assign step](https://cloud.google.com/workflows/docs/ref
 The WorkflowScript statement
 
 ```javascript
-response = http.get("https://www.example.com/path")
+projectId = sys.get_env("GOOGLE_CLOUD_PROJECT_ID")
 ```
 
 will be compiled to an [assign step](https://cloud.google.com/workflows/docs/reference/syntax/variables#assign-step):
@@ -118,7 +118,7 @@ will be compiled to an [assign step](https://cloud.google.com/workflows/docs/ref
 ```yaml
 - assign1:
     assign:
-      - response: ${http.get("https://www.example.com/path")}
+      - projectId: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
 ```
 
 This syntax can be used to call [standard library functions](https://cloud.google.com/workflows/docs/reference/stdlib/overview) or subworkflows.
@@ -128,22 +128,23 @@ This syntax can be used to call [standard library functions](https://cloud.googl
 It's also possible to use named function arguments. The following WorkflowScript statement
 
 ```javascript
-sys.log(text="Log message", timeout=100)
+response = http.get(url="https://www.example.com/path", timeout=600)
 ```
 
 will be compiled to a [call step](https://cloud.google.com/workflows/docs/reference/syntax/calls):
 
 ```yaml
 - call1:
-    call: sys.log
+    call: http.get
     args:
-      text: Log message
-      timeout: 100
+      url: https://www.example.com/path
+      timeout: 600
+    result: response
 ```
 
 The order of arguments is not significant.
 
-Note! Currently named arguments can be used only if the return value of the function call is not assigned to a variable.
+Note that [blocking calls](https://cloud.google.com/workflows/docs/reference/syntax/expressions#blocking-calls) (`http.*`, `sys.log`, etc.) must be called from a call step, i.e. using the named function argument syntax.
 
 ## Conditional statements
 

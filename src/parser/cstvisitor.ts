@@ -33,6 +33,7 @@ import {
   Primitive,
 } from '../ast/expressions.js'
 import { WorfkflowScriptParser } from './parser.js'
+import { isRecord } from '../utils.js'
 
 export function createVisitor(parserInstance: WorfkflowScriptParser) {
   const BaseWorkflowscriptCstVisitor =
@@ -193,7 +194,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return parts.join('.')
     }
 
-    actualParameterList(ctx: any): GWArguments | undefined {
+    actualNamedParameterList(ctx: any): GWArguments | undefined {
       if (ctx.Identifier) {
         const namedArgumentList: [string, Expression][] = ctx.Identifier.map(
           (identifier: IToken, i: number) => {
@@ -215,6 +216,16 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
+    actualParameterList(ctx: any): Expression[] | GWArguments | undefined {
+      if (ctx.actualNamedParameterList) {
+        return this.visit(ctx.actualNamedParameterList)
+      } else if (ctx.actualAnonymousParameterList) {
+        return this.visit(ctx.actualAnonymousParameterList)
+      } else {
+        throw new Error('not implemented')
+      }
+    }
+
     callExpression(ctx: any): FunctionInvocation {
       return new FunctionInvocation(
         this.visit(ctx.functionName),
@@ -222,18 +233,41 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       )
     }
 
-    callStepStatement(ctx: any): NamedWorkflowStep {
-      const ref: VariableReference = ctx.variableReference
-        ? this.visit(ctx.variableReference)
+    callStatement(ctx: any): NamedWorkflowStep {
+      const functionName: string = this.visit(ctx.functionName)
+      const parameterList: Expression[] | GWArguments | undefined = this.visit(
+        ctx.actualParameterList,
+      )
+      const resultVariable: string | undefined = ctx.Identifier
+        ? ctx.Identifier[0].image
         : undefined
 
-      return {
-        name: this.stepNameGenerator.generate('call'),
-        step: new CallStep(
-          this.visit(ctx.functionName),
-          this.visit(ctx.actualParameterList),
-          ref?.toString(),
-        ),
+      if (
+        typeof resultVariable === 'undefined' &&
+        (typeof parameterList === 'undefined' || parameterList.length === 0)
+      ) {
+        return {
+          name: this.stepNameGenerator.generate('call'),
+          step: new CallStep(functionName),
+        }
+      } else if (isRecord(parameterList)) {
+        // named parameters => call step
+        return {
+          name: this.stepNameGenerator.generate('call'),
+          step: new CallStep(functionName, parameterList, resultVariable),
+        }
+      } else {
+        // anonymous parameters => assign step
+        const variable: string = resultVariable ?? ''
+        const ex = new Expression(
+          new Term(new FunctionInvocation(functionName, parameterList ?? [])),
+          [],
+        )
+
+        return {
+          name: this.stepNameGenerator.generate('assign'),
+          step: new AssignStep([[variable, ex]]),
+        }
       }
     }
 
@@ -292,7 +326,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       )
 
       const { shared, concurrencyLimit, exceptionPolicy } =
-        this.optionalBranchParameters(ctx.actualParameterList)
+        this.optionalBranchParameters(ctx.actualNamedParameterList)
 
       return {
         name: this.stepNameGenerator.generate('parallel'),
@@ -352,7 +386,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     tryStatement(ctx: any): NamedWorkflowStep {
       // must have either retry or catch block (or both)
-      if (ctx.statementBlock.length <= 1 && !ctx.actualParameterList) {
+      if (ctx.statementBlock.length <= 1 && !ctx.actualNamedParameterList) {
         throw new Error('retry or catch expected in a try statement')
       }
 
@@ -364,9 +398,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       const errorVariable = ctx.Identifier ? ctx.Identifier[0].image : undefined
       let policy: string | CustomRetryPolicy | undefined = undefined
 
-      if (ctx.actualParameterList) {
+      if (ctx.actualNamedParameterList) {
         const policyParameters: GWArguments | undefined = this.visit(
-          ctx.actualParameterList,
+          ctx.actualNamedParameterList,
         )
         if (policyParameters) {
           policy = parseRetryPolicy(policyParameters)
@@ -415,8 +449,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     statement(ctx: any): NamedWorkflowStep {
       if (ctx.assignmentStatement) {
         return this.visit(ctx.assignmentStatement[0])
-      } else if (ctx.callStepStatement) {
-        return this.visit(ctx.callStepStatement[0])
+      } else if (ctx.callStatement) {
+        return this.visit(ctx.callStatement[0])
       } else if (ctx.ifStatement) {
         return this.visit(ctx.ifStatement[0])
       } else if (ctx.forStatement) {
