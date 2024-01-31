@@ -5,12 +5,12 @@ import {
   AssignStep,
   NamedWorkflowStep,
   ReturnStep,
-  GWArguments,
+  WorkflowParameters,
   CallStep,
   SwitchCondition,
   SwitchStep,
   ParallelStep,
-  GWStepName,
+  StepName,
   StepsStep,
   TryExceptStep,
   RaiseStep,
@@ -194,7 +194,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return parts.join('.')
     }
 
-    actualNamedParameterList(ctx: any): GWArguments | undefined {
+    actualNamedParameterList(ctx: any): WorkflowParameters | undefined {
       if (ctx.Identifier) {
         const namedArgumentList: [string, Expression][] = ctx.Identifier.map(
           (identifier: IToken, i: number) => {
@@ -216,7 +216,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    actualParameterList(ctx: any): Expression[] | GWArguments | undefined {
+    actualParameterList(
+      ctx: any,
+    ): Expression[] | WorkflowParameters | undefined {
       if (ctx.actualNamedParameterList) {
         return this.visit(ctx.actualNamedParameterList)
       } else if (ctx.actualAnonymousParameterList) {
@@ -235,9 +237,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     callStatement(ctx: any): NamedWorkflowStep {
       const functionName: string = this.visit(ctx.functionName)
-      const parameterList: Expression[] | GWArguments | undefined = this.visit(
-        ctx.actualParameterList,
-      )
+      const parameterList: Expression[] | WorkflowParameters | undefined =
+        this.visit(ctx.actualParameterList)
       const resultVariable: string | undefined = ctx.Identifier
         ? ctx.Identifier[0].image
         : undefined
@@ -319,7 +320,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     parallelStatement(ctx: any): NamedWorkflowStep {
-      const branches: Record<GWStepName, StepsStep> = Object.fromEntries(
+      const branches: Record<StepName, StepsStep> = Object.fromEntries(
         ctx.statementBlock.map((statements: CstNode, i: number) => {
           return [`branch${i + 1}`, new StepsStep(this.visit(statements))]
         }),
@@ -349,7 +350,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       let concurrencyLimit: number | undefined = undefined
 
       if (parameterNode) {
-        const optionalParameters: GWArguments = this.visit(parameterNode) ?? {}
+        const optionalParameters: WorkflowParameters =
+          this.visit(parameterNode) ?? {}
         for (const key in optionalParameters) {
           const val = optionalParameters[key]
 
@@ -399,7 +401,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       let policy: string | CustomRetryPolicy | undefined = undefined
 
       if (ctx.actualNamedParameterList) {
-        const policyParameters: GWArguments | undefined = this.visit(
+        const policyParameters: WorkflowParameters | undefined = this.visit(
           ctx.actualNamedParameterList,
         )
         if (policyParameters) {
@@ -592,7 +594,7 @@ function setEqual<T>(a: Set<T>, b: Set<T>): boolean {
 }
 
 function parseRetryPolicy(
-  policyParameters: GWArguments,
+  policyParameters: WorkflowParameters,
 ): string | CustomRetryPolicy {
   const defaultPolicyRequiredKays = new Set(['policy'])
   const customPolicyRequiredKays = new Set([

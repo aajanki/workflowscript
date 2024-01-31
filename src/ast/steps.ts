@@ -1,8 +1,8 @@
 import type { Expression, VariableName } from './expressions.js'
 
-export type GWStepName = string
-export type GWAssignment = readonly [VariableName, Expression]
-export type GWArguments = Record<VariableName, Expression>
+export type StepName = string
+export type VariableAssignment = readonly [VariableName, Expression]
+export type WorkflowParameters = Record<VariableName, Expression>
 
 export interface WorkflowStep {
   render(): object
@@ -10,7 +10,7 @@ export interface WorkflowStep {
 }
 
 export interface NamedWorkflowStep {
-  name: GWStepName
+  name: StepName
   step: WorkflowStep
 }
 
@@ -20,9 +20,9 @@ export function namedStep(name: string, step: WorkflowStep) {
 
 // https://cloud.google.com/workflows/docs/reference/syntax/variables#assign-step
 export class AssignStep implements WorkflowStep {
-  readonly assignments: GWAssignment[]
+  readonly assignments: VariableAssignment[]
 
-  constructor(assignments: GWAssignment[]) {
+  constructor(assignments: VariableAssignment[]) {
     this.assignments = assignments
   }
 
@@ -42,10 +42,10 @@ export class AssignStep implements WorkflowStep {
 // https://cloud.google.com/workflows/docs/reference/syntax/calls
 export class CallStep implements WorkflowStep {
   readonly call: string
-  readonly args?: GWArguments
+  readonly args?: WorkflowParameters
   readonly result?: string
 
-  constructor(call: string, args?: GWArguments, result?: string) {
+  constructor(call: string, args?: WorkflowParameters, result?: string) {
     this.call = call
     this.args = args
     this.result = result
@@ -77,12 +77,12 @@ export class CallStep implements WorkflowStep {
 
 export class SwitchCondition {
   readonly condition: Expression
-  readonly next?: GWStepName
+  readonly next?: StepName
   readonly steps: NamedWorkflowStep[]
 
   constructor(
     condition: Expression,
-    options: { next: GWStepName } | { steps: NamedWorkflowStep[] },
+    options: { next: StepName } | { steps: NamedWorkflowStep[] },
   ) {
     this.condition = condition
 
@@ -107,9 +107,9 @@ export class SwitchCondition {
 // https://cloud.google.com/workflows/docs/reference/syntax/conditions
 export class SwitchStep implements WorkflowStep {
   readonly conditions: SwitchCondition[]
-  readonly next?: GWStepName
+  readonly next?: StepName
 
-  constructor(conditions: SwitchCondition[], next?: GWStepName) {
+  constructor(conditions: SwitchCondition[], next?: StepName) {
     this.conditions = conditions
     this.next = next
   }
@@ -231,7 +231,7 @@ export class ParallelStep implements WorkflowStep {
   readonly exceptionPolicy?: string
 
   constructor(
-    steps: Record<GWStepName, StepsStep> | ForStep,
+    steps: Record<StepName, StepsStep> | ForStep,
     shared?: VariableName[],
     concurrencyLimit?: number,
     exceptionPolicy?: string,
@@ -300,7 +300,7 @@ export interface CustomRetryPolicy {
 // https://cloud.google.com/workflows/docs/reference/syntax/catching-errors
 export class TryExceptStep implements WorkflowStep {
   readonly retryPolicy?: string | CustomRetryPolicy
-  readonly errorMap?: GWStepName
+  readonly errorMap?: StepName
   // Steps in the try block
   readonly trySteps: NamedWorkflowStep[]
   // Steps in the except block
