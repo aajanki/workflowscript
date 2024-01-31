@@ -588,12 +588,12 @@ describe('Parallel step parsing', () => {
     expect(() => parseStatement(block)).to.throw()
   })
 
-  it('"parallel" must be followed by a "branch"', () => {
+  it('"parallel" must be followed by a "branch" or "for"', () => {
     const block = `
-    parallel (shared = ["numPosts"])
-
-    n = http.get("https://forums.dreamland.test/numPosts/bean")
-    numPosts = numPosts + n
+    parallel (shared = ["numPosts"]) {
+      n = http.get("https://forums.dreamland.test/numPosts/bean")
+      numPosts = numPosts + n
+    }
     `
 
     expect(() => parseStatement(block)).to.throw()
@@ -614,6 +614,63 @@ describe('Parallel step parsing', () => {
     `
 
     expect(() => parseStatement(block)).to.throw()
+  })
+})
+
+describe('Parallel iteration', () => {
+  it('parses parallel iteration', () => {
+    const block = `
+    parallel for (username in ["bean", "elfo", "luci"]) {
+      http.post(url = "https://forum.dreamland.test/register/" + username)
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      parallel: {
+        for: {
+          value: 'username',
+          in: ['bean', 'elfo', 'luci'],
+          steps: [
+            {
+              call1: {
+                call: 'http.post',
+                args: {
+                  url: '${"https://forum.dreamland.test/register/" + username}',
+                },
+              },
+            },
+          ],
+        },
+      },
+    })
+  })
+
+  it('parses parallel iteration with shared variable', () => {
+    const block = `
+    parallel (shared = ["total"])
+    for (i in [1, 2, 3, 4]) {
+      total = total + i
+    }
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      parallel: {
+        shared: ['total'],
+        for: {
+          value: 'i',
+          in: [1, 2, 3, 4],
+          steps: [
+            {
+              assign1: {
+                assign: [{ total: '${total + i}' }],
+              },
+            },
+          ],
+        },
+      },
+    })
   })
 })
 

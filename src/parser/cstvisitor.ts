@@ -319,20 +319,32 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    parallelStatement(ctx: any): NamedWorkflowStep {
-      const branches: Record<StepName, StepsStep> = Object.fromEntries(
-        ctx.statementBlock.map((statements: CstNode, i: number) => {
-          return [`branch${i + 1}`, new StepsStep(this.visit(statements))]
-        }),
-      )
+    branch(ctx: any): NamedWorkflowStep[] {
+      return this.visit(ctx.statementBlock)
+    }
 
+    parallelStatement(ctx: any): NamedWorkflowStep {
+      let nestedSteps: Record<StepName, StepsStep> | ForStep
       const { shared, concurrencyLimit, exceptionPolicy } =
         this.optionalBranchParameters(ctx.actualNamedParameterList)
+
+      if (ctx.branch) {
+        nestedSteps = Object.fromEntries(
+          ctx.branch.map((branch: CstNode, i: number) => {
+            return [`branch${i + 1}`, new StepsStep(this.visit(branch))]
+          }),
+        )
+      } else if (ctx.forStatement) {
+        const forStep = this.visit(ctx.forStatement)
+        nestedSteps = forStep.step
+      } else {
+        throw new Error('not implemented')
+      }
 
       return {
         name: this.stepNameGenerator.generate('parallel'),
         step: new ParallelStep(
-          branches,
+          nestedSteps,
           shared,
           concurrencyLimit,
           exceptionPolicy,

@@ -396,7 +396,43 @@ for (i in [1, 2, 3, 4]) {
 
 ## Parallel for
 
-TBD
+The WorkflowScript statement
+
+```javascript
+parallel for (username in ["bean", "elfo", "luci"]) {
+  http.post(url = "https://forum.dreamland.test/register/" + username)
+}
+```
+
+will be compiled to [parallel iteration](https://cloud.google.com/workflows/docs/reference/syntax/parallel-steps#parallel-iteration):
+
+```yaml
+- parallel1:
+    parallel:
+      for:
+        value: username
+        in:
+          - bean
+          - elfo
+          - luci
+        steps:
+          - call1:
+              call: http.post
+              args:
+                url: ${"https://forum.dreamland.test/register/" + username}
+```
+
+The shared variables and concurrency limits can be set with the following syntax:
+
+```
+parallel (
+  shared = ["total"],
+  concurrency_limit = 2
+)
+for (i in [1, 2, 3, 4]) {
+  total = total + i
+}
+```
 
 ## Source code comments
 

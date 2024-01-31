@@ -279,6 +279,13 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(Continue)
   })
 
+  branch = this.RULE('branch', () => {
+    this.CONSUME(Branch)
+    this.CONSUME(LCurly)
+    this.SUBRULE(this.statementBlock)
+    this.CONSUME(RCurly)
+  })
+
   parallelStatement = this.RULE('parallelStatement', () => {
     this.CONSUME(Parallel)
     this.OPTION(() => {
@@ -286,12 +293,12 @@ export class WorfkflowScriptParser extends CstParser {
       this.SUBRULE(this.actualNamedParameterList)
       this.CONSUME(RParenthesis)
     })
-    this.AT_LEAST_ONE(() => {
-      this.CONSUME(Branch)
-      this.CONSUME(LCurly)
-      this.SUBRULE(this.statementBlock)
-      this.CONSUME(RCurly)
-    })
+    this.OR([
+      {
+        ALT: () => this.AT_LEAST_ONE(() => this.SUBRULE(this.branch)),
+      },
+      { ALT: () => this.SUBRULE(this.forStatement) },
+    ])
   })
 
   returnStatement = this.RULE('returnStatement', () => {
