@@ -20,10 +20,10 @@ function parseOneRule(
   const ast = cstVisitor.visit(cst)
 
   if (lexResult.errors.length > 0) {
-    throw new Error('Lex error: ' + JSON.stringify(lexResult.errors))
+    throw lexResult.errors[0]
   }
   if (parser.errors.length > 0) {
-    throw new Error('Parsing error: ' + JSON.stringify(parser.errors))
+    throw parser.errors[0]
   }
 
   return ast

@@ -34,6 +34,7 @@ import {
 } from '../ast/expressions.js'
 import { WorfkflowScriptParser } from './parser.js'
 import { isRecord } from '../utils.js'
+import { InternalParsingError, PostParsingError } from './errors.js'
 
 export function createVisitor(parserInstance: WorfkflowScriptParser) {
   const BaseWorkflowscriptCstVisitor =
@@ -98,7 +99,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.parenthesizedExpression) {
         val = this.visit(ctx.parenthesizedExpression)
       } else {
-        throw new Error('not implemented')
+        throw new InternalParsingError('Unknown expression in "term"')
       }
 
       return new Term(val, op)
@@ -125,7 +126,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.Null) {
         return null
       } else {
-        throw new Error('not implemented')
+        throw new InternalParsingError('Unknown value in "literal"')
       }
     }
 
@@ -157,11 +158,13 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
               return `[${JSON.stringify(value)}]`
             } else if (typeof value === 'number') {
               if (!Number.isInteger(value)) {
-                throw new TypeError('Subscript must be an integer')
+                throw new PostParsingError("Subscript can't be a float")
               }
               return `[${value}]`
             } else {
-              throw new Error(`Unexpected subscription type: ${String(value)}`)
+              throw new PostParsingError(
+                `Unexpected subscription type: ${String(value)}`,
+              )
             }
           } else {
             return `[${expression.toString()}]`
@@ -224,7 +227,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.actualAnonymousParameterList) {
         return this.visit(ctx.actualAnonymousParameterList)
       } else {
-        throw new Error('not implemented')
+        throw new InternalParsingError('Unknown value in "actualParameterList"')
       }
     }
 
@@ -310,7 +313,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
           (!listExpression.isLiteral() && typeof listValue === 'string')
         )
       ) {
-        throw new Error('Invalid value in a for loop')
+        throw new PostParsingError('Invalid value in a for loop')
       }
 
       return {
@@ -338,7 +341,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         const forStep = this.visit(ctx.forStatement)
         nestedSteps = forStep.step
       } else {
-        throw new Error('not implemented')
+        throw new InternalParsingError('Unknown value in "parallelStatement"')
       }
 
       return {
@@ -370,7 +373,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
           if (key === 'shared') {
             const maybeStringArray = extractStringArray(val)
             if (!maybeStringArray.success) {
-              throw new Error(
+              throw new PostParsingError(
                 'The optional branch parameter "shared" must be an array of strings',
               )
             }
@@ -379,19 +382,19 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
           } else if (key === 'concurrency_limit') {
             concurrencyLimit = extractNumber(val)
             if (typeof concurrencyLimit === 'undefined') {
-              throw new Error(
+              throw new PostParsingError(
                 'The optional branch parameter "concurrency_limit" must be an integer',
               )
             }
           } else if (key === 'exception_policy') {
             exceptionPolicy = extractString(val)
             if (exceptionPolicy !== 'continueAll') {
-              throw new Error(
+              throw new PostParsingError(
                 'Invalid value for the optional branch parameter "exception_policy"',
               )
             }
           } else {
-            throw new Error(`Unknown branch parameter: ${key}`)
+            throw new PostParsingError(`Unknown branch parameter: ${key}`)
           }
         }
       }
@@ -401,7 +404,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     tryStatement(ctx: any): NamedWorkflowStep {
       // must have either retry or catch block (or both)
       if (ctx.statementBlock.length <= 1 && !ctx.actualNamedParameterList) {
-        throw new Error('retry or catch expected in a try statement')
+        throw new PostParsingError('retry or catch expected in a try statement')
       }
 
       const trySteps = this.visit(ctx.statementBlock[0])
@@ -419,7 +422,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         if (policyParameters) {
           policy = parseRetryPolicy(policyParameters)
         } else {
-          throw new Error('Retry policy required')
+          throw new PostParsingError('Retry policy required')
         }
       }
 
@@ -482,7 +485,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.returnStatement) {
         return this.visit(ctx.returnStatement[0])
       } else {
-        throw new Error('not implmeneted')
+        throw new InternalParsingError('Unknown value in "statement"')
       }
     }
 
@@ -627,22 +630,22 @@ function parseRetryPolicy(
 
     const maxRetries = extractNumber(policyParameters.maxRetries)
     if (typeof maxRetries !== 'number') {
-      throw new Error('Invalid custom retry policy maxRetries')
+      throw new PostParsingError('Invalid custom retry policy maxRetries')
     }
 
     const initialDelay = extractNumber(policyParameters.initialDelay)
     if (typeof initialDelay !== 'number') {
-      throw new Error('Invalid custom retry policy initalDelay')
+      throw new PostParsingError('Invalid custom retry policy initalDelay')
     }
 
     const maxDelay = extractNumber(policyParameters.maxDelay)
     if (typeof maxDelay !== 'number') {
-      throw new Error('Invalid custom retry policy maxDelay')
+      throw new PostParsingError('Invalid custom retry policy maxDelay')
     }
 
     const multiplier = extractNumber(policyParameters.multiplier)
     if (typeof multiplier !== 'number') {
-      throw new Error('Invalid custom retry policy multiplier')
+      throw new PostParsingError('Invalid custom retry policy multiplier')
     }
 
     return {
@@ -655,7 +658,7 @@ function parseRetryPolicy(
       },
     }
   } else {
-    throw new Error('Invalid retry policy options')
+    throw new PostParsingError('Invalid retry policy options')
   }
 }
 

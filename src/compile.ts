@@ -27,6 +27,7 @@ import { WorkflowApp, toYAMLString } from './ast/workflows.js'
 import * as fs from 'node:fs'
 import { WorkflowValidationError, validate } from './ast/validation.js'
 import { isRecord } from './utils.js'
+import { InternalParsingError, PostParsingError } from './parser/errors.js'
 
 export function compile(
   program: string,
@@ -86,6 +87,12 @@ function cliMain() {
         process.exit(1)
       } else if (err instanceof WorkflowValidationError) {
         prettyPrintValidationError(err, inputFile)
+        process.exit(1)
+      } else if (err instanceof InternalParsingError) {
+        console.log(err.message)
+        process.exit(1)
+      } else if (err instanceof PostParsingError) {
+        console.log(err.message)
         process.exit(1)
       } else {
         throw err
