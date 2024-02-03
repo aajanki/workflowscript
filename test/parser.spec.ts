@@ -752,7 +752,7 @@ describe('Try-retry-catch statement parsing', () => {
     try {
       response = http.get("https://visit.dreamland.test/")
     }
-    retry (predicate = http.default_retry_predicate, maxRetries = 10, initialDelay = 3.0, maxDelay = 60, multiplier = 1.5)
+    retry (predicate = http.default_retry_predicate, max_retries = 10, initial_delay = 3.0, max_delay = 60, multiplier = 1.5)
     `
     const ast = parseStatement(block)
 
@@ -855,7 +855,7 @@ describe('Try-retry-catch statement parsing', () => {
     try {
       response = http.get("https://visit.dreamland.test/")
     }
-    retry (predicate = http.default_retry_predicate, maxRetries = 10)
+    retry (predicate = http.default_retry_predicate, max_retries = 10)
     `
 
     expect(() => parseStatement(block)).to.throw()
@@ -866,7 +866,7 @@ describe('Try-retry-catch statement parsing', () => {
     try {
       response = http.get("https://visit.dreamland.test/")
     }
-    retry (policy = http.default_retry, predicate = http.default_retry_predicate, maxRetries = 10, initialDelay = 3, maxDelay = 60, multiplier = 2)
+    retry (policy = http.default_retry, predicate = http.default_retry_predicate, max_retries = 10, initial_delay = 3, max_delay = 60, multiplier = 2)
     `
 
     expect(() => parseStatement(block)).to.throw()

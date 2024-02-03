@@ -292,16 +292,16 @@ retry (policy = "http.default_retry")
 
 A custom retry policy is defined by specifying all of the following parameters:
 - `predicate`: Name of the rule to define which errors retried. "http.default_retry", "http.default_retry_non_idempotent" or a subworkflow name
-- `maxRetries`: Maximum number of times a step will be retried, not counting the initial step execution attempt.
-- `initialDelay`: delay in seconds between the initial failure and the first retry.
-- `maxDelay`: maximum delay in seconds between retries.
+- `max_retries`: Maximum number of times a step will be retried, not counting the initial step execution attempt.
+- `initial_delay`: delay in seconds between the initial failure and the first retry.
+- `max_delay`: maximum delay in seconds between retries.
 - `multiplier`: multiplier applied to the previous delay to calculate the delay for the subsequent retry.
 
 ```javascript
 try {
   http.get(url = "https://visit.dreamland.test/")
 }
-retry (predicate = http.default_retry_predicate, maxRetries = 10, initialDelay = 2.5, maxDelay = 60, multiplier = 1.5)
+retry (predicate = http.default_retry_predicate, max_retries = 10, initial_delay = 2.5, max_delay = 60, multiplier = 1.5)
 ```
 
 Retry and catch blocks can be combined like this:

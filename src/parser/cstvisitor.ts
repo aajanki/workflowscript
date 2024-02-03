@@ -642,9 +642,9 @@ function parseRetryPolicy(
   const defaultPolicyRequiredKays = new Set(['policy'])
   const customPolicyRequiredKays = new Set([
     'predicate',
-    'maxRetries',
-    'initialDelay',
-    'maxDelay',
+    'max_retries',
+    'initial_delay',
+    'max_delay',
     'multiplier',
   ])
   const actualKeys = new Set(Object.keys(policyParameters))
@@ -656,27 +656,27 @@ function parseRetryPolicy(
     // custom policy
     const predicate = policyParameters.predicate.toString()
 
-    const maxRetries = extractNumber(policyParameters.maxRetries)
+    const maxRetries = extractNumber(policyParameters.max_retries)
     if (typeof maxRetries !== 'number') {
       throw new PostParsingError(
-        '"maxRetries" in a retry policy must be a number',
-        findValueLocation(node, 'maxRetries'),
+        '"max_retries" in a retry policy must be a number',
+        findValueLocation(node, 'max_retries'),
       )
     }
 
-    const initialDelay = extractNumber(policyParameters.initialDelay)
+    const initialDelay = extractNumber(policyParameters.initial_delay)
     if (typeof initialDelay !== 'number') {
       throw new PostParsingError(
         '"initalDelay" in a retry policy must be a number',
-        findValueLocation(node, 'initialDelay'),
+        findValueLocation(node, 'initial_delay'),
       )
     }
 
-    const maxDelay = extractNumber(policyParameters.maxDelay)
+    const maxDelay = extractNumber(policyParameters.max_delay)
     if (typeof maxDelay !== 'number') {
       throw new PostParsingError(
-        '"maxDelay" in a retry policy must be a number',
-        findValueLocation(node, 'maxDelay'),
+        '"max_delay" in a retry policy must be a number',
+        findValueLocation(node, 'max_delay'),
       )
     }
 
@@ -699,7 +699,7 @@ function parseRetryPolicy(
     }
   } else {
     throw new PostParsingError(
-      'Retry policy must define either "policy" or all of ["predicate", "maxRetries", "initialDelay", "maxDelay", "multiplier"]',
+      'Retry policy must define either "policy" or all of ["predicate", "max_retries", "initial_delay", "max_delay", "multiplier"]',
       nodeSpan(node),
     )
   }
