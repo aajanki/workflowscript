@@ -82,6 +82,9 @@ function cliMain() {
       ) {
         prettyPrintSyntaxError(err, inputFile)
         process.exit(1)
+      } else if (err instanceof PostParsingError) {
+        prettyPrintPostParsingError(err, inputFile)
+        process.exit(1)
       } else if (isLexingError(err)) {
         prettyPrintLexingError(err, inputFile)
         process.exit(1)
@@ -89,9 +92,6 @@ function cliMain() {
         prettyPrintValidationError(err, inputFile)
         process.exit(1)
       } else if (err instanceof InternalParsingError) {
-        console.log(err.message)
-        process.exit(1)
-      } else if (err instanceof PostParsingError) {
         console.log(err.message)
         process.exit(1)
       } else {
@@ -146,11 +146,32 @@ function prettyPrintSyntaxError(
   inputFile: string,
 ): void {
   const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
-  if (!exception.token.startLine || !exception.token.startColumn) {
+  if (
+    typeof exception.token?.startLine === 'undefined' ||
+    typeof exception.token?.startColumn === 'undefined'
+  ) {
     console.log(`File ${prettyFileName}:`)
   } else {
     console.error(
       `File ${prettyFileName}, line ${exception.token.startLine}, column ${exception.token.startColumn}:`,
+    )
+  }
+  console.error(`${exception.message}`)
+}
+
+function prettyPrintPostParsingError(
+  exception: PostParsingError,
+  inputFile: string,
+): void {
+  const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
+  if (
+    typeof exception.location?.startLine === 'undefined' ||
+    typeof exception.location?.startColumn === 'undefined'
+  ) {
+    console.log(`File ${prettyFileName}:`)
+  } else {
+    console.error(
+      `File ${prettyFileName}, line ${exception.location.startLine}, column ${exception.location.startColumn}:`,
     )
   }
   console.error(`${exception.message}`)
@@ -161,7 +182,10 @@ function prettyPrintLexingError(
   inputFile: string,
 ): void {
   const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
-  if (!exception.line || !exception.column) {
+  if (
+    typeof exception.line === 'undefined' ||
+    typeof exception.column === 'undefined'
+  ) {
     console.error(`File ${prettyFileName}:`)
   } else {
     console.error(

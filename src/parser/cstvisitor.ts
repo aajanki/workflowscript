@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
 
-import { CstNode, IToken } from 'chevrotain'
+import { CstNode, CstNodeLocation, IToken } from 'chevrotain'
 import {
   AssignStep,
   NamedWorkflowStep,
@@ -158,12 +158,15 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
               return `[${JSON.stringify(value)}]`
             } else if (typeof value === 'number') {
               if (!Number.isInteger(value)) {
-                throw new PostParsingError("Subscript can't be a float")
+                const [term] = x.children.term as CstNode[]
+                const [token] = term?.children?.NumberLiteral as IToken[]
+                throw new PostParsingError("Subscript can't be a float", token)
               }
               return `[${value}]`
             } else {
               throw new PostParsingError(
-                `Unexpected subscription type: ${String(value)}`,
+                `Subscript must be a string, a number or an expression`,
+                nodeSpan(x),
               )
             }
           } else {
@@ -313,7 +316,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
           (!listExpression.isLiteral() && typeof listValue === 'string')
         )
       ) {
-        throw new PostParsingError('Invalid value in a for loop')
+        throw new PostParsingError(
+          'Value in a for loop is not iterable',
+          nodeSpan(ctx.expression[0]),
+        )
       }
 
       return {
@@ -355,7 +361,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    optionalBranchParameters(parameterNode: CstNode | undefined): {
+    optionalBranchParameters(parameterNode: CstNode[] | undefined): {
       shared: string[] | undefined
       concurrencyLimit: number | undefined
       exceptionPolicy: string | undefined
@@ -364,7 +370,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       let exceptionPolicy: string | undefined = undefined
       let concurrencyLimit: number | undefined = undefined
 
-      if (parameterNode) {
+      if (parameterNode && parameterNode.length > 0) {
         const optionalParameters: WorkflowParameters =
           this.visit(parameterNode) ?? {}
         for (const key in optionalParameters) {
@@ -374,7 +380,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
             const maybeStringArray = extractStringArray(val)
             if (!maybeStringArray.success) {
               throw new PostParsingError(
-                'The optional branch parameter "shared" must be an array of strings',
+                'The branch parameter "shared" must be an array of strings',
+                findValueLocation(parameterNode[0], key),
               )
             }
 
@@ -383,7 +390,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
             concurrencyLimit = extractNumber(val)
             if (typeof concurrencyLimit === 'undefined') {
               throw new PostParsingError(
-                'The optional branch parameter "concurrency_limit" must be an integer',
+                'The branch parameter "concurrency_limit" must be an integer',
+                findValueLocation(parameterNode[0], key),
               )
             }
           } else if (key === 'exception_policy') {
@@ -391,10 +399,14 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
             if (exceptionPolicy !== 'continueAll') {
               throw new PostParsingError(
                 'Invalid value for the optional branch parameter "exception_policy"',
+                findValueLocation(parameterNode[0], key),
               )
             }
           } else {
-            throw new PostParsingError(`Unknown branch parameter: ${key}`)
+            throw new PostParsingError(
+              `Unknown branch parameter: ${key}`,
+              findKeyLocation(parameterNode[0], key),
+            )
           }
         }
       }
@@ -404,7 +416,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     tryStatement(ctx: any): NamedWorkflowStep {
       // must have either retry or catch block (or both)
       if (ctx.statementBlock.length <= 1 && !ctx.actualNamedParameterList) {
-        throw new PostParsingError('retry or catch expected in a try statement')
+        throw new PostParsingError(
+          'retry or catch expected in a try statement',
+          ctx.Try?.[0],
+        )
       }
 
       const trySteps = this.visit(ctx.statementBlock[0])
@@ -420,9 +435,15 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
           ctx.actualNamedParameterList,
         )
         if (policyParameters) {
-          policy = parseRetryPolicy(policyParameters)
+          policy = parseRetryPolicy(
+            policyParameters,
+            ctx.actualNamedParameterList[0],
+          )
         } else {
-          throw new PostParsingError('Retry policy required')
+          throw new PostParsingError(
+            'Retry policy required',
+            ctx.LeftParenthesis?.[0],
+          )
         }
       }
 
@@ -610,6 +631,7 @@ function setEqual<T>(a: Set<T>, b: Set<T>): boolean {
 
 function parseRetryPolicy(
   policyParameters: WorkflowParameters,
+  node: CstNode,
 ): string | CustomRetryPolicy {
   const defaultPolicyRequiredKays = new Set(['policy'])
   const customPolicyRequiredKays = new Set([
@@ -630,22 +652,34 @@ function parseRetryPolicy(
 
     const maxRetries = extractNumber(policyParameters.maxRetries)
     if (typeof maxRetries !== 'number') {
-      throw new PostParsingError('Invalid custom retry policy maxRetries')
+      throw new PostParsingError(
+        '"maxRetries" in a retry policy must be a number',
+        findValueLocation(node, 'maxRetries'),
+      )
     }
 
     const initialDelay = extractNumber(policyParameters.initialDelay)
     if (typeof initialDelay !== 'number') {
-      throw new PostParsingError('Invalid custom retry policy initalDelay')
+      throw new PostParsingError(
+        '"initalDelay" in a retry policy must be a number',
+        findValueLocation(node, 'initialDelay'),
+      )
     }
 
     const maxDelay = extractNumber(policyParameters.maxDelay)
     if (typeof maxDelay !== 'number') {
-      throw new PostParsingError('Invalid custom retry policy maxDelay')
+      throw new PostParsingError(
+        '"maxDelay" in a retry policy must be a number',
+        findValueLocation(node, 'maxDelay'),
+      )
     }
 
     const multiplier = extractNumber(policyParameters.multiplier)
     if (typeof multiplier !== 'number') {
-      throw new PostParsingError('Invalid custom retry policy multiplier')
+      throw new PostParsingError(
+        '"multiplier" in a retry policy must be a number',
+        findValueLocation(node, 'multiplier'),
+      )
     }
 
     return {
@@ -658,7 +692,10 @@ function parseRetryPolicy(
       },
     }
   } else {
-    throw new PostParsingError('Invalid retry policy options')
+    throw new PostParsingError(
+      'Retry policy must define either "policy" or all of ["predicate", "maxRetries", "initialDelay", "maxDelay", "multiplier"]',
+      nodeSpan(node),
+    )
   }
 }
 
@@ -700,4 +737,88 @@ function extractString(ex: Expression): string | undefined {
   } else {
     return undefined
   }
+}
+
+/**
+ * Find the node location of a named key in an actualParameterList.
+ */
+function findKeyLocation(
+  actualParameterList: CstNode,
+  key: string,
+): CstNodeLocation | undefined {
+  // Locate the identifier token for key
+  const [identifierToken] = actualParameterList.children.Identifier?.filter(
+    (elem) => 'image' in elem && elem.image === key,
+  ) as (IToken | undefined)[]
+
+  return identifierToken
+}
+
+/**
+ * Find the node location of a value for key in an actualParameterList.
+ */
+function findValueLocation(
+  actualParameterList: CstNode,
+  key: string,
+): CstNodeLocation | undefined {
+  // Locate the identifier token for key
+  const identifierLocation = findKeyLocation(actualParameterList, key)
+
+  // Locate the location of the value token following the selected identifier token
+  if (identifierLocation) {
+    const identifierEndOffset = identifierLocation.endOffset ?? 0
+    const valueLocations = actualParameterList.children.expression?.map((ex) =>
+      nodeSpan(ex as CstNode),
+    )
+    const candidateLocations = valueLocations.filter(
+      (loc) => loc.startOffset >= identifierEndOffset,
+    )
+    candidateLocations.sort(
+      (a, b) => (a.startColumn ?? 0) - (b.startColumn ?? 0),
+    )
+
+    return candidateLocations[0]
+  } else {
+    return undefined
+  }
+}
+
+function nodeSpan(node: CstNode): CstNodeLocation {
+  const current = {
+    startOffset: NaN,
+    startLine: undefined as number | undefined,
+    startColumn: undefined as number | undefined,
+    endOffset: undefined as number | undefined,
+    endLine: undefined as number | undefined,
+    endColumn: undefined as number | undefined,
+  }
+
+  for (const key of Object.keys(node.children)) {
+    const children = node.children[key]
+
+    for (const child of children) {
+      const update = 'children' in child ? nodeSpan(child) : child
+
+      if (
+        isNaN(current.startOffset) ||
+        (!isNaN(update.startOffset) && update.startOffset < current.startOffset)
+      ) {
+        current.startOffset = update.startOffset
+        current.startLine = update.startLine
+        current.startColumn = update.startColumn
+      }
+
+      if (
+        typeof current.endOffset === 'undefined' ||
+        (typeof update.endOffset !== 'undefined' &&
+          update.endOffset > current.endOffset)
+      ) {
+        current.endOffset = update.endOffset
+        current.endLine = update.endLine
+        current.endColumn = update.endColumn
+      }
+    }
+  }
+
+  return current
 }

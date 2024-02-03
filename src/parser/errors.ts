@@ -1,6 +1,11 @@
+import { CstNodeLocation } from 'chevrotain'
+
 export class PostParsingError extends Error {
-  constructor(message: string) {
+  location: CstNodeLocation | undefined
+
+  constructor(message: string, location?: CstNodeLocation) {
     super(message)
+    this.location = location
   }
 }
 
