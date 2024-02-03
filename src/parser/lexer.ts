@@ -248,10 +248,6 @@ export const NumberLiteral = createToken({
   name: 'NumberLiteral',
   pattern: /-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/,
 })
-export const ExpressionLiteral = createToken({
-  name: 'ExpressionLiteral',
-  pattern: /\$\{[^}]*\}/,
-})
 export const SingleLineComment = createToken({
   name: 'SingleLineComment ',
   pattern: /\/\/[^\n\r]*/,
@@ -270,7 +266,6 @@ export const tokens = [
   SingleLineComment,
   NumberLiteral,
   StringLiteral,
-  ExpressionLiteral,
   LParenthesis,
   RParenthesis,
   LCurly,
