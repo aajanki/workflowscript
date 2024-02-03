@@ -8,16 +8,25 @@
  *
  * Example:
  *
- * node compile.js inputFile
+ * node dist/compile.js inputFile
  */
 
-import { IToken } from 'chevrotain'
+import {
+  EarlyExitException,
+  ILexingError,
+  IRecognitionException,
+  IToken,
+  MismatchedTokenException,
+  NoViableAltException,
+  NotAllInputParsedException,
+} from 'chevrotain'
 import { workflowScriptLexer } from './parser/lexer.js'
 import { WorfkflowScriptParser } from './parser/parser.js'
 import { createVisitor } from './parser/cstvisitor.js'
 import { WorkflowApp, toYAMLString } from './ast/workflows.js'
 import * as fs from 'node:fs'
 import { WorkflowValidationError, validate } from './ast/validation.js'
+import { isRecord } from './utils.js'
 
 export function compile(
   program: string,
@@ -41,50 +50,55 @@ export function compileFile(
 function cliMain() {
   const args = process.argv.slice(2)
 
-  try {
-    if (args.length === 0) {
-      console.log(compileFile(process.stdin.fd))
-    } else {
-      args.forEach((inputFile) => {
-        const inp = inputFile === '-' ? process.stdin.fd : inputFile
-
-        try {
-          console.log(compileFile(inp))
-        } catch (err) {
-          if (isIoError(err, 'ENOENT')) {
-            console.error(`Error: "${inp}" not found`)
-            process.exit(1)
-          } else if (isIoError(err, 'EISDIR')) {
-            console.error(`Error: "${inp}" is a directory`)
-            process.exit(1)
-          } else if (isIoError(err, 'EAGAIN') && inp === process.stdin.fd) {
-            // Reading from stdin if there's no input causes error. This is a bug in node
-            console.error('Error: Failed to read from stdin')
-            process.exit(1)
-          } else {
-            throw err
-          }
-        }
-      })
-    }
-  } catch (err) {
-    if (err instanceof WorkflowValidationError) {
-      console.error('Validation errors:')
-      err.issues.forEach((x) => {
-        console.error(`- ${x.message} (${x.type})`)
-      })
-      process.exit(1)
-    } else {
-      throw err
-    }
+  let files = []
+  if (args.length === 0) {
+    files = ['-']
+  } else {
+    files = args
   }
+
+  files.forEach((inputFile) => {
+    const inp = inputFile === '-' ? process.stdin.fd : inputFile
+
+    try {
+      console.log(compileFile(inp))
+    } catch (err) {
+      if (isIoError(err, 'ENOENT')) {
+        console.error(`Error: "${inp}" not found`)
+        process.exit(1)
+      } else if (isIoError(err, 'EISDIR')) {
+        console.error(`Error: "${inp}" is a directory`)
+        process.exit(1)
+      } else if (isIoError(err, 'EAGAIN') && inp === process.stdin.fd) {
+        // Reading from stdin if there's no input causes error. This is a bug in node
+        console.error('Error: Failed to read from stdin')
+        process.exit(1)
+      } else if (
+        err instanceof MismatchedTokenException ||
+        err instanceof NoViableAltException ||
+        err instanceof NotAllInputParsedException ||
+        err instanceof EarlyExitException
+      ) {
+        prettyPrintSyntaxError(err, inputFile)
+        process.exit(1)
+      } else if (isLexingError(err)) {
+        prettyPrintLexingError(err, inputFile)
+        process.exit(1)
+      } else if (err instanceof WorkflowValidationError) {
+        prettyPrintValidationError(err, inputFile)
+        process.exit(1)
+      } else {
+        throw err
+      }
+    }
+  })
 }
 
 function tokenize(program: string): IToken[] {
   const lexResult = workflowScriptLexer.tokenize(program)
 
   if (lexResult.errors.length > 0) {
-    throw new Error('Lex error: ' + JSON.stringify(lexResult.errors))
+    throw lexResult.errors[0]
   }
 
   return lexResult.tokens
@@ -98,9 +112,8 @@ function createAst(tokens: IToken[]): WorkflowApp {
   const cst = parser.program()
   const ast = visitor.visit(cst) as WorkflowApp
 
-  // TODO: better error messages
   if (parser.errors.length > 0) {
-    throw new Error('Parsing error: ' + JSON.stringify(parser.errors))
+    throw parser.errors[0]
   }
 
   return ast
@@ -108,6 +121,58 @@ function createAst(tokens: IToken[]): WorkflowApp {
 
 function isIoError(err: unknown, errorCode: string): boolean {
   return err instanceof Error && 'code' in err && err.code == errorCode
+}
+
+function isLexingError(err: unknown): err is ILexingError {
+  return (
+    isRecord(err) &&
+    'offset' in err &&
+    'line' in err &&
+    'column' in err &&
+    'length' in err &&
+    'message' in err
+  )
+}
+
+function prettyPrintSyntaxError(
+  exception: IRecognitionException,
+  inputFile: string,
+): void {
+  const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
+  if (!exception.token.startLine || !exception.token.startColumn) {
+    console.log(`File ${prettyFileName}:`)
+  } else {
+    console.error(
+      `File ${prettyFileName}, line ${exception.token.startLine}, column ${exception.token.startColumn}:`,
+    )
+  }
+  console.error(`${exception.message}`)
+}
+
+function prettyPrintLexingError(
+  exception: ILexingError,
+  inputFile: string,
+): void {
+  const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
+  if (!exception.line || !exception.column) {
+    console.error(`File ${prettyFileName}:`)
+  } else {
+    console.error(
+      `File ${prettyFileName}, line ${exception.line}, column ${exception.column}:`,
+    )
+  }
+  console.error(exception.message)
+}
+
+function prettyPrintValidationError(
+  exception: WorkflowValidationError,
+  inputFile: string,
+): void {
+  const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
+  console.error(`Validation errors in file ${prettyFileName}:`)
+  exception.issues.forEach((x) => {
+    console.error(`- ${x.message} (${x.type})`)
+  })
 }
 
 if (
