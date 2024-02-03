@@ -1,4 +1,4 @@
-import { CstNodeLocation } from 'chevrotain'
+import { CstNode, CstNodeLocation } from 'chevrotain'
 
 export class PostParsingError extends Error {
   location: CstNodeLocation | undefined
@@ -10,7 +10,10 @@ export class PostParsingError extends Error {
 }
 
 export class InternalParsingError extends Error {
-  constructor(message: string) {
+  cstNode: CstNode
+
+  constructor(message: string, cstNode: CstNode) {
     super(`Bug in the WorkflowScript compiler! ${message}`)
+    this.cstNode = cstNode
   }
 }

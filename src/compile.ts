@@ -92,7 +92,7 @@ function cliMain() {
         prettyPrintValidationError(err, inputFile)
         process.exit(1)
       } else if (err instanceof InternalParsingError) {
-        console.log(err.message)
+        prettyPrintInternalError(err, inputFile)
         process.exit(1)
       } else {
         throw err
@@ -150,7 +150,7 @@ function prettyPrintSyntaxError(
     typeof exception.token?.startLine === 'undefined' ||
     typeof exception.token?.startColumn === 'undefined'
   ) {
-    console.log(`File ${prettyFileName}:`)
+    console.error(`File ${prettyFileName}:`)
   } else {
     console.error(
       `File ${prettyFileName}, line ${exception.token.startLine}, column ${exception.token.startColumn}:`,
@@ -168,7 +168,7 @@ function prettyPrintPostParsingError(
     typeof exception.location?.startLine === 'undefined' ||
     typeof exception.location?.startColumn === 'undefined'
   ) {
-    console.log(`File ${prettyFileName}:`)
+    console.error(`File ${prettyFileName}:`)
   } else {
     console.error(
       `File ${prettyFileName}, line ${exception.location.startLine}, column ${exception.location.startColumn}:`,
@@ -204,6 +204,17 @@ function prettyPrintValidationError(
   exception.issues.forEach((x) => {
     console.error(`- ${x.message} (${x.type})`)
   })
+}
+
+function prettyPrintInternalError(
+  exception: InternalParsingError,
+  inputFile: string,
+): void {
+  const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
+  console.error(exception.message)
+  console.error(`while compiling ${prettyFileName}`)
+  console.error('Parsing context:')
+  console.error(JSON.stringify(exception.cstNode))
 }
 
 if (

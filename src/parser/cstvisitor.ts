@@ -99,7 +99,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.parenthesizedExpression) {
         val = this.visit(ctx.parenthesizedExpression)
       } else {
-        throw new InternalParsingError('Unknown expression in "term"')
+        throw new InternalParsingError('Unknown expression in "term"', ctx)
       }
 
       return new Term(val, op)
@@ -126,7 +126,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.Null) {
         return null
       } else {
-        throw new InternalParsingError('Unknown value in "literal"')
+        throw new InternalParsingError('Unknown value in "literal"', ctx)
       }
     }
 
@@ -230,7 +230,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.actualAnonymousParameterList) {
         return this.visit(ctx.actualAnonymousParameterList)
       } else {
-        throw new InternalParsingError('Unknown value in "actualParameterList"')
+        throw new InternalParsingError(
+          'Unknown value in "actualParameterList"',
+          ctx,
+        )
       }
     }
 
@@ -347,7 +350,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         const forStep = this.visit(ctx.forStatement)
         nestedSteps = forStep.step
       } else {
-        throw new InternalParsingError('Unknown value in "parallelStatement"')
+        throw new InternalParsingError(
+          'Unknown value in "parallelStatement"',
+          ctx,
+        )
       }
 
       return {
@@ -506,7 +512,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.returnStatement) {
         return this.visit(ctx.returnStatement[0])
       } else {
-        throw new InternalParsingError('Unknown value in "statement"')
+        throw new InternalParsingError('Unknown value in "statement"', ctx)
       }
     }
 
