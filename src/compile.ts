@@ -60,9 +60,11 @@ function cliMain() {
 
   files.forEach((inputFile) => {
     const inp = inputFile === '-' ? process.stdin.fd : inputFile
+    let sourceCode = ''
 
     try {
-      console.log(compileFile(inp))
+      sourceCode = fs.readFileSync(inp, 'utf8')
+      console.log(compile(sourceCode))
     } catch (err) {
       if (isIoError(err, 'ENOENT')) {
         console.error(`Error: "${inp}" not found`)
@@ -80,13 +82,13 @@ function cliMain() {
         err instanceof NotAllInputParsedException ||
         err instanceof EarlyExitException
       ) {
-        prettyPrintSyntaxError(err, inputFile)
+        prettyPrintSyntaxError(err, inputFile, sourceCode)
         process.exit(1)
       } else if (err instanceof PostParsingError) {
-        prettyPrintPostParsingError(err, inputFile)
+        prettyPrintPostParsingError(err, inputFile, sourceCode)
         process.exit(1)
       } else if (isLexingError(err)) {
-        prettyPrintLexingError(err, inputFile)
+        prettyPrintLexingError(err, inputFile, sourceCode)
         process.exit(1)
       } else if (err instanceof WorkflowValidationError) {
         prettyPrintValidationError(err, inputFile)
@@ -144,54 +146,34 @@ function isLexingError(err: unknown): err is ILexingError {
 function prettyPrintSyntaxError(
   exception: IRecognitionException,
   inputFile: string,
+  sourceCode: string,
 ): void {
-  const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
-  if (
-    typeof exception.token?.startLine === 'undefined' ||
-    typeof exception.token?.startColumn === 'undefined'
-  ) {
-    console.error(`File ${prettyFileName}:`)
-  } else {
-    console.error(
-      `File ${prettyFileName}, line ${exception.token.startLine}, column ${exception.token.startColumn}:`,
-    )
-  }
+  console.error(errorDisplay(inputFile, sourceCode, exception.token))
   console.error(`${exception.message}`)
 }
 
 function prettyPrintPostParsingError(
   exception: PostParsingError,
   inputFile: string,
+  sourceCode: string,
 ): void {
-  const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
-  if (
-    typeof exception.location?.startLine === 'undefined' ||
-    typeof exception.location?.startColumn === 'undefined'
-  ) {
-    console.error(`File ${prettyFileName}:`)
-  } else {
-    console.error(
-      `File ${prettyFileName}, line ${exception.location.startLine}, column ${exception.location.startColumn}:`,
-    )
-  }
+  console.error(errorDisplay(inputFile, sourceCode, exception.location))
   console.error(`${exception.message}`)
 }
 
 function prettyPrintLexingError(
   exception: ILexingError,
   inputFile: string,
+  sourceCode: string,
 ): void {
-  const prettyFileName = inputFile === '-' ? '<stdin>' : inputFile
-  if (
-    typeof exception.line === 'undefined' ||
-    typeof exception.column === 'undefined'
-  ) {
-    console.error(`File ${prettyFileName}:`)
-  } else {
-    console.error(
-      `File ${prettyFileName}, line ${exception.line}, column ${exception.column}:`,
-    )
+  const errorLocation = {
+    startOffset: exception.offset,
+    endOffset: exception.offset + exception.length - 1,
+    startLine: exception.line,
+    startColumn: exception.column,
   }
+
+  console.error(errorDisplay(inputFile, sourceCode, errorLocation))
   console.error(exception.message)
 }
 
@@ -215,6 +197,84 @@ function prettyPrintInternalError(
   console.error(`while compiling ${prettyFileName}`)
   console.error('Parsing context:')
   console.error(JSON.stringify(exception.cstNode))
+}
+
+function errorDisplay(
+  filename: string,
+  sourceCode: string,
+  location:
+    | {
+        startOffset: number
+        endOffset?: number
+        startLine?: number
+        startColumn?: number
+      }
+    | undefined,
+): string {
+  const lines: string[] = []
+  const prettyFilename = filename === '-' ? '<stdin>' : filename
+  if (
+    typeof location?.startLine === 'undefined' ||
+    typeof location?.startColumn === 'undefined' ||
+    isNaN(location?.startLine) ||
+    isNaN(location.startColumn)
+  ) {
+    lines.push(`File ${prettyFilename}:`)
+  } else {
+    lines.push(
+      `File ${prettyFilename}, line ${location.startLine}, column ${location.startColumn}:`,
+    )
+  }
+
+  if (typeof location?.endOffset !== 'undefined') {
+    const highlightedLine = highlightedSourceCodeLine(
+      sourceCode,
+      location.startOffset,
+      location.endOffset,
+    )
+    if (highlightedLine.length > 0) {
+      lines.push(highlightedLine)
+      lines.push('')
+    }
+  }
+
+  return lines.join('\n')
+}
+
+function highlightedSourceCodeLine(
+  sourceCode: string,
+  startOffset: number,
+  endOffset: number,
+): string {
+  if (
+    isNaN(startOffset) ||
+    isNaN(endOffset) ||
+    startOffset >= sourceCode.length
+  ) {
+    return ''
+  }
+
+  let lineStart = startOffset
+  while (lineStart > 0 && sourceCode[lineStart] != '\n') {
+    lineStart--
+  }
+  if (lineStart < startOffset) {
+    lineStart++
+  }
+
+  let lineEnd = startOffset
+  while (lineEnd < sourceCode.length && sourceCode[lineEnd] != '\n') {
+    lineEnd++
+  }
+
+  const markerStart = startOffset - lineStart
+  const markerLength = Math.min(
+    endOffset - startOffset + 1,
+    lineEnd - startOffset,
+  )
+  const markerLine = `${' '.repeat(markerStart)}${'^'.repeat(markerLength)}`
+
+  return `${sourceCode.substring(lineStart, lineEnd)}\n${markerLine}`
 }
 
 if (

@@ -95,20 +95,17 @@ npm run build
 npm run test
 ```
 
-## TODO
+## Roadmap
 
-This is alpha quality software! Not all workflow features are supported yet.
+(not prioritized)
 
-At least the following features should be implemented before this can be considered usable:
-
-- Better error messages
-
-Quality-of-life improvements to be implemented later:
-
+- Fix bugs. This is beta quality software! Expect at least some bugs.
 - `return` without a value
 - finally block in try?
 - index variable in a for loop
 - floor division: `x // 2`. Comments?
+- Detect uninitialized variables
+- Dead code elimination (or at least dead subworkflow elimination)
 
 ## License
 
