@@ -653,6 +653,12 @@ function parseRetryPolicy(
   } else if (setEqual(actualKeys, customPolicyRequiredKays)) {
     // custom policy
     const predicate = policyParameters.predicate.toString()
+    if (!policyParameters.predicate.isFullyQualifiedName()) {
+      throw new PostParsingError(
+        '"predicate" in a retry policy must be a subworkflow name or http.default_retry_predicate or http.default_retry_predicate_non_idempotent',
+        findValueLocation(node, 'predicate'),
+      )
+    }
 
     const maxRetries = extractNumber(policyParameters.max_retries)
     if (typeof maxRetries !== 'number') {

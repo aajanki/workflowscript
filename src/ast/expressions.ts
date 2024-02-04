@@ -131,6 +131,10 @@ export class Term {
     }
   }
 
+  isFullyQualifiedName(): boolean {
+    return this.value instanceof VariableReference
+  }
+
   // Does not add ${}.
   toString(): string {
     let opString = this.unaryOperator ?? ''
@@ -233,6 +237,10 @@ export class Expression {
 
   isLiteral(): boolean {
     return this.rest.length === 0 && this.left.isLiteral()
+  }
+
+  isFullyQualifiedName(): boolean {
+    return this.rest.length === 0 && this.left.isFullyQualifiedName()
   }
 
   // Does not add ${}.

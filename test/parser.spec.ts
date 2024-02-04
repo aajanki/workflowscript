@@ -913,6 +913,61 @@ describe('Try-retry-catch statement parsing', () => {
     expect(() => parseStatement(block)).to.throw()
   })
 
+  it('throws an error if custom retry policy predicate is not a fully qualified name', () => {
+    const block = `
+    try {
+      response = http.get("https://visit.dreamland.test/")
+    }
+    retry (predicate = "http.default_retry_predicate", max_retries = 10, initial_delay = 3.0, max_delay = 60, multiplier = 1.5)
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
+  it('throws an error if custom retry policy max_retries is not a number', () => {
+    const block = `
+    try {
+      response = http.get("https://visit.dreamland.test/")
+    }
+    retry (predicate = http.default_retry_predicate, max_retries = "100", initial_delay = 3.0, max_delay = 60, multiplier = 1.5)
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
+  it('throws an error if custom retry policy initial_delay is not a number', () => {
+    const block = `
+    try {
+      response = http.get("https://visit.dreamland.test/")
+    }
+    retry (predicate = http.default_retry_predicate, max_retries = 100, initial_delay = [2, 4, 8], max_delay = 60, multiplier = 1.5)
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
+  it('throws an error if custom retry policy max_delay is not a number', () => {
+    const block = `
+    try {
+      response = http.get("https://visit.dreamland.test/")
+    }
+    retry (predicate = http.default_retry_predicate, max_retries = 100, initial_delay = 3.0, max_delay = null, multiplier = 1.5)
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
+  it('throws an error if custom retry policy multiplier is not a number', () => {
+    const block = `
+    try {
+      response = http.get("https://visit.dreamland.test/")
+    }
+    retry (predicate = http.default_retry_predicate, max_retries = 100, initial_delay = 3.0, max_delay = 60, multiplier = {value: 4})
+    `
+
+    expect(() => parseStatement(block)).to.throw()
+  })
+
   it('throws on try without catch', () => {
     const block = `
     try {
