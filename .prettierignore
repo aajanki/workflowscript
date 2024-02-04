@@ -2,3 +2,4 @@ node_modules/
 dist/
 coverage/
 syntax.md
+src/parser/cst.d.ts

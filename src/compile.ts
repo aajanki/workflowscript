@@ -196,7 +196,7 @@ function prettyPrintInternalError(
   console.error(exception.message)
   console.error(`while compiling ${prettyFileName}`)
   console.error('Parsing context:')
-  console.error(JSON.stringify(exception.cstNode))
+  console.error(JSON.stringify(exception.context))
 }
 
 function errorDisplay(

@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 
-import { CstNode, CstNodeLocation, IToken } from 'chevrotain'
+import { CstNode, CstNodeLocation } from 'chevrotain'
 import {
   AssignStep,
   NamedWorkflowStep,
@@ -30,11 +30,42 @@ import {
   Term,
   VariableName,
   VariableReference,
-  Primitive,
 } from '../ast/expressions.js'
 import { WorfkflowScriptParser } from './parser.js'
 import { isRecord } from '../utils.js'
 import { InternalParsingError, PostParsingError } from './errors.js'
+import {
+  ActualAnonymousParameterListCstChildren,
+  ActualNamedParameterListCstChildren,
+  ActualNamedParameterListCstNode,
+  ActualParameterListCstChildren,
+  ArrayCstChildren,
+  AssignmentStatementCstChildren,
+  BranchCstChildren,
+  CallExpressionCstChildren,
+  CallStatementCstChildren,
+  ExpressionCstChildren,
+  ForStatementCstChildren,
+  FormalParameterCstChildren,
+  FormalParameterListCstChildren,
+  FunctionNameCstChildren,
+  IfStatementCstChildren,
+  LiteralCstChildren,
+  ObjectCstChildren,
+  ObjectItemCstChildren,
+  ParallelStatementCstChildren,
+  ParenthesizedExpressionCstChildren,
+  ProgramCstChildren,
+  ReturnStatementCstChildren,
+  StatementBlockCstChildren,
+  StatementCstChildren,
+  SubscriptReferenceCstChildren,
+  SubworkflowDefinitionCstChildren,
+  TermCstChildren,
+  ThrowStatementCstChildren,
+  TryStatementCstChildren,
+  VariableReferenceCstChildren,
+} from './cst.js'
 
 export function createVisitor(parserInstance: WorfkflowScriptParser) {
   const BaseWorkflowscriptCstVisitor =
@@ -53,29 +84,31 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       this.stepNameGenerator.reset()
     }
 
-    object(ctx: any): Record<string, Expression> {
-      return Object.fromEntries(
-        ctx.objectItem.map((x: CstNode) => this.visit(x)),
-      )
+    object(ctx: ObjectCstChildren): Record<string, Expression> {
+      if (ctx.objectItem) {
+        return Object.fromEntries(ctx.objectItem.map((x) => this.visit(x)))
+      } else {
+        return {}
+      }
     }
 
-    objectItem(ctx: any): [string, Expression] {
+    objectItem(ctx: ObjectItemCstChildren): [string, Expression] {
       return [
         unescapeBackslashes(ctx.StringLiteral[0].image),
         this.visit(ctx.expression[0]),
       ]
     }
 
-    array(ctx: any): Expression[] {
-      return ctx.expression.map((val: CstNode) => this.visit(val))
+    array(ctx: ArrayCstChildren): Expression[] {
+      if (ctx.expression) {
+        return ctx.expression.map((val) => this.visit(val))
+      } else {
+        return []
+      }
     }
 
-    term(ctx: any): Term {
-      let val:
-        | Primitive
-        | VariableReference
-        | ParenthesizedExpression
-        | FunctionInvocation
+    term(ctx: TermCstChildren): Term {
+      let val
       const op = ctx.UnaryOperator ? ctx.UnaryOperator[0].image : undefined
 
       if (ctx.StringLiteral) {
@@ -89,15 +122,15 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       } else if (ctx.Null) {
         val = null
       } else if (ctx.array) {
-        val = this.visit(ctx.array)
+        val = this.visit(ctx.array) as Expression[]
       } else if (ctx.object) {
-        val = this.visit(ctx.object)
+        val = this.visit(ctx.object) as Record<string, Expression>
       } else if (ctx.callExpression) {
-        val = this.visit(ctx.callExpression)
+        val = this.visit(ctx.callExpression) as FunctionInvocation
       } else if (ctx.variableReference) {
-        val = this.visit(ctx.variableReference)
+        val = this.visit(ctx.variableReference) as VariableReference
       } else if (ctx.parenthesizedExpression) {
-        val = this.visit(ctx.parenthesizedExpression)
+        val = this.visit(ctx.parenthesizedExpression) as ParenthesizedExpression
       } else {
         throw new InternalParsingError('Unknown expression in "term"', ctx)
       }
@@ -105,10 +138,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return new Term(val, op)
     }
 
-    literal(ctx: any): string | number | boolean | null {
-      const opString: string = ctx.UnaryOperator
-        ? ctx.UnaryOperator[0].image
-        : ''
+    literal(ctx: LiteralCstChildren): string | number | boolean | null {
+      const opString = ctx.UnaryOperator?.[0].image ?? ''
 
       if (ctx.StringLiteral) {
         return `${opString}${unescapeBackslashes(ctx.StringLiteral[0].image)}`
@@ -130,11 +161,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    expression(ctx: any): Expression {
-      const terms: Term[] = ctx.term.map((t: CstNode) => this.visit(t))
-      const binaryOperators: string[] | undefined = ctx.BinaryOperator?.map(
-        (op: IToken) => op.image,
-      )
+    expression(ctx: ExpressionCstChildren): Expression {
+      const terms = ctx.term.map((x) => this.visit(x) as Term)
+      const binaryOperators = ctx.BinaryOperator?.map((op) => op.image)
       const rest = binaryOperators?.map((op, i) => {
         return { binaryOperator: op, right: terms[i + 1] }
       })
@@ -142,15 +171,19 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return new Expression(terms[0], rest ?? [])
     }
 
-    parenthesizedExpression(ctx: any): ParenthesizedExpression {
-      return new ParenthesizedExpression(this.visit(ctx.expression))
+    parenthesizedExpression(
+      ctx: ParenthesizedExpressionCstChildren,
+    ): ParenthesizedExpression {
+      return new ParenthesizedExpression(
+        this.visit(ctx.expression) as Expression,
+      )
     }
 
-    subscriptReference(ctx: any): string {
+    subscriptReference(ctx: SubscriptReferenceCstChildren): string {
       const reference = ctx.Identifier[0].image
       const subscripts: string = (ctx.expression ?? [])
-        .map((x: CstNode) => {
-          const expression: Expression = this.visit(x)
+        .map((x) => {
+          const expression = this.visit(x) as Expression
 
           if (expression.isLiteral()) {
             const value = expression.toLiteralValueOrLiteralExpression()
@@ -158,8 +191,14 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
               return `[${JSON.stringify(value)}]`
             } else if (typeof value === 'number') {
               if (!Number.isInteger(value)) {
-                const [term] = x.children.term as CstNode[]
-                const [token] = term?.children?.NumberLiteral as IToken[]
+                let token = undefined
+                const [term] = x.children.term
+                if (
+                  term?.children.NumberLiteral &&
+                  term.children.NumberLiteral.length > 0
+                ) {
+                  token = term.children.NumberLiteral[0]
+                }
                 throw new PostParsingError("Subscript can't be a float", token)
               }
               return `[${value}]`
@@ -178,16 +217,18 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return reference + subscripts
     }
 
-    variableReference(ctx: any): VariableReference {
-      const name: string = ctx.subscriptReference
-        .map((ref: CstNode) => this.visit(ref) as string)
+    variableReference(ctx: VariableReferenceCstChildren): VariableReference {
+      const name = ctx.subscriptReference
+        .map((ref) => this.visit(ref) as string)
         .join('.')
       return new VariableReference(name)
     }
 
-    assignmentStatement(ctx: any): NamedWorkflowStep {
-      const ref: VariableReference = this.visit(ctx.variableReference)
-      const ex: Expression = this.visit(ctx.expression[0])
+    assignmentStatement(
+      ctx: AssignmentStatementCstChildren,
+    ): NamedWorkflowStep {
+      const ref = this.visit(ctx.variableReference) as VariableReference
+      const ex = this.visit(ctx.expression[0]) as Expression
 
       return {
         name: this.stepNameGenerator.generate('assign'),
@@ -195,18 +236,19 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    functionName(ctx: any): string {
-      const parts: string[] = ctx.Identifier.map((x: IToken) => x.image)
+    functionName(ctx: FunctionNameCstChildren): string {
+      const parts = ctx.Identifier.map((x) => x.image)
       return parts.join('.')
     }
 
-    actualNamedParameterList(ctx: any): WorkflowParameters | undefined {
-      if (ctx.Identifier) {
-        const namedArgumentList: [string, Expression][] = ctx.Identifier.map(
-          (identifier: IToken, i: number) => {
-            return [identifier.image, this.visit(ctx.expression[i])]
-          },
-        )
+    actualNamedParameterList(
+      ctx: ActualNamedParameterListCstChildren,
+    ): WorkflowParameters | undefined {
+      if (ctx.Identifier && ctx.expression) {
+        const expr = ctx.expression
+        const namedArgumentList = ctx.Identifier.map((identifier, i) => {
+          return [identifier.image, this.visit(expr[i]) as Expression]
+        })
 
         return Object.fromEntries(namedArgumentList)
       } else {
@@ -214,16 +256,18 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    actualAnonymousParameterList(ctx: any): Expression[] {
+    actualAnonymousParameterList(
+      ctx: ActualAnonymousParameterListCstChildren,
+    ): Expression[] {
       if (ctx.expression) {
-        return ctx.expression.map((x: CstNode) => this.visit(x))
+        return ctx.expression.map((x) => this.visit(x))
       } else {
         return []
       }
     }
 
     actualParameterList(
-      ctx: any,
+      ctx: ActualParameterListCstChildren,
     ): Expression[] | WorkflowParameters | undefined {
       if (ctx.actualNamedParameterList) {
         return this.visit(ctx.actualNamedParameterList)
@@ -237,20 +281,20 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    callExpression(ctx: any): FunctionInvocation {
+    callExpression(ctx: CallExpressionCstChildren): FunctionInvocation {
       return new FunctionInvocation(
-        this.visit(ctx.functionName),
-        this.visit(ctx.actualAnonymousParameterList),
+        this.visit(ctx.functionName) as string,
+        this.visit(ctx.actualAnonymousParameterList) as Expression[],
       )
     }
 
-    callStatement(ctx: any): NamedWorkflowStep {
-      const functionName: string = this.visit(ctx.functionName)
-      const parameterList: Expression[] | WorkflowParameters | undefined =
-        this.visit(ctx.actualParameterList)
-      const resultVariable: string | undefined = ctx.Identifier
-        ? ctx.Identifier[0].image
-        : undefined
+    callStatement(ctx: CallStatementCstChildren): NamedWorkflowStep {
+      const functionName = this.visit(ctx.functionName) as string
+      const parameterList = this.visit(ctx.actualParameterList) as
+        | Expression[]
+        | WorkflowParameters
+        | undefined
+      const resultVariable = ctx.Identifier?.[0].image
 
       if (
         typeof resultVariable === 'undefined' &&
@@ -281,14 +325,12 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    ifStatement(ctx: any): NamedWorkflowStep {
-      const branches: SwitchCondition[] = ctx.expression.map(
-        (ex: CstNode, i: number) => {
-          return new SwitchCondition(this.visit(ex), {
-            steps: this.visit(ctx.statementBlock[i]),
-          })
-        },
-      )
+    ifStatement(ctx: IfStatementCstChildren): NamedWorkflowStep {
+      const branches = ctx.expression.map((ex, i) => {
+        return new SwitchCondition(this.visit(ex) as Expression, {
+          steps: this.visit(ctx.statementBlock[i]) as NamedWorkflowStep[],
+        })
+      })
 
       if (ctx.statementBlock.length > ctx.expression.length) {
         // The last branch is an else branch
@@ -296,7 +338,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
           new SwitchCondition(new Expression(new Term(true), []), {
             steps: this.visit(
               ctx.statementBlock[ctx.statementBlock.length - 1],
-            ),
+            ) as NamedWorkflowStep[],
           }),
         )
       }
@@ -307,10 +349,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    forStatement(ctx: any): NamedWorkflowStep {
+    forStatement(ctx: ForStatementCstChildren): NamedWorkflowStep {
       const loopVariable = ctx.Identifier[0].image
-      const steps = this.visit(ctx.statementBlock)
-      const listExpression: Expression = this.visit(ctx.expression)
+      const steps = this.visit(ctx.statementBlock) as NamedWorkflowStep[]
+      const listExpression = this.visit(ctx.expression) as Expression
       const listValue = listExpression.toLiteralValueOrLiteralExpression()
 
       if (
@@ -331,24 +373,27 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    branch(ctx: any): NamedWorkflowStep[] {
+    branch(ctx: BranchCstChildren): NamedWorkflowStep[] {
       return this.visit(ctx.statementBlock)
     }
 
-    parallelStatement(ctx: any): NamedWorkflowStep {
+    parallelStatement(ctx: ParallelStatementCstChildren): NamedWorkflowStep {
       let nestedSteps: Record<StepName, StepsStep> | ForStep
       const { shared, concurrencyLimit, exceptionPolicy } =
         this.optionalBranchParameters(ctx.actualNamedParameterList)
 
       if (ctx.branch) {
         nestedSteps = Object.fromEntries(
-          ctx.branch.map((branch: CstNode, i: number) => {
-            return [`branch${i + 1}`, new StepsStep(this.visit(branch))]
+          ctx.branch.map((branch, i) => {
+            return [
+              `branch${i + 1}`,
+              new StepsStep(this.visit(branch) as NamedWorkflowStep[]),
+            ]
           }),
         )
       } else if (ctx.forStatement) {
-        const forStep = this.visit(ctx.forStatement)
-        nestedSteps = forStep.step
+        const forStep = this.visit(ctx.forStatement) as NamedWorkflowStep
+        nestedSteps = forStep.step as ForStep
       } else {
         throw new InternalParsingError(
           'Unknown value in "parallelStatement"',
@@ -367,7 +412,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    optionalBranchParameters(parameterNode: CstNode[] | undefined): {
+    optionalBranchParameters(
+      parameterNode: ActualNamedParameterListCstNode[] | undefined,
+    ): {
       shared: string[] | undefined
       concurrencyLimit: number | undefined
       exceptionPolicy: string | undefined
@@ -377,8 +424,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       let concurrencyLimit: number | undefined = undefined
 
       if (parameterNode && parameterNode.length > 0) {
-        const optionalParameters: WorkflowParameters =
-          this.visit(parameterNode) ?? {}
+        const optionalParameters = (this.visit(parameterNode) ??
+          {}) as WorkflowParameters
         for (const key in optionalParameters) {
           const val = optionalParameters[key]
 
@@ -419,7 +466,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return { shared, concurrencyLimit, exceptionPolicy }
     }
 
-    tryStatement(ctx: any): NamedWorkflowStep {
+    tryStatement(ctx: TryStatementCstChildren): NamedWorkflowStep {
       // must have either retry or catch block (or both)
       if (ctx.statementBlock.length <= 1 && !ctx.actualNamedParameterList) {
         throw new PostParsingError(
@@ -428,16 +475,18 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         )
       }
 
-      const trySteps: NamedWorkflowStep[] = this.visit(ctx.statementBlock[0])
-      const catchSteps: NamedWorkflowStep[] =
-        ctx.statementBlock.length > 1 ? this.visit(ctx.statementBlock[1]) : []
-      const errorVariable: string | undefined = ctx.Identifier?.[0].image
+      const trySteps = this.visit(ctx.statementBlock[0]) as NamedWorkflowStep[]
+      const catchSteps =
+        ctx.statementBlock.length > 1
+          ? (this.visit(ctx.statementBlock[1]) as NamedWorkflowStep[])
+          : []
+      const errorVariable = ctx.Identifier?.[0].image
       let policy: string | CustomRetryPolicy | undefined = undefined
 
       if (ctx.actualNamedParameterList) {
-        const policyParameters: WorkflowParameters | undefined = this.visit(
-          ctx.actualNamedParameterList,
-        )
+        const policyParameters = this.visit(ctx.actualNamedParameterList) as
+          | WorkflowParameters
+          | undefined
         if (policyParameters) {
           policy = parseRetryPolicy(
             policyParameters,
@@ -457,8 +506,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    throwStatement(ctx: any): NamedWorkflowStep {
-      const ex: Expression = this.visit(ctx.expression)
+    throwStatement(ctx: ThrowStatementCstChildren): NamedWorkflowStep {
+      const ex = this.visit(ctx.expression) as Expression
 
       return {
         name: this.stepNameGenerator.generate('raise'),
@@ -480,15 +529,15 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    returnStatement(ctx: any): NamedWorkflowStep {
-      const ex: Expression = this.visit(ctx.expression[0])
+    returnStatement(ctx: ReturnStatementCstChildren): NamedWorkflowStep {
+      const ex = this.visit(ctx.expression[0]) as Expression
       return {
         name: this.stepNameGenerator.generate('return'),
         step: new ReturnStep(ex),
       }
     }
 
-    statement(ctx: any): NamedWorkflowStep {
+    statement(ctx: StatementCstChildren): NamedWorkflowStep {
       if (ctx.assignmentStatement) {
         return this.visit(ctx.assignmentStatement[0])
       } else if (ctx.callStatement) {
@@ -514,10 +563,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    statementBlock(ctx: any): NamedWorkflowStep[] {
+    statementBlock(ctx: StatementBlockCstChildren): NamedWorkflowStep[] {
       if (ctx.statement) {
-        const steps: NamedWorkflowStep[] = ctx.statement.map(
-          (statementCtx: CstNode) => this.visit(statementCtx),
+        const steps = ctx.statement.map(
+          (statementCtx) => this.visit(statementCtx) as NamedWorkflowStep,
         )
 
         return combineConsecutiveAssignments(steps)
@@ -526,37 +575,43 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    formalParameter(ctx: any): WorkflowParameter {
+    formalParameter(ctx: FormalParameterCstChildren): WorkflowParameter {
       const name = ctx.Identifier[0].image
       if (ctx.literal) {
-        const value: string | number | boolean | null = this.visit(ctx.literal)
+        const value = this.visit(ctx.literal) as
+          | string
+          | number
+          | boolean
+          | null
         return { name, default: value }
       } else {
         return { name }
       }
     }
 
-    formalParameterList(ctx: any): WorkflowParameter[] {
+    formalParameterList(
+      ctx: FormalParameterListCstChildren,
+    ): WorkflowParameter[] {
       if (ctx.formalParameter) {
-        return ctx.formalParameter.map((x: CstNode) => this.visit(x))
+        return ctx.formalParameter.map((x) => this.visit(x))
       } else {
         return []
       }
     }
 
-    subworkflowDefinition(ctx: any): Subworkflow {
-      const workflowName: string = ctx.Identifier[0].image
-      const steps: NamedWorkflowStep[] = this.visit(ctx.statementBlock)
-      const params: WorkflowParameter[] = this.visit(ctx.formalParameterList)
+    subworkflowDefinition(ctx: SubworkflowDefinitionCstChildren): Subworkflow {
+      const workflowName = ctx.Identifier[0].image
+      const steps = this.visit(ctx.statementBlock) as NamedWorkflowStep[]
+      const params = this.visit(ctx.formalParameterList) as WorkflowParameter[]
 
       return new Subworkflow(workflowName, steps, params)
     }
 
-    program(ctx: any): WorkflowApp {
+    program(ctx: ProgramCstChildren): WorkflowApp {
       let workflows: Subworkflow[]
       if (ctx.subworkflowDefinition) {
-        workflows = ctx.subworkflowDefinition.map((subctx: CstNode) =>
-          this.visit(subctx),
+        workflows = ctx.subworkflowDefinition.map(
+          (subctx) => this.visit(subctx) as Subworkflow,
         )
       } else {
         workflows = []
@@ -635,7 +690,7 @@ function setEqual<T>(a: Set<T>, b: Set<T>): boolean {
 
 function parseRetryPolicy(
   policyParameters: WorkflowParameters,
-  node: CstNode,
+  node: ActualNamedParameterListCstNode,
 ): string | CustomRetryPolicy {
   const defaultPolicyRequiredKays = new Set(['policy'])
   const customPolicyRequiredKays = new Set([
@@ -753,22 +808,27 @@ function extractString(ex: Expression): string | undefined {
  * Find the node location of a named key in an actualParameterList.
  */
 function findKeyLocation(
-  actualParameterList: CstNode,
+  actualParameterList: ActualNamedParameterListCstNode,
   key: string,
 ): CstNodeLocation | undefined {
   // Locate the identifier token for key
-  const [identifierToken] = actualParameterList.children.Identifier?.filter(
-    (elem) => 'image' in elem && elem.image === key,
-  ) as (IToken | undefined)[]
+  const identifier = actualParameterList.children.Identifier
+  if (identifier) {
+    const [identifierToken] = identifier.filter(
+      (elem) => 'image' in elem && elem.image === key,
+    )
 
-  return identifierToken
+    return identifierToken
+  } else {
+    return undefined
+  }
 }
 
 /**
  * Find the node location of a value for key in an actualParameterList.
  */
 function findValueLocation(
-  actualParameterList: CstNode,
+  actualParameterList: ActualNamedParameterListCstNode,
   key: string,
 ): CstNodeLocation | undefined {
   // Locate the identifier token for key
@@ -777,20 +837,21 @@ function findValueLocation(
   // Locate the location of the value token following the selected identifier token
   if (identifierLocation) {
     const identifierEndOffset = identifierLocation.endOffset ?? 0
-    const valueLocations = actualParameterList.children.expression?.map((ex) =>
-      nodeSpan(ex as CstNode),
-    )
-    const candidateLocations = valueLocations.filter(
-      (loc) => loc.startOffset >= identifierEndOffset,
-    )
-    candidateLocations.sort(
-      (a, b) => (a.startColumn ?? 0) - (b.startColumn ?? 0),
-    )
+    const expressions = actualParameterList.children.expression ?? []
+    if (expressions.length > 0) {
+      const valueLocations = expressions.map(nodeSpan)
+      const candidateLocations = valueLocations.filter(
+        (loc) => loc.startOffset >= identifierEndOffset,
+      )
+      candidateLocations.sort(
+        (a, b) => (a.startColumn ?? 0) - (b.startColumn ?? 0),
+      )
 
-    return candidateLocations[0]
-  } else {
-    return undefined
+      return candidateLocations[0]
+    }
   }
+
+  return undefined
 }
 
 function nodeSpan(node: CstNode): CstNodeLocation {

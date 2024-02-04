@@ -10,5 +10,5 @@ module.exports = {
   },
   plugins: ['@typescript-eslint'],
   root: true,
-  ignorePatterns: ['dist/', 'test/'],
+  ignorePatterns: ['dist/', 'test/', 'src/parser/cst.d.ts'],
 }
