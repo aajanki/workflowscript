@@ -530,10 +530,12 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     returnStatement(ctx: ReturnStatementCstChildren): NamedWorkflowStep {
-      const ex = this.visit(ctx.expression[0]) as Expression
+      const step = ctx.expression
+        ? new ReturnStep(this.visit(ctx.expression[0]) as Expression)
+        : new ReturnStep()
       return {
         name: this.stepNameGenerator.generate('return'),
-        step: new ReturnStep(ex),
+        step: step,
       }
     }
 

@@ -302,7 +302,7 @@ export interface ReturnStatementCstNode extends CstNode {
 
 export type ReturnStatementCstChildren = {
   Return: IToken[];
-  expression: ExpressionCstNode[];
+  expression?: ExpressionCstNode[];
 };
 
 export interface StatementCstNode extends CstNode {

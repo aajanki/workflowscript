@@ -270,15 +270,21 @@ export class ParallelStep implements WorkflowStep {
 
 // https://cloud.google.com/workflows/docs/reference/syntax/completing
 export class ReturnStep implements WorkflowStep {
-  readonly value: Expression
+  readonly value: Expression | undefined
 
-  constructor(value: Expression) {
+  constructor(value?: Expression) {
     this.value = value
   }
 
   render(): object {
-    return {
-      return: this.value.toLiteralValueOrLiteralExpression(),
+    if (this.value) {
+      return {
+        return: this.value.toLiteralValueOrLiteralExpression(),
+      }
+    } else {
+      return {
+        next: 'end',
+      }
     }
   }
 

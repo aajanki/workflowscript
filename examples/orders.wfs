@@ -12,7 +12,9 @@ workflow getOrders(orderId) {
   try {
     res = http.get("https://example.com/orders/" + orderId)
     return res
-  } catch (err) {
+  }
+  retry (predicate = http.default_retry_predicate, max_retries = 10, initial_delay = 0.5, max_delay = 60, multiplier = 2.0)
+  catch (err) {
     if (err.code == 404) {
       return "Not found"
     } else {

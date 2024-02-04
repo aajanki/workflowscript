@@ -303,7 +303,9 @@ export class WorfkflowScriptParser extends CstParser {
 
   returnStatement = this.RULE('returnStatement', () => {
     this.CONSUME(Return)
-    this.SUBRULE(this.expression)
+    this.OPTION(() => {
+      this.SUBRULE(this.expression)
+    })
   })
 
   statement = this.RULE('statement', () => {

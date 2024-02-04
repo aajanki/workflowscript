@@ -1220,3 +1220,38 @@ describe('For loop parsing', () => {
     expect(() => parseStatement(block)).to.throw()
   })
 })
+
+describe('Return statement', () => {
+  it('parses a return with a literal succesfully', () => {
+    const block = `
+    return 0
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      return: 0,
+    })
+  })
+
+  it('parses a return with a variable succesfully', () => {
+    const block = `
+    return value
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      return: '${value}',
+    })
+  })
+
+  it('parses a return without a value succesfully', () => {
+    const block = `
+    return
+    `
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      next: 'end',
+    })
+  })
+})

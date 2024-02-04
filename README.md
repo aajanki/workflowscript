@@ -108,7 +108,6 @@ npm run test
 (not prioritized)
 
 - Fix bugs. This is beta quality software! Expect at least some bugs.
-- `return` without a value
 - finally block in try?
 - index variable in a for loop
 - floor division: `x // 2`. Comments?

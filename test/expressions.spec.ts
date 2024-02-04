@@ -46,8 +46,14 @@ describe('Literals', () => {
     assertExpression('"null"', 'null')
     assertExpression('"undefined"', 'undefined')
     assertExpression('"false"', 'false')
-    assertExpression('"[\\"this\\", \\"is\\", \\"a\\", \\"string\\"]"', '["this", "is", "a", "string"]')
-    assertExpression('"{\\"this_is\\":   \\"a string\\"  }"', '{"this_is":   "a string"  }')
+    assertExpression(
+      '"[\\"this\\", \\"is\\", \\"a\\", \\"string\\"]"',
+      '["this", "is", "a", "string"]',
+    )
+    assertExpression(
+      '"{\\"this_is\\":   \\"a string\\"  }"',
+      '{"this_is":   "a string"  }',
+    )
   })
 
   it('parses lists', () => {
