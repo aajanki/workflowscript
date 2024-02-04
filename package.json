@@ -33,10 +33,10 @@
     "@types/node": "~20",
     "@typescript-eslint/eslint-plugin": "^6.16.0",
     "@typescript-eslint/parser": "^6.16.0",
-    "chai": "^4.3.10",
+    "chai": "^5.0.3",
     "eslint": "^8.56.0",
     "mocha": "^10.2.0",
-    "prettier": "3.1.1",
+    "prettier": "^3.2.5",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }
