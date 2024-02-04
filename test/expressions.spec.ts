@@ -38,6 +38,18 @@ describe('Literals', () => {
     assertExpression('"King Z\\u00f8g"', 'King Zøg')
   })
 
+  it('parses strings consiting of digits as strings', () => {
+    assertExpression('"123"', '123')
+  })
+
+  it('parses strings with JSON-like values correctly', () => {
+    assertExpression('"null"', 'null')
+    assertExpression('"undefined"', 'undefined')
+    assertExpression('"false"', 'false')
+    assertExpression('"[\\"this\\", \\"is\\", \\"a\\", \\"string\\"]"', '["this", "is", "a", "string"]')
+    assertExpression('"{\\"this_is\\":   \\"a string\\"  }"', '{"this_is":   "a string"  }')
+  })
+
   it('parses lists', () => {
     assertExpression('[1, 2, 3]', [1, 2, 3])
     assertExpression('["Y", "Yes", 1, True]', ['Y', 'Yes', 1, true])
