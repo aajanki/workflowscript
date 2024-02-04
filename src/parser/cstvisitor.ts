@@ -428,12 +428,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         )
       }
 
-      const trySteps = this.visit(ctx.statementBlock[0])
-      const catchSteps =
-        ctx.statementBlock.length > 1
-          ? this.visit(ctx.statementBlock[1])
-          : undefined
-      const errorVariable = ctx.Identifier ? ctx.Identifier[0].image : undefined
+      const trySteps: NamedWorkflowStep[] = this.visit(ctx.statementBlock[0])
+      const catchSteps: NamedWorkflowStep[] =
+        ctx.statementBlock.length > 1 ? this.visit(ctx.statementBlock[1]) : []
+      const errorVariable: string | undefined = ctx.Identifier?.[0].image
       let policy: string | CustomRetryPolicy | undefined = undefined
 
       if (ctx.actualNamedParameterList) {

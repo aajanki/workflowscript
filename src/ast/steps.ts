@@ -338,7 +338,7 @@ export class TryExceptStep implements WorkflowStep {
     }
 
     let except
-    if (this.errorMap !== undefined || this.exceptSteps !== undefined) {
+    if (this.errorMap !== undefined && this.exceptSteps.length > 0) {
       except = {
         as: this.errorMap,
         steps: renderSteps(this.exceptSteps),

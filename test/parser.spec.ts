@@ -71,6 +71,47 @@ describe('workflow definition parsing', () => {
       },
     })
   })
+
+  it('try-retry regression test 1', () => {
+    const block = `
+    workflow main() {
+      try {
+        a = 1
+      }
+      retry (predicate=http.default_retry_predicate, max_retries = 6, initial_delay=1, max_delay = 100, multiplier=2.0)
+    }
+    `
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      main: {
+        steps: [
+          {
+            try1: {
+              try: {
+                steps: [
+                  {
+                    assign1: {
+                      assign: [{ a: 1 }],
+                    },
+                  },
+                ],
+              },
+              retry: {
+                predicate: '${http.default_retry_predicate}',
+                max_retries: 6,
+                backoff: {
+                  initial_delay: 1,
+                  max_delay: 100,
+                  multiplier: 2.0,
+                },
+              },
+            },
+          },
+        ],
+      },
+    })
+  })
 })
 
 describe('Assign statement parsing', () => {
