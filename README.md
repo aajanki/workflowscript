@@ -82,6 +82,14 @@ const disabled = ['missingJumpTarget']
 compile(workflowSource, disabled)
 ```
 
+## Syntax diagram
+
+Draw grammar's syntax diagram to grammar.html:
+
+```shell
+npm run diagram
+```
+
 ## Build
 
 ```shell

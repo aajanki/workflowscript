@@ -15,6 +15,7 @@
     "test": "mocha",
     "lint": "eslint src",
     "format": "prettier . --write",
+    "diagram": "tsx tools/diagram.ts > grammar.html",
     "compile-workflowscript": "npm run build && node dist/compile.js"
   },
   "bin": {
