@@ -41,12 +41,12 @@ export const RParenthesis = createToken({
   label: ')',
 })
 export const LCurly = createToken({
-  name: 'Left curly bracket',
+  name: 'LeftCurlyBracket',
   pattern: '{',
   label: '{',
 })
 export const RCurly = createToken({
-  name: 'Right curly bracket',
+  name: 'RightCurlyBracket',
   pattern: '}',
   label: '}',
 })
