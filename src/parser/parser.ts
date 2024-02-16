@@ -97,9 +97,12 @@ export class WorfkflowScriptParser extends CstParser {
 
   // A custom infinite look-ahead rule for detecting if the current parser
   // state is a qualified identifier followed by a left parenthesis.
-  _callLookAhead(): boolean {
+  _callLookAhead = (): boolean => {
     let i = 1
-    while (this.LA(i).tokenType === Identifier || this.LA(i).tokenType === Dot) {
+    while (
+      this.LA(i).tokenType === Identifier ||
+      this.LA(i).tokenType === Dot
+    ) {
       i += 1
     }
 
