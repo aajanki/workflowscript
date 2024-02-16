@@ -122,12 +122,12 @@ export type AssignmentStatementCstChildren = {
   expression: ExpressionCstNode[];
 };
 
-export interface FunctionNameCstNode extends CstNode {
-  name: "functionName";
-  children: FunctionNameCstChildren;
+export interface QualifiedIdentifierCstNode extends CstNode {
+  name: "qualifiedIdentifier";
+  children: QualifiedIdentifierCstChildren;
 }
 
-export type FunctionNameCstChildren = {
+export type QualifiedIdentifierCstChildren = {
   Identifier: (IToken)[];
   Dot?: IToken[];
 };
@@ -170,7 +170,7 @@ export interface CallExpressionCstNode extends CstNode {
 }
 
 export type CallExpressionCstChildren = {
-  functionName: FunctionNameCstNode[];
+  qualifiedIdentifier: QualifiedIdentifierCstNode[];
   LeftParenthesis: IToken[];
   actualAnonymousParameterList: ActualAnonymousParameterListCstNode[];
   RightParenthesis: IToken[];
@@ -184,7 +184,7 @@ export interface CallStatementCstNode extends CstNode {
 export type CallStatementCstChildren = {
   Identifier?: IToken[];
   Assignment?: IToken[];
-  functionName: FunctionNameCstNode[];
+  qualifiedIdentifier: QualifiedIdentifierCstNode[];
   LeftParenthesis: IToken[];
   actualParameterList: ActualParameterListCstNode[];
   RightParenthesis: IToken[];
@@ -389,7 +389,7 @@ export interface IWorkflowScriptCstNodeVisitor<IN, OUT> extends ICstVisitor<IN, 
   subscriptReference(children: SubscriptReferenceCstChildren, param?: IN): OUT;
   variableReference(children: VariableReferenceCstChildren, param?: IN): OUT;
   assignmentStatement(children: AssignmentStatementCstChildren, param?: IN): OUT;
-  functionName(children: FunctionNameCstChildren, param?: IN): OUT;
+  qualifiedIdentifier(children: QualifiedIdentifierCstChildren, param?: IN): OUT;
   actualAnonymousParameterList(children: ActualAnonymousParameterListCstChildren, param?: IN): OUT;
   actualNamedParameterList(children: ActualNamedParameterListCstChildren, param?: IN): OUT;
   actualParameterList(children: ActualParameterListCstChildren, param?: IN): OUT;

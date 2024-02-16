@@ -48,7 +48,6 @@ import {
   ForStatementCstChildren,
   FormalParameterCstChildren,
   FormalParameterListCstChildren,
-  FunctionNameCstChildren,
   IfStatementCstChildren,
   LiteralCstChildren,
   ObjectCstChildren,
@@ -56,6 +55,7 @@ import {
   ParallelStatementCstChildren,
   ParenthesizedExpressionCstChildren,
   ProgramCstChildren,
+  QualifiedIdentifierCstChildren,
   ReturnStatementCstChildren,
   StatementBlockCstChildren,
   StatementCstChildren,
@@ -236,7 +236,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    functionName(ctx: FunctionNameCstChildren): string {
+    qualifiedIdentifier(ctx: QualifiedIdentifierCstChildren): string {
       const parts = ctx.Identifier.map((x) => x.image)
       return parts.join('.')
     }
@@ -283,13 +283,13 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     callExpression(ctx: CallExpressionCstChildren): FunctionInvocation {
       return new FunctionInvocation(
-        this.visit(ctx.functionName) as string,
+        this.visit(ctx.qualifiedIdentifier) as string,
         this.visit(ctx.actualAnonymousParameterList) as Expression[],
       )
     }
 
     callStatement(ctx: CallStatementCstChildren): NamedWorkflowStep {
-      const functionName = this.visit(ctx.functionName) as string
+      const functionName = this.visit(ctx.qualifiedIdentifier) as string
       const parameterList = this.visit(ctx.actualParameterList) as
         | Expression[]
         | WorkflowParameters

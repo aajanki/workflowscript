@@ -87,13 +87,24 @@ export class WorfkflowScriptParser extends CstParser {
       { ALT: () => this.CONSUME(False) },
       { ALT: () => this.CONSUME(Null) },
       {
-        GATE: this.BACKTRACK(this.callExpression),
+        GATE: this._callLookAhead,
         ALT: () => this.SUBRULE(this.callExpression),
       },
       { ALT: () => this.SUBRULE(this.variableReference) },
       { ALT: () => this.SUBRULE(this.parenthesizedExpression) },
     ])
   })
+
+  // A custom infinite look-ahead rule for detecting if the current parser
+  // state is a qualified identifier followed by a left parenthesis.
+  _callLookAhead(): boolean {
+    let i = 1
+    while (this.LA(i).tokenType === Identifier || this.LA(i).tokenType === Dot) {
+      i += 1
+    }
+
+    return this.LA(i).tokenType === LParenthesis
+  }
 
   literal = this.RULE('literal', () => {
     this.OPTION(() => {
@@ -145,7 +156,7 @@ export class WorfkflowScriptParser extends CstParser {
     this.SUBRULE(this.expression)
   })
 
-  functionName = this.RULE('functionName', () => {
+  qualifiedIdentifier = this.RULE('qualifiedIdentifier', () => {
     this.CONSUME(Identifier)
     this.MANY(() => {
       this.CONSUME(Dot)
@@ -187,7 +198,7 @@ export class WorfkflowScriptParser extends CstParser {
   })
 
   callExpression = this.RULE('callExpression', () => {
-    this.SUBRULE(this.functionName)
+    this.SUBRULE(this.qualifiedIdentifier)
     this.CONSUME(LParenthesis)
     this.SUBRULE(this.actualAnonymousParameterList)
     this.CONSUME(RParenthesis)
@@ -199,7 +210,7 @@ export class WorfkflowScriptParser extends CstParser {
       this.CONSUME(Identifier)
       this.CONSUME(Assignment)
     })
-    this.SUBRULE(this.functionName)
+    this.SUBRULE(this.qualifiedIdentifier)
     this.CONSUME(LParenthesis)
     this.SUBRULE(this.actualParameterList)
     this.CONSUME(RParenthesis)
