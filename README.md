@@ -5,7 +5,7 @@ language for writing [GCP Workflows](https://cloud.google.com/workflows/docs/api
 programs in a Javascript-like syntax. The compiler compiles WorkflowScript
 source code into GCP Workflows YAML syntax.
 
-## WorkflowScript syntax and samples programs
+## WorkflowScript syntax and sample programs
 
 A sample program in WorkflowScript:
 
@@ -27,9 +27,9 @@ The [examples](examples) directory contains more sample programs.
 npm install workflowscript
 ```
 
-## Invoking the compiler
+## Using the compiler
 
-Compiling a sample program in `examples/hello.wfs`:
+Compiling a sample program in the file `examples/hello.wfs`:
 
 ```shell
 npx wfscompile examples/hello.wfs
@@ -45,7 +45,7 @@ The compiler will output the workflows YAML on stdout.
 
 ## Command line options
 
-The wfscompile command can take the following optional arguments:
+The `wfscompile` command can take the following optional arguments:
 
 - `--disableValidators <VALIDATOR>`: disable a named source code validator. See below for validator names. Can be given multiple times.
 
@@ -53,9 +53,9 @@ Run `npx wfscompile -h` to see all options.
 
 ## Error handling
 
-If the compiler encounters parsing error or detect invalid syntax, it prints an errors message and exists with a non-zero exit code.
+If the compiler encounters parsing errors or detects invalid syntax, it prints an error message and quits with a non-zero exit code.
 
-Some validators can be disabled with the `--disableValidators` command line option. This might be handy, for example, if a validator is buggy and rejects a valid workflow. The names and functionality of validators that can be disabled:
+Some error checks can be disabled with the `--disableValidators` command line option. This might be handy, for example, if a error check is buggy and rejects a valid program. The names and functionality of checks that can be disabled:
 
 - `duplicatedStepName` checks that there are no duplicated step names in the workflow
 - `duplicatedSubworkflowName` checks that there are not duplicated subworkflow names
@@ -70,46 +70,46 @@ npm install
 npm run build
 ```
 
-### Tests
+## Test
 
 ```shell
 npm run test
 ```
 
-### Compiler API
+## Compiler API
 
 Calling the Workflow compiler from a Javascript application:
 
 ```javascript
-import { compile } from 'workflowscript';
+import { compile } from 'workflowscript'
 
 const sourcecode = `workflow main() {
   sys.log(text="Hello workflows!")
-}`;
+}`
 
-console.log(compile(sourcecode));
+console.log(compile(sourcecode))
 ```
 
-Compiling when a source code file:
+Compiling a source code file:
 
 ```javascript
-import { compileFile } from 'workflowscript';
+import { compileFile } from 'workflowscript'
 
-console.log(compileFile('examples/hello.wfs'));
+console.log(compileFile('examples/hello.wfs'))
 ```
 
 It is possible to disable some validators by listing the names of validators-to-be-disabled as the second argument of the `compile()` or `compileFile()` function invocation.
 
 ```javascript
-import { compile } from 'workflowscript';
+import { compile } from 'workflowscript'
 
-const workflowSource = 'workflow main() {}';
-const disabled = ['missingJumpTarget'];
+const workflowSource = 'workflow main() {}'
+const disabled = ['missingJumpTarget']
 
-compile(workflowSource, disabled);
+compile(workflowSource, disabled)
 ```
 
-### Syntax diagram
+## Syntax diagram
 
 Draw WorkflowScript grammar's syntax diagrams to grammar.html:
 

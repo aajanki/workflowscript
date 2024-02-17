@@ -17,13 +17,14 @@ export interface WorkflowIssue {
   message: string
 }
 
-const validators = new Map([
-  ['invalidWorkflowName', validateWorkflowNames],
-  ['duplicatedStepName', validateNoDuplicateStepNames],
-  ['duplicatedSubworkflowName', validateNoDuplicateSubworkflowNames],
-  ['missingJumpTarget', validateJumpTargets],
-  ['wrongNumberOfCallArguments', validateSubworkflowArguments],
-])
+const validators: ReadonlyMap<string, (app: WorkflowApp) => WorkflowIssue[]> =
+  new Map([
+    ['invalidWorkflowName', validateWorkflowNames],
+    ['duplicatedStepName', validateNoDuplicateStepNames],
+    ['duplicatedSubworkflowName', validateNoDuplicateSubworkflowNames],
+    ['missingJumpTarget', validateJumpTargets],
+    ['wrongNumberOfCallArguments', validateSubworkflowArguments],
+  ])
 
 /**
  * Execute all syntax validators on a WorkflowApp app.
@@ -31,14 +32,14 @@ const validators = new Map([
  * Throws a WorkflowValidationError if there are errors.
  */
 export function validate(app: WorkflowApp, disabled: string[] = []): void {
-  for (const dis of disabled) {
-    if (validators.has(dis)) {
-      validators.delete(dis)
-    }
-  }
+  const selectedValidators = Array.from(validators.entries()).filter(
+    ([name]) => {
+      return !disabled.includes(name)
+    },
+  )
 
   const issues: WorkflowIssue[] = []
-  for (const validator of validators.values()) {
+  for (const [, validator] of selectedValidators) {
     issues.push(...validator(app))
   }
 
@@ -47,6 +48,9 @@ export function validate(app: WorkflowApp, disabled: string[] = []): void {
   }
 }
 
+/**
+ * Returns all validator names.
+ */
 export function validatorNames(): string[] {
   return Array.from(validators.keys())
 }
