@@ -304,7 +304,7 @@ describe('Call statement parsing', () => {
     })
   })
 
-  it('parses a call assigned to a complicated result variable', () => {
+  it('parses a call assigned to a subscripted and nested result variable', () => {
     const block = `values[1].result = my_workflow()`
     const ast = parseStatement(block)
 
@@ -313,12 +313,37 @@ describe('Call statement parsing', () => {
     })
   })
 
-  it('parses a call with parameters assigned to a complicated result variable', () => {
+  it('parses a call with parameters assigned to a subscripted and nested result variable', () => {
     const block = `results[0].multiplication.product = multiply(7, 8)`
     const ast = parseStatement(block)
 
     expect(ast.step?.render()).to.deep.equal({
       assign: [{ 'results[0].multiplication.product': '${multiply(7, 8)}' }],
+    })
+  })
+
+  it('parses a call with named parameters assigned to a subscripted and nested result variable', () => {
+    const block = `projects[0].id = sys.get_env(name="GOOGLE_CLOUD_PROJECT_ID", default="1")`
+    const ast = parseStatement(block)
+
+    expect(ast.step?.render()).to.deep.equal({
+      steps: [
+        {
+          call1: {
+            call: 'sys.get_env',
+            args: {
+              name: 'GOOGLE_CLOUD_PROJECT_ID',
+              default: '1',
+            },
+            result: '__temp',
+          },
+        },
+        {
+          assign1: {
+            assign: [{ 'projects[0].id': '${__temp}' }],
+          },
+        },
+      ],
     })
   })
 

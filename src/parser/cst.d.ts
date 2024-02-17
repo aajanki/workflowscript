@@ -111,17 +111,6 @@ export type VariableReferenceCstChildren = {
   Dot?: IToken[];
 };
 
-export interface AssignmentStatementCstNode extends CstNode {
-  name: "assignmentStatement";
-  children: AssignmentStatementCstChildren;
-}
-
-export type AssignmentStatementCstChildren = {
-  variableReference: VariableReferenceCstNode[];
-  Assignment: IToken[];
-  expression: ExpressionCstNode[];
-};
-
 export interface QualifiedIdentifierCstNode extends CstNode {
   name: "qualifiedIdentifier";
   children: QualifiedIdentifierCstChildren;
@@ -176,18 +165,19 @@ export type CallExpressionCstChildren = {
   RightParenthesis: IToken[];
 };
 
-export interface CallStatementCstNode extends CstNode {
-  name: "callStatement";
-  children: CallStatementCstChildren;
+export interface CallOrAssignmentStatementCstNode extends CstNode {
+  name: "callOrAssignmentStatement";
+  children: CallOrAssignmentStatementCstChildren;
 }
 
-export type CallStatementCstChildren = {
-  Identifier?: IToken[];
+export type CallOrAssignmentStatementCstChildren = {
+  variableReference: VariableReferenceCstNode[];
   Assignment?: IToken[];
-  qualifiedIdentifier: QualifiedIdentifierCstNode[];
-  LeftParenthesis: IToken[];
-  actualParameterList: ActualParameterListCstNode[];
-  RightParenthesis: IToken[];
+  qualifiedIdentifier?: QualifiedIdentifierCstNode[];
+  LeftParenthesis?: (IToken)[];
+  actualParameterList?: (ActualParameterListCstNode)[];
+  RightParenthesis?: (IToken)[];
+  expression?: ExpressionCstNode[];
 };
 
 export interface IfStatementCstNode extends CstNode {
@@ -311,8 +301,7 @@ export interface StatementCstNode extends CstNode {
 }
 
 export type StatementCstChildren = {
-  callStatement?: CallStatementCstNode[];
-  assignmentStatement?: AssignmentStatementCstNode[];
+  callOrAssignmentStatement?: CallOrAssignmentStatementCstNode[];
   ifStatement?: IfStatementCstNode[];
   forStatement?: ForStatementCstNode[];
   parallelStatement?: ParallelStatementCstNode[];
@@ -388,13 +377,12 @@ export interface IWorkflowScriptCstNodeVisitor<IN, OUT> extends ICstVisitor<IN, 
   parenthesizedExpression(children: ParenthesizedExpressionCstChildren, param?: IN): OUT;
   subscriptReference(children: SubscriptReferenceCstChildren, param?: IN): OUT;
   variableReference(children: VariableReferenceCstChildren, param?: IN): OUT;
-  assignmentStatement(children: AssignmentStatementCstChildren, param?: IN): OUT;
   qualifiedIdentifier(children: QualifiedIdentifierCstChildren, param?: IN): OUT;
   actualAnonymousParameterList(children: ActualAnonymousParameterListCstChildren, param?: IN): OUT;
   actualNamedParameterList(children: ActualNamedParameterListCstChildren, param?: IN): OUT;
   actualParameterList(children: ActualParameterListCstChildren, param?: IN): OUT;
   callExpression(children: CallExpressionCstChildren, param?: IN): OUT;
-  callStatement(children: CallStatementCstChildren, param?: IN): OUT;
+  callOrAssignmentStatement(children: CallOrAssignmentStatementCstChildren, param?: IN): OUT;
   ifStatement(children: IfStatementCstChildren, param?: IN): OUT;
   tryStatement(children: TryStatementCstChildren, param?: IN): OUT;
   throwStatement(children: ThrowStatementCstChildren, param?: IN): OUT;

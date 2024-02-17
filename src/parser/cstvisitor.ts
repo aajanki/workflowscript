@@ -40,10 +40,9 @@ import {
   ActualNamedParameterListCstNode,
   ActualParameterListCstChildren,
   ArrayCstChildren,
-  AssignmentStatementCstChildren,
   BranchCstChildren,
   CallExpressionCstChildren,
-  CallStatementCstChildren,
+  CallOrAssignmentStatementCstChildren,
   ExpressionCstChildren,
   ForStatementCstChildren,
   FormalParameterCstChildren,
@@ -224,18 +223,6 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return new VariableReference(name)
     }
 
-    assignmentStatement(
-      ctx: AssignmentStatementCstChildren,
-    ): NamedWorkflowStep {
-      const ref = this.visit(ctx.variableReference) as VariableReference
-      const ex = this.visit(ctx.expression[0]) as Expression
-
-      return {
-        name: this.stepNameGenerator.generate('assign'),
-        step: new AssignStep([[ref.name, ex]]),
-      }
-    }
-
     qualifiedIdentifier(ctx: QualifiedIdentifierCstChildren): string {
       const parts = ctx.Identifier.map((x) => x.image)
       return parts.join('.')
@@ -288,40 +275,125 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       )
     }
 
-    callStatement(ctx: CallStatementCstChildren): NamedWorkflowStep {
-      const functionName = this.visit(ctx.qualifiedIdentifier) as string
-      const parameterList = this.visit(ctx.actualParameterList) as
-        | Expression[]
-        | WorkflowParameters
-        | undefined
-      const resultVariable = ctx.Identifier?.[0].image
+    callOrAssignmentStatement(
+      ctx: CallOrAssignmentStatementCstChildren,
+    ): NamedWorkflowStep {
+      const reference = this.visit(ctx.variableReference) as VariableReference
+      let parameterList: Expression[] | WorkflowParameters | undefined =
+        undefined
+      if (ctx.actualParameterList) {
+        parameterList = this.visit(ctx.actualParameterList) as
+          | Expression[]
+          | WorkflowParameters
+          | undefined
+      }
 
-      if (
-        typeof resultVariable === 'undefined' &&
-        (typeof parameterList === 'undefined' || parameterList.length === 0)
-      ) {
-        return {
-          name: this.stepNameGenerator.generate('call'),
-          step: new CallStep(functionName),
+      if (ctx.Assignment && parameterList && ctx.qualifiedIdentifier) {
+        // <variable> = <call>
+        //
+        // e.g.
+        // results[0].my_variable = sys.get_env(name="MY_VARIABLE")
+        // results[0].my_variable = map.get(myMap, "key1")
+        const functionName = this.visit(ctx.qualifiedIdentifier) as string
+        const resultVariable = reference.name
+
+        if (isRecord(parameterList)) {
+          // named parameters => call step (possibly with a temporary assignment)
+
+          if (reference.isPlainIdentifier()) {
+            return {
+              name: this.stepNameGenerator.generate('call'),
+              step: new CallStep(functionName, parameterList, resultVariable),
+            }
+          } else {
+            // GCP Workflows call step does not support property or subscript accessors in
+            // the result variable. We need to do this as two steps. First, assign the call
+            // results to a temporary variable, and then assign the temporary variable to the
+            // final destination.
+            const tempVariable = '__temp'
+
+            return {
+              name: this.stepNameGenerator.generate('call_assign'),
+              step: new StepsStep([
+                {
+                  name: this.stepNameGenerator.generate('call'),
+                  step: new CallStep(functionName, parameterList, tempVariable),
+                },
+                {
+                  name: this.stepNameGenerator.generate('assign'),
+                  step: new AssignStep([
+                    [
+                      resultVariable,
+                      new Expression(
+                        new Term(new VariableReference(tempVariable)),
+                        [],
+                      ),
+                    ],
+                  ]),
+                },
+              ]),
+            }
+          }
+        } else {
+          // anonymous parameters => assign step
+          const variable: string = resultVariable ?? ''
+          const ex = new Expression(
+            new Term(new FunctionInvocation(functionName, parameterList ?? [])),
+            [],
+          )
+
+          return {
+            name: this.stepNameGenerator.generate('assign'),
+            step: new AssignStep([[variable, ex]]),
+          }
         }
-      } else if (isRecord(parameterList)) {
-        // named parameters => call step
-        return {
-          name: this.stepNameGenerator.generate('call'),
-          step: new CallStep(functionName, parameterList, resultVariable),
-        }
-      } else {
-        // anonymous parameters => assign step
-        const variable: string = resultVariable ?? ''
-        const ex = new Expression(
-          new Term(new FunctionInvocation(functionName, parameterList ?? [])),
-          [],
-        )
+      } else if (ctx.Assignment && ctx.expression) {
+        // <variable> = <expression_that_is_not_a_call_expression>
+        //
+        // e.g. results[0].my_variable = a + 1
+        const ex = this.visit(ctx.expression[0]) as Expression
 
         return {
           name: this.stepNameGenerator.generate('assign'),
-          step: new AssignStep([[variable, ex]]),
+          step: new AssignStep([[reference.name, ex]]),
         }
+      } else if (typeof ctx.Assignment === 'undefined') {
+        // <call_without_assignment>
+        //
+        // e.g. sys.get_env(name="MY_VARIABLE")
+
+        // TODO check that functionName is a qualified identifier
+        const functionName = reference.name
+
+        if (isRecord(parameterList)) {
+          // named parameters => call step
+          return {
+            name: this.stepNameGenerator.generate('call'),
+            step: new CallStep(functionName, parameterList),
+          }
+        } else if (Array.isArray(parameterList) && parameterList.length > 0) {
+          // anonymous parameters => assign step
+          const ex = new Expression(
+            new Term(new FunctionInvocation(functionName, parameterList)),
+            [],
+          )
+
+          return {
+            name: this.stepNameGenerator.generate('assign'),
+            step: new AssignStep([['', ex]]),
+          }
+        } else {
+          // no parameters => call step
+          return {
+            name: this.stepNameGenerator.generate('call'),
+            step: new CallStep(functionName),
+          }
+        }
+      } else {
+        throw new InternalParsingError(
+          'Unknown parameter combination in "callOrAssignmentStatement"',
+          ctx,
+        )
       }
     }
 
@@ -540,10 +612,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     statement(ctx: StatementCstChildren): NamedWorkflowStep {
-      if (ctx.assignmentStatement) {
-        return this.visit(ctx.assignmentStatement[0])
-      } else if (ctx.callStatement) {
-        return this.visit(ctx.callStatement[0])
+      if (ctx.callOrAssignmentStatement) {
+        return this.visit(ctx.callOrAssignmentStatement[0])
       } else if (ctx.ifStatement) {
         return this.visit(ctx.ifStatement[0])
       } else if (ctx.forStatement) {

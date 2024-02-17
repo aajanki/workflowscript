@@ -56,6 +56,16 @@ export class VariableReference {
     this.name = name
   }
 
+  // Return true if the name does not contain property or subscript accessors.
+  // That is, if the name is a plain identifier, like "year" or "awesome_variable_3"
+  isPlainIdentifier(): boolean {
+    return (
+      !this.name.includes('.') &&
+      !this.name.includes('[') &&
+      !this.name.includes(']')
+    )
+  }
+
   toString(): string {
     return this.name
   }

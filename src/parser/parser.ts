@@ -153,12 +153,6 @@ export class WorfkflowScriptParser extends CstParser {
     })
   })
 
-  assignmentStatement = this.RULE('assignmentStatement', () => {
-    this.SUBRULE(this.variableReference)
-    this.CONSUME(Assignment)
-    this.SUBRULE(this.expression)
-  })
-
   qualifiedIdentifier = this.RULE('qualifiedIdentifier', () => {
     this.CONSUME(Identifier)
     this.MANY(() => {
@@ -207,16 +201,36 @@ export class WorfkflowScriptParser extends CstParser {
     this.CONSUME(RParenthesis)
   })
 
-  callStatement = this.RULE('callStatement', () => {
-    this.OPTION(() => {
-      // TODO: assign step should allow a variableReference here
-      this.CONSUME(Identifier)
-      this.CONSUME(Assignment)
-    })
-    this.SUBRULE(this.qualifiedIdentifier)
-    this.CONSUME(LParenthesis)
-    this.SUBRULE(this.actualParameterList)
-    this.CONSUME(RParenthesis)
+  callOrAssignmentStatement = this.RULE('callOrAssignmentStatement', () => {
+    // Call and assingment can have a common prefix <variableReference>.
+    // To avoid ambiguities, both are parsed by this single rule.
+    this.SUBRULE(this.variableReference)
+    this.OR([
+      {
+        ALT: () => {
+          this.CONSUME(Assignment)
+          this.OR2([
+            {
+              GATE: this._callLookAhead,
+              ALT: () => {
+                this.SUBRULE(this.qualifiedIdentifier)
+                this.CONSUME(LParenthesis)
+                this.SUBRULE(this.actualParameterList)
+                this.CONSUME(RParenthesis)
+              },
+            },
+            { ALT: () => this.SUBRULE(this.expression) },
+          ])
+        },
+      },
+      {
+        ALT: () => {
+          this.CONSUME2(LParenthesis)
+          this.SUBRULE2(this.actualParameterList)
+          this.CONSUME2(RParenthesis)
+        },
+      },
+    ])
   })
 
   ifStatement = this.RULE('ifStatement', () => {
@@ -265,7 +279,7 @@ export class WorfkflowScriptParser extends CstParser {
       this.SUBRULE2(this.statementBlock)
       this.CONSUME2(RCurly)
     })
-    // Check in post-processing that at least either retry or catch is specified
+    // The post-processsing in CST visitor checks that at least either retry or catch is specified
   })
 
   throwStatement = this.RULE('throwStatement', () => {
@@ -324,13 +338,7 @@ export class WorfkflowScriptParser extends CstParser {
 
   statement = this.RULE('statement', () => {
     this.OR([
-      {
-        // TODO: restructure the common parts in function name/variable name
-        // grammar so that backtracking is not required
-        GATE: this.BACKTRACK(this.callStatement),
-        ALT: () => this.SUBRULE(this.callStatement),
-      },
-      { ALT: () => this.SUBRULE(this.assignmentStatement) },
+      { ALT: () => this.SUBRULE(this.callOrAssignmentStatement) },
       { ALT: () => this.SUBRULE(this.ifStatement) },
       { ALT: () => this.SUBRULE(this.forStatement) },
       { ALT: () => this.SUBRULE(this.parallelStatement) },
