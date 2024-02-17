@@ -6,9 +6,9 @@
  * a command line parameter. If no parameter is given, the input is read
  * from stdin.
  *
- * Example:
+ * To compile a file called source.wfs:
  *
- * node dist/compile.js inputFile
+ * node dist/compile.js source.wfs
  */
 
 import {
@@ -20,12 +20,17 @@ import {
   NoViableAltException,
   NotAllInputParsedException,
 } from 'chevrotain'
+import { Option, program } from 'commander'
+import * as fs from 'node:fs'
 import { workflowScriptLexer } from './parser/lexer.js'
 import { WorfkflowScriptParser } from './parser/parser.js'
 import { createVisitor } from './parser/cstvisitor.js'
 import { WorkflowApp, toYAMLString } from './ast/workflows.js'
-import * as fs from 'node:fs'
-import { WorkflowValidationError, validate } from './ast/validation.js'
+import {
+  WorkflowValidationError,
+  validate,
+  validatorNames,
+} from './ast/validation.js'
 import { isRecord } from './utils.js'
 import { InternalParsingError, PostParsingError } from './parser/errors.js'
 
@@ -48,14 +53,46 @@ export function compileFile(
   return compile(code, disabledValidators)
 }
 
+function collect<T>(value: T, previous: T[]): T[] {
+  return previous.concat([value])
+}
+
+function parseArgs() {
+  program
+    .name('wfscompile')
+    .version('0.1.0')
+    .description(
+      'Compiles WorkflowScript source code into GCP Workflows a YAML program.',
+    )
+    .addOption(
+      new Option(
+        '--disableValidators <VALIDATOR>',
+        'disable a named source code validator. Can be given multiple times.',
+      )
+        .choices(validatorNames())
+        .default([])
+        .argParser(collect<string>),
+    )
+    .argument(
+      '[FILES]',
+      'Path to source file(s) to compile. If not given, reads from stdin.',
+    )
+  program.parse()
+  const opts = program.opts()
+  return {
+    sourceFiles: program.args,
+    disabledValidators: opts.disableValidators as string[],
+  }
+}
+
 function cliMain() {
-  const args = process.argv.slice(2)
+  const args = parseArgs()
 
   let files = []
-  if (args.length === 0) {
+  if (args.sourceFiles.length === 0) {
     files = ['-']
   } else {
-    files = args
+    files = args.sourceFiles
   }
 
   files.forEach((inputFile) => {
@@ -64,7 +101,7 @@ function cliMain() {
 
     try {
       sourceCode = fs.readFileSync(inp, 'utf8')
-      console.log(compile(sourceCode))
+      console.log(compile(sourceCode, args.disabledValidators))
     } catch (err) {
       if (isIoError(err, 'ENOENT')) {
         console.error(`Error: "${inp}" not found`)
