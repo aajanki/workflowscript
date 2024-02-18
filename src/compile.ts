@@ -60,7 +60,7 @@ function collect<T>(value: T, previous: T[]): T[] {
 function parseArgs() {
   program
     .name('wfscompile')
-    .version('0.1.0')
+    .version('0.1.1')
     .description(
       'Compiles WorkflowScript source code into GCP Workflows a YAML program.',
     )
