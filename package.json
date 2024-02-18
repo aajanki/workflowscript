@@ -23,6 +23,18 @@
   },
   "author": "Antti Ajanki <antti.ajanki@iki.fi>",
   "license": "MIT",
+  "homepage": "https://github.com/aajanki/workflowscript#readme",
+  "bugs": "https://github.com/aajanki/workflowscript/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aajanki/workflowscript.git"
+  },
+  "keywords": [
+    "gcp",
+    "gcloud",
+    "workflows",
+    "compiler"
+  ],
   "dependencies": {
     "chevrotain": "^11.0.3",
     "commander": "^12.0.0",
