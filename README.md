@@ -1,9 +1,9 @@
 # WorkflowScript - a JavaScript-inspired programming language for writing GCP Workflows programs
 
-This is a compiler for WorkflowScript. WorkflowScript is a programming
-language for writing [GCP Workflows](https://cloud.google.com/workflows/docs/apis)
-programs in a Javascript-like syntax. The compiler compiles WorkflowScript
-source code into GCP Workflows YAML syntax.
+WorkflowScript is a programming language for writing
+[GCP Workflows](https://cloud.google.com/workflows/docs/apis)
+programs in a Javascript-like syntax. This project is a compiler that compiles
+WorkflowScript source code into GCP Workflows native YAML syntax.
 
 ## WorkflowScript syntax and sample programs
 
@@ -81,7 +81,7 @@ npm run test
 Calling the Workflow compiler from a Javascript application:
 
 ```javascript
-import { compile } from 'workflowscript'
+import { compile } from 'workflowscript-compiler'
 
 const sourcecode = `workflow main() {
   sys.log(text="Hello workflows!")
@@ -93,7 +93,7 @@ console.log(compile(sourcecode))
 Compiling a source code file:
 
 ```javascript
-import { compileFile } from 'workflowscript'
+import { compileFile } from 'workflowscript-compiler'
 
 console.log(compileFile('examples/hello.wfs'))
 ```
@@ -101,7 +101,7 @@ console.log(compileFile('examples/hello.wfs'))
 It is possible to disable some validators by listing the names of validators-to-be-disabled as the second argument of the `compile()` or `compileFile()` function invocation.
 
 ```javascript
-import { compile } from 'workflowscript'
+import { compile } from 'workflowscript-compiler'
 
 const workflowSource = 'workflow main() {}'
 const disabled = ['missingJumpTarget']
