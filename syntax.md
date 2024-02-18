@@ -5,10 +5,10 @@
 - Integer (64 bit, signed)
 - Double (64 bit, signed floating point number)
 - String: `"my beautiful string"` (only double quotes are accepted, not single quotes)
-- Boolean (true/false, True/False, TRUE/FALSE)
-- null
+- Boolean: `true`/`false`, `True`/`False`, `TRUE`/`FALSE`
+- `null`
 - Array: `[1, 2, 3]`
-- Map: `{"temperature": -12, "unit": "Celsius"}`
+- Map: `{"temperature": -12, "unit": "Celsius"}`. JSON-like syntax. The keys must be strings: `"unit"` instead of `unit`. No trailing commas allowed!
 
 ## Expressions
 
@@ -46,9 +46,9 @@ See [expression in GCP Workflows](https://cloud.google.com/workflows/docs/refere
 
 ## Subworkflow definitions
 
-The program code must be written inside workflow blocks. The workflow execution starts from the workflow called "main".
+The program code must be written inside workflow blocks. The execution starts from the subworkflow called "main".
 
-```
+```javascript
 workflow main() {
   a = 1
 }
@@ -61,7 +61,7 @@ workflow anotherWorkflow() {
 
 Workflows can have parameters:
 
-```
+```javascript
 workflow multiply(firstFactor, secondFactor) {
   return firstFactor * secondFactor
 }
@@ -69,7 +69,7 @@ workflow multiply(firstFactor, secondFactor) {
 
 Parameters can be optional and have a default value that is used if a value is not provided in a subworkflow call:
 
-```
+```javascript
 workflow log(x, base=10) {
   return "Compute logarithm of x"
 }
@@ -207,7 +207,7 @@ branch {
 
 will be compiled to [parallel steps](https://cloud.google.com/workflows/docs/reference/syntax/parallel-steps)
 
-```
+```yaml
 parallel1:
     parallel:
         branches:
@@ -287,7 +287,7 @@ There are two default retry policies: `http.default_retry` and `http.default_ret
 try {
   http.get(url = "https://visit.dreamland.test/")
 }
-retry (policy = "http.default_retry")
+retry (policy = http.default_retry)
 ```
 
 A custom retry policy is defined by specifying all of the following parameters:
@@ -310,7 +310,7 @@ Retry and catch blocks can be combined like this:
 try {
   http.get(url = "https://visit.dreamland.test/")
 }
-retry (policy = "http.default_retry")
+retry (policy = http.default_retry)
 catch (err) {
   return "Error!"
 }
@@ -424,7 +424,7 @@ will be compiled to [parallel iteration](https://cloud.google.com/workflows/docs
 
 The shared variables and concurrency limits can be set with the following syntax:
 
-```
+```javascript
 parallel (
   shared = ["total"],
   concurrency_limit = 2
@@ -436,9 +436,8 @@ for (i in [1, 2, 3, 4]) {
 
 ## Source code comments
 
-Comments are started with `//`. The rest of the line after `//` is ignored. There are no multiline comments.
+Comments start with `//`. The parser ignores the rest of the line starting from `//`. There is no support for multiline comments.
 
 ```javascript
-// This line is a comment
-var1 = 1
+var1 = 1 // This is a comment
 ```
