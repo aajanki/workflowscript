@@ -1,5 +1,5 @@
 {
-  "name": "workflowscript",
+  "name": "workflowscript-compiler",
   "version": "0.1.0",
   "description": "A JavaScript-inspired programming language for writing GCP Workflows programs",
   "main": "dist/index.js",

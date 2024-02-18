@@ -24,7 +24,7 @@ The [examples](examples) directory contains more sample programs.
 ## Installation
 
 ```shell
-npm install workflowscript
+npm install workflowscript-compiler
 ```
 
 ## Using the compiler
