@@ -96,5 +96,7 @@ export class Subworkflow {
  * Print the workflow as a YAML string.
  */
 export function toYAMLString(workflow: WorkflowApp): string {
-  return YAML.stringify(workflow.render())
+  return YAML.stringify(workflow.render(), {
+    lineWidth: 100,
+  })
 }
