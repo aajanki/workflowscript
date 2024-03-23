@@ -1,0 +1,4 @@
+0.2.0 <unreleased>
+
+Breaking changes:
+- The syntax for logical operators is changed to &&, || and !

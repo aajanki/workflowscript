@@ -108,7 +108,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     term(ctx: TermCstChildren): Term {
       let val
-      const op = ctx.UnaryOperator ? ctx.UnaryOperator[0].image : undefined
+      const op = ctx.UnaryOperator
+        ? convertLogicalOperator(ctx.UnaryOperator[0].image)
+        : undefined
 
       if (ctx.StringLiteral) {
         val = unescapeBackslashes(ctx.StringLiteral[0].image)
@@ -138,7 +140,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     literal(ctx: LiteralCstChildren): string | number | boolean | null {
-      const opString = ctx.UnaryOperator?.[0].image ?? ''
+      const opString = ctx.UnaryOperator
+        ? convertLogicalOperator(ctx.UnaryOperator[0].image)
+        : ''
 
       if (ctx.StringLiteral) {
         return `${opString}${unescapeBackslashes(ctx.StringLiteral[0].image)}`
@@ -162,7 +166,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     expression(ctx: ExpressionCstChildren): Expression {
       const terms = ctx.term.map((x) => this.visit(x) as Term)
-      const binaryOperators = ctx.BinaryOperator?.map((op) => op.image)
+      const binaryOperators = ctx.BinaryOperator?.map((op) =>
+        convertLogicalOperator(op.image),
+      )
       const rest = binaryOperators?.map((op, i) => {
         return { binaryOperator: op, right: terms[i + 1] }
       })
@@ -964,4 +970,20 @@ function nodeSpan(node: CstNode): CstNodeLocation {
   }
 
   return current
+}
+
+/**
+ * Convert logical operators from Workflowscript syntax (&&, ||, !) to GCP syntax (and, or, not).
+ * Other operators remain unchanged.
+ */
+function convertLogicalOperator(operator: string): string {
+  if (operator == '&&') {
+    return 'and'
+  } else if (operator == '||') {
+    return 'or'
+  } else if (operator == '!') {
+    return 'not'
+  } else {
+    return operator
+  }
 }

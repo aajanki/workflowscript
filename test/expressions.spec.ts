@@ -102,13 +102,10 @@ describe('Expressions', () => {
     assertExpression('a - + b', '${a - +b}')
     assertExpression('a * -b', '${a * -b}')
     assertExpression(
-      'not (status in ["OK", "success"])',
+      '!(status in ["OK", "success"])',
       '${not (status in ["OK", "success"])}',
     )
-    assertExpression(
-      '(y >= 0) and not (x >= 0)',
-      '${(y >= 0) and not (x >= 0)}',
-    )
+    assertExpression('(y >= 0) && !(x >= 0)', '${(y >= 0) and not (x >= 0)}')
   })
 
   it('parses remaider divisions', () => {
@@ -133,11 +130,12 @@ describe('Expressions', () => {
   })
 
   it('parses boolean operators', () => {
+    assertExpression('inputOK && receiverReady', '${inputOK and receiverReady}')
+    assertExpression('isEven || isPositive', '${isEven or isPositive}')
     assertExpression(
-      'inputOK and receiverReady',
-      '${inputOK and receiverReady}',
+      '(x > 15) && !(x % 3 == 0)',
+      '${(x > 15) and not (x % 3 == 0)}',
     )
-    assertExpression('isEven or isPositive', '${isEven or isPositive}')
   })
 
   it('parses membership expressions', () => {
@@ -157,11 +155,11 @@ describe('Expressions', () => {
       '${("Status: " + statusMessage)}',
     )
     assertExpression(
-      '(age >= 18) and (age < 100)',
+      '(age >= 18) && (age < 100)',
       '${(age >= 18) and (age < 100)}',
     )
     assertExpression(
-      '(name in ["Bean", "Derek", "Jasper"]) or (affiliation == "Dreamland")',
+      '(name in ["Bean", "Derek", "Jasper"]) || (affiliation == "Dreamland")',
       '${(name in ["Bean", "Derek", "Jasper"]) or (affiliation == "Dreamland")}',
     )
   })

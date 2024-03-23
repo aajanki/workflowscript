@@ -136,22 +136,22 @@ export const NotEqualTo = createToken({
 })
 export const And = createToken({
   name: 'And',
-  pattern: 'and',
-  label: 'and',
+  pattern: '&&',
+  label: '&&',
   categories: [BinaryOperator],
   longer_alt: Identifier,
 })
 export const Or = createToken({
   name: 'Or',
-  pattern: 'or',
-  label: 'or',
+  pattern: '||',
+  label: '||',
   categories: [BinaryOperator],
   longer_alt: Identifier,
 })
 export const Not = createToken({
   name: 'Not',
-  pattern: 'not',
-  label: 'not',
+  pattern: '!',
+  label: '!',
   categories: [UnaryOperator],
   longer_alt: Identifier,
 })
