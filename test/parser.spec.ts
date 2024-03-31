@@ -1,9 +1,5 @@
 import { expect } from 'chai'
-import { parseStatement, parseSubworkflow, cstVisitor } from './testutils.js'
-
-beforeEach(() => {
-  cstVisitor.reset()
-})
+import { parseStatement, parseSubworkflow } from './testutils.js'
 
 describe('workflow definition parsing', () => {
   it('parses empty subworkflow definition', () => {
@@ -618,7 +614,7 @@ describe('Parallel step parsing', () => {
             branch2: {
               steps: [
                 {
-                  assign3: {
+                  assign2: {
                     assign: [
                       {
                         n: '${http.get("https://forums.dreamland.test/numPosts/elfo")}',
@@ -1159,7 +1155,7 @@ describe('For loop parsing', () => {
                   condition: '${x % 2 == 0}',
                   steps: [
                     {
-                      continue1: {
+                      next1: {
                         next: 'continue',
                       },
                     },
@@ -1202,7 +1198,7 @@ describe('For loop parsing', () => {
                   condition: '${total > 5}',
                   steps: [
                     {
-                      break1: {
+                      next1: {
                         next: 'break',
                       },
                     },

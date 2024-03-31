@@ -56,7 +56,7 @@ describe('WorkflowScript compiler', () => {
     makeGreeting:
         params: [name]
         steps:
-          - assign3:
+          - assign2:
               assign:
                 - greeting: \${"Hello " + name}
           - return1:

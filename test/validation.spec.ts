@@ -10,13 +10,9 @@ import {
   namedStep,
 } from '../src/ast/steps.js'
 import { WorkflowValidationError, validate } from '../src/ast/validation.js'
-import { parseExpression, primitiveEx, cstVisitor } from './testutils.js'
+import { parseExpression, primitiveEx } from './testutils.js'
 
 describe('Validator', () => {
-  beforeEach(() => {
-    cstVisitor.reset()
-  })
-
   it('accepts a valid workflow', () => {
     const steps = [
       namedStep('assign_name', new AssignStep([['name', primitiveEx('Fry')]])),

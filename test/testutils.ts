@@ -5,6 +5,8 @@ import { createVisitor } from '../src/parser/cstvisitor.js'
 import { Expression, Term } from '../src/ast/expressions.js'
 import { NamedWorkflowStep } from '../src/ast/steps.js'
 import { Subworkflow } from '../src/ast/workflows.js'
+import { SubworkflowAST, WorkflowStepAST } from '../src/ast/index.js'
+import { StepNameGenerator } from '../src/ast/stepnames.js'
 
 const parser = new WorfkflowScriptParser()
 export const cstVisitor = createVisitor(parser)
@@ -45,9 +47,19 @@ export function primitiveEx(
 }
 
 export function parseStatement(codeBlock: string): NamedWorkflowStep {
-  return parseOneRule(codeBlock, (p) => p.statement())
+  const statement = parseOneRule(codeBlock, (p) =>
+    p.statement(),
+  ) as WorkflowStepAST
+
+  const stepNameGenerator = new StepNameGenerator()
+  return statement.withStepNames((x) => stepNameGenerator.generate(x))
 }
 
 export function parseSubworkflow(codeBlock: string): Subworkflow {
-  return parseOneRule(codeBlock, (p) => p.subworkflowDefinition())
+  const subworkflow = parseOneRule(codeBlock, (p) =>
+    p.subworkflowDefinition(),
+  ) as SubworkflowAST
+
+  const stepNameGenerator = new StepNameGenerator()
+  return subworkflow.withStepNames((x) => stepNameGenerator.generate(x))
 }

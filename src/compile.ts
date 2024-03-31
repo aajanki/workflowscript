@@ -33,6 +33,8 @@ import {
 } from './ast/validation.js'
 import { isRecord } from './utils.js'
 import { InternalParsingError, PostParsingError } from './parser/errors.js'
+import { WorkflowAST } from './ast/index.js'
+import { generateStepNames } from './ast/stepnames.js'
 
 export function compile(
   program: string,
@@ -156,13 +158,15 @@ function createAst(tokens: IToken[]): WorkflowApp {
 
   parser.input = tokens
   const cst = parser.program()
-  const ast = visitor.visit(cst) as WorkflowApp
 
   if (parser.errors.length > 0) {
     throw parser.errors[0]
   }
 
-  return ast
+  const ast = visitor.visit(cst) as WorkflowAST
+  const astNamed = generateStepNames(ast)
+
+  return astNamed
 }
 
 function isIoError(err: unknown, errorCode: string): boolean {
