@@ -276,7 +276,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     callOrAssignmentStatement(
       ctx: CallOrAssignmentStatementCstChildren,
-    ): WorkflowStepAST {
+    ): WorkflowStepAST[] {
       const reference = this.visit(ctx.variableReference) as VariableReference
       let parameterList: Expression[] | WorkflowParameters | undefined =
         undefined
@@ -300,7 +300,9 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
           // named parameters => call step (possibly with a temporary assignment)
 
           if (reference.isPlainIdentifier()) {
-            return new CallStepAST(functionName, parameterList, resultVariable)
+            return [
+              new CallStepAST(functionName, parameterList, resultVariable),
+            ]
           } else {
             // GCP Workflows call step does not support property or subscript accessors in
             // the result variable. We need to do this as two steps. First, assign the call
@@ -308,7 +310,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
             // final destination.
             const tempVariable = '__temp'
 
-            return new StepsStepAST([
+            return [
               new CallStepAST(functionName, parameterList, tempVariable),
               new AssignStepAST([
                 [
@@ -319,7 +321,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
                   ),
                 ],
               ]),
-            ])
+            ]
           }
         } else {
           // anonymous parameters => assign step
@@ -329,7 +331,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
             [],
           )
 
-          return new AssignStepAST([[variable, ex]])
+          return [new AssignStepAST([[variable, ex]])]
         }
       } else if (ctx.Assignment && ctx.expression) {
         // <variable> = <expression_that_is_not_a_call_expression>
@@ -337,7 +339,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         // e.g. results[0].my_variable = a + 1
         const ex = this.visit(ctx.expression[0]) as Expression
 
-        return new AssignStepAST([[reference.name, ex]])
+        return [new AssignStepAST([[reference.name, ex]])]
       } else if (typeof ctx.Assignment === 'undefined') {
         // <call_without_assignment>
         //
@@ -348,7 +350,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
         if (isRecord(parameterList)) {
           // named parameters => call step
-          return new CallStepAST(functionName, parameterList)
+          return [new CallStepAST(functionName, parameterList)]
         } else if (Array.isArray(parameterList) && parameterList.length > 0) {
           // anonymous parameters => assign step
           const ex = new Expression(
@@ -356,10 +358,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
             [],
           )
 
-          return new AssignStepAST([['', ex]])
+          return [new AssignStepAST([['', ex]])]
         } else {
           // no parameters => call step
-          return new CallStepAST(functionName)
+          return [new CallStepAST(functionName)]
         }
       } else {
         throw new InternalParsingError(
@@ -369,7 +371,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
     }
 
-    ifStatement(ctx: IfStatementCstChildren): SwitchStepAST {
+    ifStatement(ctx: IfStatementCstChildren): WorkflowStepAST[] {
       const branches: SwitchConditionAST[] = ctx.expression.map((ex, i) => {
         return {
           condition: this.visit(ex) as Expression,
@@ -387,10 +389,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         })
       }
 
-      return new SwitchStepAST(branches)
+      return [new SwitchStepAST(branches)]
     }
 
-    forStatement(ctx: ForStatementCstChildren): ForStepAST {
+    forStatement(ctx: ForStatementCstChildren): WorkflowStepAST[] {
       const loopVariableName = ctx.Identifier[0].image
       const steps = this.visit(ctx.statementBlock) as WorkflowStepAST[]
       const listExpression = this.visit(ctx.expression) as Expression
@@ -408,14 +410,14 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         )
       }
 
-      return new ForStepAST(steps, loopVariableName, listExpression)
+      return [new ForStepAST(steps, loopVariableName, listExpression)]
     }
 
     branch(ctx: BranchCstChildren): WorkflowStepAST[] {
       return this.visit(ctx.statementBlock)
     }
 
-    parallelStatement(ctx: ParallelStatementCstChildren): ParallelStepAST {
+    parallelStatement(ctx: ParallelStatementCstChildren): WorkflowStepAST[] {
       let nestedSteps: Record<StepName, StepsStepAST> | ForStepAST
       const { shared, concurrencyLimit, exceptionPolicy } =
         this.optionalBranchParameters(ctx.actualNamedParameterList)
@@ -423,11 +425,23 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       if (ctx.branch) {
         nestedSteps = Object.fromEntries(
           ctx.branch.map((branch, i) => {
-            return [`branch${i + 1}`, new StepsStepAST(this.visit(branch) as WorkflowStepAST[])]
+            return [
+              `branch${i + 1}`,
+              new StepsStepAST(this.visit(branch) as WorkflowStepAST[]),
+            ]
           }),
         )
       } else if (ctx.forStatement) {
-        nestedSteps = this.visit(ctx.forStatement) as ForStepAST
+        const forStep = this.visit(ctx.forStatement) as WorkflowStepAST[]
+
+        if (forStep.length !== 1 || !(forStep[0] instanceof ForStepAST)) {
+          throw new InternalParsingError(
+            'Unexpected step type, expected a parallel for step',
+            ctx,
+          )
+        }
+
+        nestedSteps = forStep[0]
       } else {
         throw new InternalParsingError(
           'Unknown value in "parallelStatement"',
@@ -435,12 +449,14 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         )
       }
 
-      return new ParallelStepAST(
-        nestedSteps,
-        shared,
-        concurrencyLimit,
-        exceptionPolicy,
-      )
+      return [
+        new ParallelStepAST(
+          nestedSteps,
+          shared,
+          concurrencyLimit,
+          exceptionPolicy,
+        ),
+      ]
     }
 
     optionalBranchParameters(
@@ -497,7 +513,7 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return { shared, concurrencyLimit, exceptionPolicy }
     }
 
-    tryStatement(ctx: TryStatementCstChildren): TryStepAST {
+    tryStatement(ctx: TryStatementCstChildren): WorkflowStepAST[] {
       // must have either retry or catch block (or both)
       if (ctx.statementBlock.length <= 1 && !ctx.actualNamedParameterList) {
         throw new PostParsingError(
@@ -531,30 +547,32 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
         }
       }
 
-      return new TryStepAST(trySteps, catchSteps, policy, errorVariable)
+      return [new TryStepAST(trySteps, catchSteps, policy, errorVariable)]
     }
 
-    throwStatement(ctx: ThrowStatementCstChildren): RaiseStepAST {
-      return new RaiseStepAST(this.visit(ctx.expression) as Expression)
+    throwStatement(ctx: ThrowStatementCstChildren): WorkflowStepAST[] {
+      return [new RaiseStepAST(this.visit(ctx.expression) as Expression)]
     }
 
-    breakStatement(): NextStepAST {
-      return new NextStepAST('break')
+    breakStatement(): WorkflowStepAST[] {
+      return [new NextStepAST('break')]
     }
 
-    continueStatement(): NextStepAST {
-      return new NextStepAST('continue')
+    continueStatement(): WorkflowStepAST[] {
+      return [new NextStepAST('continue')]
     }
 
-    returnStatement(ctx: ReturnStatementCstChildren): ReturnStepAST {
-      return new ReturnStepAST(
-        ctx.expression
-          ? (this.visit(ctx.expression[0]) as Expression)
-          : undefined,
-      )
+    returnStatement(ctx: ReturnStatementCstChildren): WorkflowStepAST[] {
+      return [
+        new ReturnStepAST(
+          ctx.expression
+            ? (this.visit(ctx.expression[0]) as Expression)
+            : undefined,
+        ),
+      ]
     }
 
-    statement(ctx: StatementCstChildren): WorkflowStepAST {
+    statement(ctx: StatementCstChildren): WorkflowStepAST[] {
       if (ctx.callOrAssignmentStatement) {
         return this.visit(ctx.callOrAssignmentStatement[0])
       } else if (ctx.ifStatement) {
@@ -580,8 +598,8 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
 
     statementBlock(ctx: StatementBlockCstChildren): WorkflowStepAST[] {
       if (ctx.statement) {
-        const steps = ctx.statement.map(
-          (statementCtx) => this.visit(statementCtx) as WorkflowStepAST,
+        const steps = ctx.statement.flatMap(
+          (statementCtx) => this.visit(statementCtx) as WorkflowStepAST[],
         )
 
         return combineConsecutiveAssignments(steps)

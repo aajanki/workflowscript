@@ -2,8 +2,14 @@ import { CstNode } from 'chevrotain'
 import { workflowScriptLexer } from '../src/parser/lexer.js'
 import { WorfkflowScriptParser } from '../src/parser/parser.js'
 import { createVisitor } from '../src/parser/cstvisitor.js'
-import { Expression, Term } from '../src/ast/expressions.js'
-import { NamedWorkflowStep } from '../src/ast/steps.js'
+import {
+  Expression,
+  FunctionInvocation,
+  ParenthesizedExpression,
+  Primitive,
+  Term,
+  VariableReference,
+} from '../src/ast/expressions.js'
 import { Subworkflow } from '../src/ast/workflows.js'
 import { SubworkflowAST, WorkflowStepAST } from '../src/ast/index.js'
 import { StepNameGenerator } from '../src/ast/stepnames.js'
@@ -35,24 +41,8 @@ export function parseExpression(codeBlock: string): Expression {
   return parseOneRule(codeBlock, (p) => p.expression())
 }
 
-export function primitiveEx(
-  primitive:
-    | string
-    | number
-    | boolean
-    | null
-    | (string | number | boolean | null)[],
-): Expression {
-  return new Expression(new Term(primitive), [])
-}
-
-export function parseStatement(codeBlock: string): NamedWorkflowStep {
-  const statement = parseOneRule(codeBlock, (p) =>
-    p.statement(),
-  ) as WorkflowStepAST
-
-  const stepNameGenerator = new StepNameGenerator()
-  return statement.withStepNames((x) => stepNameGenerator.generate(x))
+export function parseStatement(codeBlock: string): WorkflowStepAST[] {
+  return parseOneRule(codeBlock, (p) => p.statement()) as WorkflowStepAST[]
 }
 
 export function parseSubworkflow(codeBlock: string): Subworkflow {
@@ -62,4 +52,31 @@ export function parseSubworkflow(codeBlock: string): Subworkflow {
 
   const stepNameGenerator = new StepNameGenerator()
   return subworkflow.withStepNames((x) => stepNameGenerator.generate(x))
+}
+
+export function primitiveEx(
+  primitive:
+    | string
+    | number
+    | boolean
+    | null
+    | (string | number | boolean | null)[]
+    | { [key: string]: string | number | boolean | null },
+): Expression {
+  return new Expression(new Term(primitive), [])
+}
+
+export function valueExpression(
+  val:
+    | Primitive
+    | VariableReference
+    | ParenthesizedExpression
+    | FunctionInvocation,
+): Expression {
+  return new Expression(new Term(val), [])
+}
+
+export function renderASTStep(ast: WorkflowStepAST) {
+  const stepNameGenerator = new StepNameGenerator()
+  return ast.withStepNames((x) => stepNameGenerator.generate(x)).step.render()
 }

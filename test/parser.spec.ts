@@ -1,5 +1,28 @@
 import { expect } from 'chai'
-import { parseStatement, parseSubworkflow } from './testutils.js'
+import {
+  parseExpression,
+  parseStatement,
+  parseSubworkflow,
+  primitiveEx,
+  renderASTStep,
+  valueExpression,
+} from './testutils.js'
+import {
+  AssignStepAST,
+  CallStepAST,
+  ForStepAST,
+  NextStepAST,
+  ParallelStepAST,
+  RaiseStepAST,
+  ReturnStepAST,
+  StepsStepAST,
+  SwitchStepAST,
+  TryStepAST,
+} from '../src/ast/index.js'
+import {
+  FunctionInvocation,
+  VariableReference,
+} from '../src/ast/expressions.js'
 
 describe('workflow definition parsing', () => {
   it('parses empty subworkflow definition', () => {
@@ -115,99 +138,101 @@ describe('Assign statement parsing', () => {
     const block1 = 'first_name_1 = "Tiabeanie"'
     const ast = parseStatement(block1)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ first_name_1: 'Tiabeanie' }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['first_name_1', primitiveEx('Tiabeanie')]]),
+    ])
   })
 
   it('assigns to variable with integer subscript', () => {
     const block = `a_list[0] = 1`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_list[0]': 1 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['a_list[0]', primitiveEx(1)]]),
+    ])
   })
 
   it('assigns to variable with a string subscript', () => {
     const block = `a_list["key1"] = 1`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_list["key1"]': 1 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['a_list["key1"]', primitiveEx(1)]]),
+    ])
   })
 
   it('assigns to variable with a variable name as the subscript', () => {
     const block = `a_list[idx] = 2`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_list[idx]': 2 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['a_list[idx]', primitiveEx(2)]]),
+    ])
   })
 
   it('assigns to variable with a complex expression subscript', () => {
     const block = `a_list[len(a_list) - 1] = 3`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_list[len(a_list) - 1]': 3 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['a_list[len(a_list) - 1]', primitiveEx(3)]]),
+    ])
   })
 
   it('assigns to variable with multidimensional subscripts', () => {
     const block = `a_list[2][3] = 4`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_list[2][3]': 4 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['a_list[2][3]', primitiveEx(4)]]),
+    ])
   })
 
   it('assigns to variable with subscripts and an attribute', () => {
     const block = `a_list[2][3].nested_key = 5`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_list[2][3].nested_key': 5 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['a_list[2][3].nested_key', primitiveEx(5)]]),
+    ])
   })
 
   it('assigns to variable with a nested key', () => {
     const block = `a_map.key1 = 6`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_map.key1': 6 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['a_map.key1', primitiveEx(6)]]),
+    ])
   })
 
   it('assigns to variable with multiple levels of nested keys', () => {
     const block = `a_map.key1.key2 = 7`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_map.key1.key2': 7 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['a_map.key1.key2', primitiveEx(7)]]),
+    ])
   })
 
   it('assigns to variable with nested key and a subscript', () => {
     const block = `a_map.nested_list[0] = 8`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_map.nested_list[0]': 8 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['a_map.nested_list[0]', primitiveEx(8)]]),
+    ])
   })
 
   it('assigns to variable with multiple keys and subscripts', () => {
     const block = `a_map.nested_list[0].nested_key2[1] = 9`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'a_map.nested_list[0].nested_key2[1]': 9 }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([
+        ['a_map.nested_list[0].nested_key2[1]', primitiveEx(9)],
+      ]),
+    ])
   })
 
   it('parsing fails if subscripts are floating point number', () => {
@@ -220,18 +245,28 @@ describe('Assign statement parsing', () => {
     const block = `res = a + 1`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ res: '${a + 1}' }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['res', parseExpression('a + 1')]]),
+    ])
   })
 
   it('assigns a call expression value', () => {
     const block = `res = default(value, "")`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ res: '${default(value, "")}' }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([
+        [
+          'res',
+          valueExpression(
+            new FunctionInvocation('default', [
+              valueExpression(new VariableReference('value')),
+              primitiveEx(''),
+            ]),
+          ),
+        ],
+      ]),
+    ])
   })
 
   it('disambiguates keywords from identifiers', () => {
@@ -239,8 +274,28 @@ describe('Assign statement parsing', () => {
     const block = 'falseValue = False'
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ falseValue: false }],
+    expect(ast).to.deep.equal([
+      new AssignStepAST([['falseValue', primitiveEx(false)]]),
+    ])
+  })
+
+  it('renders an assignment step', () => {
+    const ast = new AssignStepAST([
+      ['idx', primitiveEx(1)],
+      ['a_list[idx][0]', primitiveEx(2)],
+    ])
+
+    const rendered = renderASTStep(ast)
+
+    expect(rendered).to.deep.equal({
+      assign: [
+        {
+          idx: 1,
+        },
+        {
+          'a_list[idx][0]': 2,
+        },
+      ],
     })
   })
 
@@ -277,107 +332,129 @@ describe('Call statement parsing', () => {
     const block = `anotherWorkflow()`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      call: 'anotherWorkflow',
-    })
+    expect(ast).to.deep.equal([new CallStepAST('anotherWorkflow')])
   })
 
   it('parses a call with a result assignment', () => {
     const block = `my_result = my_workflow()`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ my_result: '${my_workflow()}' }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([
+        [
+          'my_result',
+          valueExpression(new FunctionInvocation('my_workflow', [])),
+        ],
+      ]),
+    ])
   })
 
   it('parses a call with arguments', () => {
     const block = `product = multiply(7, 8)`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ product: '${multiply(7, 8)}' }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([
+        [
+          'product',
+          valueExpression(
+            new FunctionInvocation('multiply', [
+              primitiveEx(7),
+              primitiveEx(8),
+            ]),
+          ),
+        ],
+      ]),
+    ])
   })
 
   it('parses a call assigned to a subscripted and nested result variable', () => {
     const block = `values[1].result = my_workflow()`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'values[1].result': '${my_workflow()}' }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([
+        [
+          'values[1].result',
+          valueExpression(new FunctionInvocation('my_workflow', [])),
+        ],
+      ]),
+    ])
   })
 
   it('parses a call with parameters assigned to a subscripted and nested result variable', () => {
     const block = `results[0].multiplication.product = multiply(7, 8)`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [{ 'results[0].multiplication.product': '${multiply(7, 8)}' }],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([
+        [
+          'results[0].multiplication.product',
+          valueExpression(
+            new FunctionInvocation('multiply', [
+              primitiveEx(7),
+              primitiveEx(8),
+            ]),
+          ),
+        ],
+      ]),
+    ])
   })
 
   it('parses a call with named parameters assigned to a subscripted and nested result variable', () => {
     const block = `projects[0].id = sys.get_env(name="GOOGLE_CLOUD_PROJECT_ID", default="1")`
     const ast = parseStatement(block)
+    const res = ast.map(renderASTStep)
 
-    expect(ast.step?.render()).to.deep.equal({
-      steps: [
-        {
-          call1: {
-            call: 'sys.get_env',
-            args: {
-              name: 'GOOGLE_CLOUD_PROJECT_ID',
-              default: '1',
-            },
-            result: '__temp',
-          },
+    expect(res).to.deep.equal([
+      {
+        call: 'sys.get_env',
+        args: {
+          name: 'GOOGLE_CLOUD_PROJECT_ID',
+          default: '1',
         },
-        {
-          assign1: {
-            assign: [{ 'projects[0].id': '${__temp}' }],
-          },
-        },
-      ],
-    })
+        result: '__temp',
+      },
+      {
+        assign: [{ 'projects[0].id': '${__temp}' }],
+      },
+    ])
   })
 
   it('parses a call with arguments but without result variable', () => {
-    const block = `log.sys(text = "Hello log")`
+    const block = `sys.log(text = "Hello log")`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      call: 'log.sys',
-      args: {
-        text: 'Hello log',
-      },
-    })
+    expect(ast).to.deep.equal([
+      new CallStepAST('sys.log', { text: primitiveEx('Hello log') }),
+    ])
   })
 
   it('parses a standard library function call', () => {
     const block = `htmlPage = http.get("https://visit.dreamland.test/things-to-do")`
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      assign: [
-        {
-          htmlPage: '${http.get("https://visit.dreamland.test/things-to-do")}',
-        },
-      ],
-    })
+    expect(ast).to.deep.equal([
+      new AssignStepAST([
+        [
+          'htmlPage',
+          valueExpression(
+            new FunctionInvocation('http.get', [
+              primitiveEx('https://visit.dreamland.test/things-to-do'),
+            ]),
+          ),
+        ],
+      ]),
+    ])
   })
 
   it('parses a call with named parameters and expression values', () => {
     const block = 'sys.log(text="Hello " + name)'
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      call: 'sys.log',
-      args: {
-        text: '${"Hello " + name}',
-      },
-    })
+    expect(ast).to.deep.equal([
+      new CallStepAST('sys.log', { text: parseExpression('"Hello " + name') }),
+    ])
   })
 
   it('parses a call with named parameters and result variable', () => {
@@ -385,7 +462,35 @@ describe('Call statement parsing', () => {
       'page = http.get(url="https://visit.dreamland.test/things-to-do")'
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new CallStepAST(
+        'http.get',
+        { url: primitiveEx('https://visit.dreamland.test/things-to-do') },
+        'page',
+      ),
+    ])
+  })
+
+  it('renders a call with a result assignment', () => {
+    const ast = new AssignStepAST([
+      ['my_result', valueExpression(new FunctionInvocation('my_workflow', []))],
+    ])
+    const res = renderASTStep(ast)
+
+    expect(res).to.deep.equal({
+      assign: [{ my_result: '${my_workflow()}' }],
+    })
+  })
+
+  it('renders a call with named parameters and expression values', () => {
+    const ast = new CallStepAST(
+      'http.get',
+      { url: primitiveEx('https://visit.dreamland.test/things-to-do') },
+      'page',
+    )
+    const res = renderASTStep(ast)
+
+    expect(res).to.deep.equal({
       call: 'http.get',
       args: {
         url: 'https://visit.dreamland.test/things-to-do',
@@ -404,7 +509,16 @@ describe('If statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new SwitchStepAST([
+        {
+          condition: parseExpression('nickname == ""'),
+          steps: [new AssignStepAST([['nickname', primitiveEx('Bean')]])],
+        },
+      ]),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       switch: [
         {
           condition: '${nickname == ""}',
@@ -430,7 +544,20 @@ describe('If statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new SwitchStepAST([
+        {
+          condition: parseExpression('name == "Oona"'),
+          steps: [new AssignStepAST([['isPirate', primitiveEx(true)]])],
+        },
+        {
+          condition: primitiveEx(true),
+          steps: [new AssignStepAST([['isPirate', primitiveEx(false)]])],
+        },
+      ]),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       switch: [
         {
           condition: '${name == "Oona"}',
@@ -468,7 +595,26 @@ describe('If statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new SwitchStepAST([
+        {
+          condition: parseExpression('name == "Mora"'),
+          steps: [
+            new AssignStepAST([['homeland', primitiveEx('Mermaid Island')]]),
+          ],
+        },
+        {
+          condition: parseExpression('name == "Alva Gunderson"'),
+          steps: [new AssignStepAST([['homeland', primitiveEx('Steamland')]])],
+        },
+        {
+          condition: primitiveEx(true),
+          steps: [new AssignStepAST([['homeland', primitiveEx('Dreamland')]])],
+        },
+      ]),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       switch: [
         {
           condition: '${name == "Mora"}',
@@ -520,7 +666,27 @@ describe('Parallel step parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new ParallelStepAST({
+        branch1: new StepsStepAST([
+          new CallStepAST('http.post', {
+            url: primitiveEx('https://forums.dreamland.test/register/bean'),
+          }),
+        ]),
+        branch2: new StepsStepAST([
+          new CallStepAST('http.post', {
+            url: primitiveEx('https://forums.dreamland.test/register/elfo'),
+          }),
+        ]),
+        branch3: new StepsStepAST([
+          new CallStepAST('http.post', {
+            url: primitiveEx('https://forums.dreamland.test/register/luci'),
+          }),
+        ]),
+      }),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       parallel: {
         branches: [
           {
@@ -588,7 +754,39 @@ describe('Parallel step parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new ParallelStepAST(
+        {
+          branch1: new StepsStepAST([
+            new AssignStepAST([
+              [
+                'n',
+                parseExpression(
+                  'http.get("https://forums.dreamland.test/numPosts/bean")',
+                ),
+              ],
+              ['numPosts', parseExpression('numPosts + n')],
+            ]),
+          ]),
+          branch2: new StepsStepAST([
+            new AssignStepAST([
+              [
+                'n',
+                parseExpression(
+                  'http.get("https://forums.dreamland.test/numPosts/elfo")',
+                ),
+              ],
+              ['numPosts', parseExpression('numPosts + n')],
+            ]),
+          ]),
+        },
+        ['numPosts'],
+        2,
+        'continueAll',
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       parallel: {
         shared: ['numPosts'],
         exception_policy: 'continueAll',
@@ -688,7 +886,23 @@ describe('Parallel iteration', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new ParallelStepAST(
+        new ForStepAST(
+          [
+            new CallStepAST('http.post', {
+              url: parseExpression(
+                '"https://forum.dreamland.test/register/" + username',
+              ),
+            }),
+          ],
+          'username',
+          parseExpression('["bean", "elfo", "luci"]'),
+        ),
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       parallel: {
         for: {
           value: 'username',
@@ -717,7 +931,18 @@ describe('Parallel iteration', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new ParallelStepAST(
+        new ForStepAST(
+          [new AssignStepAST([['total', parseExpression('total + i')]])],
+          'i',
+          parseExpression('[1, 2, 3, 4]'),
+        ),
+        ['total'],
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       parallel: {
         shared: ['total'],
         for: {
@@ -749,7 +974,30 @@ describe('Try-retry-catch statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new TryStepAST(
+        [
+          new AssignStepAST([
+            [
+              'response',
+              parseExpression('http.get("https://visit.dreamland.test/")'),
+            ],
+          ]),
+        ],
+        [
+          new SwitchStepAST([
+            {
+              condition: parseExpression('err.code == 404'),
+              steps: [new ReturnStepAST(primitiveEx('Not found'))],
+            },
+          ]),
+        ],
+        undefined,
+        'err',
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       try: {
         steps: [
           {
@@ -793,7 +1041,22 @@ describe('Try-retry-catch statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new TryStepAST(
+        [
+          new AssignStepAST([
+            [
+              'response',
+              parseExpression('http.get("https://visit.dreamland.test/")'),
+            ],
+          ]),
+        ],
+        [],
+        'http.default_retry',
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       try: {
         steps: [
           {
@@ -818,7 +1081,30 @@ describe('Try-retry-catch statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new TryStepAST(
+        [
+          new AssignStepAST([
+            [
+              'response',
+              parseExpression('http.get("https://visit.dreamland.test/")'),
+            ],
+          ]),
+        ],
+        [],
+        {
+          predicate: 'http.default_retry_predicate',
+          maxRetries: 10,
+          backoff: {
+            initialDelay: 3.0,
+            maxDelay: 60,
+            multiplier: 1.5,
+          },
+        },
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       try: {
         steps: [
           {
@@ -856,7 +1142,30 @@ describe('Try-retry-catch statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new TryStepAST(
+        [
+          new AssignStepAST([
+            [
+              'response',
+              parseExpression('http.get("https://visit.dreamland.test/")'),
+            ],
+          ]),
+        ],
+        [
+          new SwitchStepAST([
+            {
+              condition: parseExpression('err.code == 404'),
+              steps: [new ReturnStepAST(primitiveEx('Not found'))],
+            },
+          ]),
+        ],
+        'http.default_retry',
+        'err',
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       try: {
         steps: [
           {
@@ -1035,7 +1344,9 @@ describe('Try-retry-catch statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([new RaiseStepAST(primitiveEx('Error!'))])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       raise: 'Error!',
     })
   })
@@ -1046,7 +1357,11 @@ describe('Try-retry-catch statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new RaiseStepAST(valueExpression(new VariableReference('exception'))),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       raise: '${exception}',
     })
   })
@@ -1060,7 +1375,13 @@ describe('Try-retry-catch statement parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    /*
+    expect(ast).to.deep.equal([
+      new RaiseStepAST(primitiveEx({code: 98, message: 'Access denied'}))
+    ])
+    */
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       raise: {
         code: 98,
         message: 'Access denied',
@@ -1078,7 +1399,15 @@ describe('For loop parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new ForStepAST(
+        [new AssignStepAST([['total', parseExpression('total + x')]])],
+        'x',
+        parseExpression('[1, 2, 3]'),
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       for: {
         value: 'x',
         in: [1, 2, 3],
@@ -1101,19 +1430,13 @@ describe('For loop parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      for: {
-        value: 'key',
-        in: '${keys(map)}',
-        steps: [
-          {
-            assign1: {
-              assign: [{ total: '${total + map[key]}' }],
-            },
-          },
-        ],
-      },
-    })
+    expect(ast).to.deep.equal([
+      new ForStepAST(
+        [new AssignStepAST([['total', parseExpression('total + map[key]')]])],
+        'key',
+        parseExpression('keys(map)'),
+      ),
+    ])
   })
 
   it('parses a for loop with an empty body', () => {
@@ -1122,13 +1445,9 @@ describe('For loop parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      for: {
-        value: 'x',
-        in: [1, 2, 3],
-        steps: [],
-      },
-    })
+    expect(ast).to.deep.equal([
+      new ForStepAST([], 'x', parseExpression('[1, 2, 3]')),
+    ])
   })
 
   it('parses continue in a for loop', () => {
@@ -1143,7 +1462,23 @@ describe('For loop parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new ForStepAST(
+        [
+          new SwitchStepAST([
+            {
+              condition: parseExpression('x % 2 == 0'),
+              steps: [new NextStepAST('continue')],
+            },
+          ]),
+          new AssignStepAST([['total', parseExpression('total + x')]]),
+        ],
+        'x',
+        parseExpression('[1, 2, 3, 4]'),
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       for: {
         value: 'x',
         in: [1, 2, 3, 4],
@@ -1186,7 +1521,23 @@ describe('For loop parsing', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
+    expect(ast).to.deep.equal([
+      new ForStepAST(
+        [
+          new SwitchStepAST([
+            {
+              condition: parseExpression('total > 5'),
+              steps: [new NextStepAST('break')],
+            },
+          ]),
+          new AssignStepAST([['total', parseExpression('total + x')]]),
+        ],
+        'x',
+        parseExpression('[1, 2, 3, 4]'),
+      ),
+    ])
+
+    expect(renderASTStep(ast[0])).to.deep.equal({
       for: {
         value: 'x',
         in: [1, 2, 3, 4],
@@ -1249,9 +1600,7 @@ describe('Return statement', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      return: 0,
-    })
+    expect(ast).to.deep.equal([new ReturnStepAST(primitiveEx(0))])
   })
 
   it('parses a return with a variable succesfully', () => {
@@ -1260,9 +1609,9 @@ describe('Return statement', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      return: '${value}',
-    })
+    expect(ast).to.deep.equal([
+      new ReturnStepAST(valueExpression(new VariableReference('value'))),
+    ])
   })
 
   it('parses a return without a value succesfully', () => {
@@ -1271,8 +1620,18 @@ describe('Return statement', () => {
     `
     const ast = parseStatement(block)
 
-    expect(ast.step?.render()).to.deep.equal({
-      next: 'end',
+    expect(ast).to.deep.equal([new ReturnStepAST(undefined)])
+  })
+
+  it('renders return step', () => {
+    const ast = new ReturnStepAST(
+      valueExpression(new VariableReference('value')),
+    )
+
+    const rendered = renderASTStep(ast)
+
+    expect(rendered).to.deep.equal({
+      return: '${value}',
     })
   })
 })
