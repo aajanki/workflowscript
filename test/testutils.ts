@@ -11,7 +11,12 @@ import {
   VariableReference,
 } from '../src/ast/expressions.js'
 import { Subworkflow } from '../src/ast/workflows.js'
-import { SubworkflowAST, WorkflowStepAST } from '../src/ast/index.js'
+import {
+  NamedWorkflowStep2,
+  SubworkflowAST,
+  WorkflowStepAST,
+  WorkflowStepASTWithNamedNested,
+} from '../src/ast/steps.js'
 import { StepNameGenerator } from '../src/ast/stepnames.js'
 
 const parser = new WorfkflowScriptParser()
@@ -79,4 +84,14 @@ export function valueExpression(
 export function renderASTStep(ast: WorkflowStepAST) {
   const stepNameGenerator = new StepNameGenerator()
   return ast.withStepNames((x) => stepNameGenerator.generate(x)).step.render()
+}
+
+export function namedStep(
+  name: string,
+  step: WorkflowStepASTWithNamedNested,
+): NamedWorkflowStep2 {
+  return {
+    name,
+    step,
+  }
 }

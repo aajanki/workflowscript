@@ -18,7 +18,7 @@ import {
   StepsStepAST,
   SwitchStepAST,
   TryStepAST,
-} from '../src/ast/index.js'
+} from '../src/ast/steps.js'
 import {
   FunctionInvocation,
   VariableReference,

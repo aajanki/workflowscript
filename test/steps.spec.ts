@@ -1,24 +1,26 @@
 import { expect } from 'chai'
 import * as YAML from 'yaml'
-import {
-  AssignStep,
-  CallStep,
-  RaiseStep,
-  StepsStep,
-  SwitchStep,
-  TryExceptStep,
-  ReturnStep,
-  ParallelStep,
-  ForStep,
-  namedStep,
-  SwitchCondition,
-} from '../src/ast/steps.js'
 import { Subworkflow } from '../src/ast/workflows.js'
-import { parseExpression, primitiveEx } from './testutils.js'
+import { namedStep, parseExpression, primitiveEx } from './testutils.js'
+import {
+  AssignStepAST,
+  CallStepAST,
+  ForStepASTNamed,
+  NextStepAST,
+  ParallelStepASTNamed,
+  RaiseStepAST,
+  ReturnStepAST,
+  StepsStepASTNamed,
+  SwitchConditionASTNamed,
+  SwitchStepAST,
+  SwitchStepASTNamed,
+  TryStepAST,
+  TryStepASTNamed,
+} from '../src/ast/steps.js'
 
 describe('workflow step AST', () => {
   it('renders an assign step', () => {
-    const step = new AssignStep([
+    const step = new AssignStepAST([
       ['city', primitiveEx('New New York')],
       ['value', parseExpression('1 + 2')],
     ])
@@ -33,7 +35,7 @@ describe('workflow step AST', () => {
   })
 
   it('assigns variables with index notation', () => {
-    const step = new AssignStep([
+    const step = new AssignStepAST([
       ['my_list', primitiveEx([0, 1, 2, 3, 4])],
       ['idx', primitiveEx(0)],
       ['my_list[0]', primitiveEx('Value0')],
@@ -54,7 +56,7 @@ describe('workflow step AST', () => {
   })
 
   it('renders a simple call step', () => {
-    const step = new CallStep('destination_step')
+    const step = new CallStepAST('destination_step')
 
     const expected = YAML.parse(`
     call: destination_step
@@ -64,7 +66,7 @@ describe('workflow step AST', () => {
   })
 
   it('renders a call step with arguments and result', () => {
-    const step = new CallStep(
+    const step = new CallStepAST(
       'deliver_package',
       {
         destination: primitiveEx('Atlanta'),
@@ -85,7 +87,7 @@ describe('workflow step AST', () => {
   })
 
   it('renders a call step with an expression as an argument', () => {
-    const step = new CallStep('deliver_package', {
+    const step = new CallStepAST('deliver_package', {
       destination: parseExpression('destinations[i]'),
     })
 
@@ -101,22 +103,25 @@ describe('workflow step AST', () => {
   it('renders a switch step', () => {
     const assign1 = namedStep(
       'increase_counter',
-      new AssignStep([['a', parseExpression('mars_counter + 1')]]),
+      new AssignStepAST([['a', parseExpression('mars_counter + 1')]]),
     )
     const return1 = namedStep(
       'return_counter',
-      new ReturnStep(parseExpression('a')),
+      new ReturnStepAST(parseExpression('a')),
     )
     const { step } = namedStep(
       'step1',
-      new SwitchStep(
+      new SwitchStepASTNamed(
         [
-          new SwitchCondition(parseExpression('city == "New New York"'), {
-            next: 'destination_new_new_york',
-          }),
-          new SwitchCondition(parseExpression('city == "Mars Vegas"'), {
-            steps: [assign1, return1],
-          }),
+          new SwitchConditionASTNamed(
+            parseExpression('city == "New New York"'),
+            [],
+            'destination_new_new_york',
+          ),
+          new SwitchConditionASTNamed(parseExpression('city == "Mars Vegas"'), [
+            assign1,
+            return1,
+          ]),
         ],
         'end',
       ),
@@ -142,7 +147,7 @@ describe('workflow step AST', () => {
   it('renders a try step', () => {
     const potentiallyFailingStep = namedStep(
       'http_step',
-      new CallStep(
+      new CallStepAST(
         'http.get',
         {
           url: primitiveEx('https://maybe.failing.test/'),
@@ -152,19 +157,20 @@ describe('workflow step AST', () => {
     )
     const knownErrors = namedStep(
       'known_errors',
-      new SwitchStep([
-        new SwitchCondition(parseExpression('e.code == 404'), {
-          steps: [
-            namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
-          ],
-        }),
+      new SwitchStepASTNamed([
+        new SwitchConditionASTNamed(parseExpression('e.code == 404'), [
+          namedStep(
+            'return_error',
+            new ReturnStepAST(primitiveEx('Not found')),
+          ),
+        ]),
       ]),
     )
     const unknownErrors = namedStep(
       'unknown_errors',
-      new RaiseStep(parseExpression('e')),
+      new RaiseStepAST(parseExpression('e')),
     )
-    const step = new TryExceptStep(
+    const step = new TryStepASTNamed(
       [potentiallyFailingStep],
       [knownErrors, unknownErrors],
       undefined,
@@ -198,7 +204,7 @@ describe('workflow step AST', () => {
   it('renders a try step with a default retry policy', () => {
     const potentiallyFailingStep = namedStep(
       'http_step',
-      new CallStep(
+      new CallStepAST(
         'http.get',
         {
           url: primitiveEx('https://maybe.failing.test/'),
@@ -208,19 +214,20 @@ describe('workflow step AST', () => {
     )
     const knownErrors = namedStep(
       'known_errors',
-      new SwitchStep([
-        new SwitchCondition(parseExpression('e.code == 404'), {
-          steps: [
-            namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
-          ],
-        }),
+      new SwitchStepASTNamed([
+        new SwitchConditionASTNamed(parseExpression('e.code == 404'), [
+          namedStep(
+            'return_error',
+            new ReturnStepAST(primitiveEx('Not found')),
+          ),
+        ]),
       ]),
     )
     const unknownErrors = namedStep(
       'unknown_errors',
-      new RaiseStep(parseExpression('e')),
+      new RaiseStepAST(parseExpression('e')),
     )
-    const step = new TryExceptStep(
+    const step = new TryStepASTNamed(
       [potentiallyFailingStep],
       [knownErrors, unknownErrors],
       'http.default_retry',
@@ -255,7 +262,7 @@ describe('workflow step AST', () => {
   it('renders a try step with a custom retry policy', () => {
     const potentiallyFailingStep = namedStep(
       'http_step',
-      new CallStep(
+      new CallStepAST(
         'http.get',
         {
           url: primitiveEx('https://maybe.failing.test/'),
@@ -265,19 +272,20 @@ describe('workflow step AST', () => {
     )
     const knownErrors = namedStep(
       'known_errors',
-      new SwitchStep([
-        new SwitchCondition(parseExpression('e.code == 404'), {
-          steps: [
-            namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
-          ],
-        }),
+      new SwitchStepASTNamed([
+        new SwitchConditionASTNamed(parseExpression('e.code == 404'), [
+          namedStep(
+            'return_error',
+            new ReturnStepAST(primitiveEx('Not found')),
+          ),
+        ]),
       ]),
     )
     const unknownErrors = namedStep(
       'unknown_errors',
-      new RaiseStep(parseExpression('e')),
+      new RaiseStepAST(parseExpression('e')),
     )
-    const step = new TryExceptStep(
+    const step = new TryStepASTNamed(
       [potentiallyFailingStep],
       [knownErrors, unknownErrors],
       {
@@ -326,13 +334,13 @@ describe('workflow step AST', () => {
   it('renders a try step with a subworkflow as a retry predicate', () => {
     const predicateSubworkflow = new Subworkflow(
       'my_retry_predicate',
-      [namedStep('always_retry', new ReturnStep(primitiveEx(true)))],
+      [namedStep('always_retry', new ReturnStepAST(primitiveEx(true)))],
       [{ name: 'e' }],
     )
 
     const potentiallyFailingStep = namedStep(
       'http_step',
-      new CallStep(
+      new CallStepAST(
         'http.get',
         {
           url: primitiveEx('https://maybe.failing.test/'),
@@ -342,19 +350,20 @@ describe('workflow step AST', () => {
     )
     const knownErrors = namedStep(
       'known_errors',
-      new SwitchStep([
-        new SwitchCondition(parseExpression('e.code == 404'), {
-          steps: [
-            namedStep('return_error', new ReturnStep(primitiveEx('Not found'))),
-          ],
-        }),
+      new SwitchStepASTNamed([
+        new SwitchConditionASTNamed(parseExpression('e.code == 404'), [
+          namedStep(
+            'return_error',
+            new ReturnStepAST(primitiveEx('Not found')),
+          ),
+        ]),
       ]),
     )
     const unknownErrors = namedStep(
       'unknown_errors',
-      new RaiseStep(parseExpression('e')),
+      new RaiseStepAST(parseExpression('e')),
     )
-    const step = new TryExceptStep(
+    const step = new TryStepASTNamed(
       [potentiallyFailingStep],
       [knownErrors, unknownErrors],
       {
@@ -401,11 +410,11 @@ describe('workflow step AST', () => {
   })
 
   it('renders a for step', () => {
-    const step = new ForStep(
+    const step = new ForStepASTNamed(
       [
         namedStep(
           'addStep',
-          new AssignStep([['sum', parseExpression('sum + v')]]),
+          new AssignStepAST([['sum', parseExpression('sum + v')]]),
         ),
       ],
       'v',
@@ -426,11 +435,11 @@ describe('workflow step AST', () => {
   })
 
   it('renders an index-based for step', () => {
-    const step = new ForStep(
+    const step = new ForStepASTNamed(
       [
         namedStep(
           'addStep',
-          new AssignStep([['sum', parseExpression('sum + i*v')]]),
+          new AssignStepAST([['sum', parseExpression('sum + i*v')]]),
         ),
       ],
       'v',
@@ -453,11 +462,11 @@ describe('workflow step AST', () => {
   })
 
   it('renders a for-range step', () => {
-    const step = new ForStep(
+    const step = new ForStepASTNamed(
       [
         namedStep(
           'addStep',
-          new AssignStep([['sum', parseExpression('sum + v')]]),
+          new AssignStepAST([['sum', parseExpression('sum + v')]]),
         ),
       ],
       'v',
@@ -481,19 +490,19 @@ describe('workflow step AST', () => {
   })
 
   it('renders parallel branches', () => {
-    const step = new ParallelStep({
-      branch1: new StepsStep([
+    const step = new ParallelStepASTNamed({
+      branch1: new StepsStepASTNamed([
         namedStep(
           'say_hello_1',
-          new CallStep('sys.log', {
+          new CallStepAST('sys.log', {
             text: primitiveEx('Hello from branch 1'),
           }),
         ),
       ]),
-      branch2: new StepsStep([
+      branch2: new StepsStepASTNamed([
         namedStep(
           'say_hello_2',
-          new CallStep('sys.log', {
+          new CallStepAST('sys.log', {
             text: primitiveEx('Hello from branch 2'),
           }),
         ),
@@ -521,18 +530,22 @@ describe('workflow step AST', () => {
   })
 
   it('renders parallel branches with shared variables and concurrency limit', () => {
-    const step = new ParallelStep(
+    const step = new ParallelStepASTNamed(
       {
-        branch1: new StepsStep([
+        branch1: new StepsStepASTNamed([
           namedStep(
             'assign_1',
-            new AssignStep([['myVariable[0]', primitiveEx('Set in branch 1')]]),
+            new AssignStepAST([
+              ['myVariable[0]', primitiveEx('Set in branch 1')],
+            ]),
           ),
         ]),
-        branch2: new StepsStep([
+        branch2: new StepsStepASTNamed([
           namedStep(
             'assign_2',
-            new AssignStep([['myVariable[1]', primitiveEx('Set in branch 2')]]),
+            new AssignStepAST([
+              ['myVariable[1]', primitiveEx('Set in branch 2')],
+            ]),
           ),
         ]),
       },
@@ -561,12 +574,12 @@ describe('workflow step AST', () => {
   })
 
   it('renders a parallel for step', () => {
-    const step = new ParallelStep(
-      new ForStep(
+    const step = new ParallelStepASTNamed(
+      new ForStepASTNamed(
         [
           namedStep(
             'getBalance',
-            new CallStep(
+            new CallStepAST(
               'http.get',
               {
                 url: parseExpression('"https://example.com/balance/" + userId'),
@@ -576,7 +589,7 @@ describe('workflow step AST', () => {
           ),
           namedStep(
             'add',
-            new AssignStep([['total', parseExpression('total + balance')]]),
+            new AssignStepAST([['total', parseExpression('total + balance')]]),
           ),
         ],
         'userId',

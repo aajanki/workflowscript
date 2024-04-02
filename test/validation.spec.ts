@@ -1,24 +1,26 @@
 import { expect } from 'chai'
 import { Subworkflow, WorkflowApp } from '../src/ast/workflows.js'
-import {
-  AssignStep,
-  CallStep,
-  ReturnStep,
-  StepsStep,
-  SwitchCondition,
-  SwitchStep,
-  namedStep,
-} from '../src/ast/steps.js'
 import { WorkflowValidationError, validate } from '../src/ast/validation.js'
-import { parseExpression, primitiveEx } from './testutils.js'
+import { namedStep, parseExpression, primitiveEx } from './testutils.js'
+import {
+  AssignStepAST,
+  CallStepAST,
+  ReturnStepAST,
+  StepsStepASTNamed,
+  SwitchConditionASTNamed,
+  SwitchStepASTNamed,
+} from '../src/ast/steps.js'
 
 describe('Validator', () => {
   it('accepts a valid workflow', () => {
     const steps = [
-      namedStep('assign_name', new AssignStep([['name', primitiveEx('Fry')]])),
+      namedStep(
+        'assign_name',
+        new AssignStepAST([['name', primitiveEx('Fry')]]),
+      ),
       namedStep(
         'say_hello',
-        new CallStep('sys.log', {
+        new CallStepAST('sys.log', {
           text: parseExpression('"Hello, " + name'),
         }),
       ),
@@ -32,11 +34,11 @@ describe('Validator', () => {
     const steps = [
       namedStep(
         'duplicated_name',
-        new AssignStep([['name', primitiveEx('Fry')]]),
+        new AssignStepAST([['name', primitiveEx('Fry')]]),
       ),
       namedStep(
         'duplicated_name',
-        new CallStep('sys.log', {
+        new CallStepAST('sys.log', {
           text: parseExpression('"Hello, " + name'),
         }),
       ),
@@ -51,11 +53,11 @@ describe('Validator', () => {
     const steps = [
       namedStep(
         'duplicated_name',
-        new AssignStep([['name', primitiveEx('Fry')]]),
+        new AssignStepAST([['name', primitiveEx('Fry')]]),
       ),
       namedStep(
         'duplicated_name',
-        new CallStep('sys.log', {
+        new CallStepAST('sys.log', {
           text: parseExpression('"Hello, " + name'),
         }),
       ),
@@ -72,18 +74,18 @@ describe('Validator', () => {
       [
         namedStep(
           'duplicated_name',
-          new CallStep('sys.log', {
+          new CallStepAST('sys.log', {
             text: parseExpression('"Hello, " + name'),
           }),
         ),
-        namedStep('duplicated_name', new ReturnStep(primitiveEx(1))),
+        namedStep('duplicated_name', new ReturnStepAST(primitiveEx(1))),
       ],
       [{ name: 'name' }],
     )
     const mainWorkflow = new Subworkflow('main', [
       namedStep(
         'call_subworkflow',
-        new CallStep(subworkflow.name, {
+        new CallStepAST(subworkflow.name, {
           name: primitiveEx('Leela'),
         }),
       ),
@@ -98,32 +100,28 @@ describe('Validator', () => {
     const steps = [
       namedStep(
         'print_quotes',
-        new StepsStep([
+        new StepsStepASTNamed([
           namedStep(
             'duplicated_name',
-            new AssignStep([['name', primitiveEx('Fry')]]),
+            new AssignStepAST([['name', primitiveEx('Fry')]]),
           ),
           namedStep(
             'switch_step',
-            new SwitchStep([
-              new SwitchCondition(parseExpression('name == "Fry"'), {
-                steps: [
-                  namedStep(
-                    'fry_quote',
-                    new AssignStep([
-                      [
-                        'quote',
-                        primitiveEx('Space. It seems to go on forever.'),
-                      ],
-                    ]),
-                  ),
-                ],
-              }),
-              new SwitchCondition(parseExpression('name == "Zoidberg"'), {
-                steps: [
+            new SwitchStepASTNamed([
+              new SwitchConditionASTNamed(parseExpression('name == "Fry"'), [
+                namedStep(
+                  'fry_quote',
+                  new AssignStepAST([
+                    ['quote', primitiveEx('Space. It seems to go on forever.')],
+                  ]),
+                ),
+              ]),
+              new SwitchConditionASTNamed(
+                parseExpression('name == "Zoidberg"'),
+                [
                   namedStep(
                     'duplicated_name',
-                    new AssignStep([
+                    new AssignStepAST([
                       [
                         'quote',
                         primitiveEx(
@@ -133,27 +131,25 @@ describe('Validator', () => {
                     ]),
                   ),
                 ],
-              }),
-              new SwitchCondition(parseExpression('name == "Leela"'), {
-                steps: [
-                  namedStep(
-                    'leela_quote',
-                    new AssignStep([
-                      [
-                        'quote',
-                        primitiveEx(
-                          "Look, I don't know about your previous captains, but I intend to do as little dying as possible.",
-                        ),
-                      ],
-                    ]),
-                  ),
-                ],
-              }),
+              ),
+              new SwitchConditionASTNamed(parseExpression('name == "Leela"'), [
+                namedStep(
+                  'leela_quote',
+                  new AssignStepAST([
+                    [
+                      'quote',
+                      primitiveEx(
+                        "Look, I don't know about your previous captains, but I intend to do as little dying as possible.",
+                      ),
+                    ],
+                  ]),
+                ),
+              ]),
             ]),
           ),
           namedStep(
             'step2',
-            new CallStep('sys.log', {
+            new CallStepAST('sys.log', {
               text: parseExpression('name + ": " + quote'),
             }),
           ),
@@ -172,18 +168,18 @@ describe('Validator', () => {
       [
         namedStep(
           'step1',
-          new CallStep('sys.log', {
+          new CallStepAST('sys.log', {
             text: parseExpression('"Hello, " + name'),
           }),
         ),
-        namedStep('step2', new ReturnStep(primitiveEx(1))),
+        namedStep('step2', new ReturnStepAST(primitiveEx(1))),
       ],
       [{ name: 'name' }],
     )
     const mainWorkflow = new Subworkflow('main', [
       namedStep(
         'step1',
-        new CallStep(subworkflow.name, {
+        new CallStepAST(subworkflow.name, {
           name: primitiveEx('Leela'),
         }),
       ),
@@ -195,16 +191,16 @@ describe('Validator', () => {
 
   it("doesn't allow duplicate subworkflow names", () => {
     const main = new Subworkflow('main', [
-      namedStep('step1', new AssignStep([['a', primitiveEx('a')]])),
+      namedStep('step1', new AssignStepAST([['a', primitiveEx('a')]])),
     ])
     const sub1 = new Subworkflow('mysubworkflow', [
-      namedStep('return1', new ReturnStep(primitiveEx(1))),
+      namedStep('return1', new ReturnStepAST(primitiveEx(1))),
     ])
     const sub2 = new Subworkflow('anotherworkflow', [
-      namedStep('return2', new ReturnStep(primitiveEx(2))),
+      namedStep('return2', new ReturnStepAST(primitiveEx(2))),
     ])
     const sub3 = new Subworkflow('mysubworkflow', [
-      namedStep('return3', new ReturnStep(primitiveEx(3))),
+      namedStep('return3', new ReturnStepAST(primitiveEx(3))),
     ])
     const wf = new WorkflowApp([main, sub1, sub2, sub3])
 
@@ -214,24 +210,26 @@ describe('Validator', () => {
 
   it('detects a missing next target', () => {
     const sub1 = new Subworkflow('subworkflow1', [
-      namedStep('return1', new ReturnStep(primitiveEx(1))),
+      namedStep('return1', new ReturnStepAST(primitiveEx(1))),
     ])
     const sub2 = new Subworkflow('subworkflow2', [
-      namedStep('return2', new ReturnStep(primitiveEx(2))),
+      namedStep('return2', new ReturnStepAST(primitiveEx(2))),
     ])
     const step3 = namedStep(
       'step3',
-      new CallStep('sys.log', {
+      new CallStepAST('sys.log', {
         text: primitiveEx('Logging from step 3'),
       }),
     )
     const switch1 = namedStep(
       'step1',
-      new SwitchStep(
+      new SwitchStepASTNamed(
         [
-          new SwitchCondition(parseExpression('input == 1'), {
-            next: 'step3',
-          }),
+          new SwitchConditionASTNamed(
+            parseExpression('input == 1'),
+            [],
+            'step3',
+          ),
         ],
         'missing_step',
       ),
@@ -245,12 +243,12 @@ describe('Validator', () => {
 
   it('detects a missing call target subworkflow', () => {
     const sub1 = new Subworkflow('subworkflow1', [
-      namedStep('return1', new ReturnStep(primitiveEx(1))),
+      namedStep('return1', new ReturnStepAST(primitiveEx(1))),
     ])
     const sub2 = new Subworkflow('subworkflow2', [
-      namedStep('return2', new ReturnStep(primitiveEx(2))),
+      namedStep('return2', new ReturnStepAST(primitiveEx(2))),
     ])
-    const call1 = namedStep('call1', new CallStep(sub1.name))
+    const call1 = namedStep('call1', new CallStepAST(sub1.name))
     const main = new Subworkflow('main', [call1], [{ name: 'input' }])
     const wf = new WorkflowApp([main, sub2])
 
@@ -264,7 +262,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep(parseExpression('required_arg_1 + required_arg_2')),
+          new ReturnStepAST(parseExpression('required_arg_1 + required_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'required_arg_2' }],
@@ -273,7 +271,7 @@ describe('Validator', () => {
     const main = new Subworkflow('main', [
       namedStep(
         'call1',
-        new CallStep(subworkflow.name, {
+        new CallStepAST(subworkflow.name, {
           required_arg_1: primitiveEx(1),
         }),
       ),
@@ -290,7 +288,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep(parseExpression('required_arg_1 + optional_arg_2')),
+          new ReturnStepAST(parseExpression('required_arg_1 + optional_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'optional_arg_2', default: 2 }],
@@ -299,7 +297,7 @@ describe('Validator', () => {
     const main = new Subworkflow('main', [
       namedStep(
         'call1',
-        new CallStep(subworkflow.name, {
+        new CallStepAST(subworkflow.name, {
           required_arg_1: primitiveEx(1),
         }),
       ),
@@ -315,7 +313,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep(parseExpression('required_arg_1 + required_arg_2')),
+          new ReturnStepAST(parseExpression('required_arg_1 + required_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'required_arg_2' }],
@@ -324,7 +322,7 @@ describe('Validator', () => {
     const main = new Subworkflow('main', [
       namedStep(
         'step1',
-        new CallStep(subworkflow.name, {
+        new CallStepAST(subworkflow.name, {
           required_arg_1: primitiveEx(1),
           required_arg_2: primitiveEx(2),
           extra_argument: primitiveEx('X'),
@@ -343,7 +341,7 @@ describe('Validator', () => {
       [
         namedStep(
           'return1',
-          new ReturnStep(parseExpression('required_arg_1 + optional_arg_2')),
+          new ReturnStepAST(parseExpression('required_arg_1 + optional_arg_2')),
         ),
       ],
       [{ name: 'required_arg_1' }, { name: 'optional_arg_2', default: 2 }],
@@ -352,7 +350,7 @@ describe('Validator', () => {
     const main = new Subworkflow('main', [
       namedStep(
         'step1',
-        new CallStep(subworkflow.name, {
+        new CallStepAST(subworkflow.name, {
           required_arg_1: primitiveEx(1),
           optional_arg_2: primitiveEx(2),
         }),

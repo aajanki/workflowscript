@@ -33,7 +33,7 @@ import {
 } from './ast/validation.js'
 import { isRecord } from './utils.js'
 import { InternalParsingError, PostParsingError } from './parser/errors.js'
-import { WorkflowAST } from './ast/index.js'
+import { WorkflowAST } from './ast/steps.js'
 import { generateStepNames } from './ast/stepnames.js'
 
 export function compile(

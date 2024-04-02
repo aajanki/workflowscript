@@ -1,4 +1,4 @@
-import { CallStep, SwitchStep } from './steps.js'
+import { CallStepAST, SwitchStepASTNamed } from './steps.js'
 import { Subworkflow, WorkflowApp } from './workflows.js'
 
 export class WorkflowValidationError extends Error {
@@ -170,13 +170,13 @@ function validateJumpTargetsInWorkflow(
   }
 
   for (const { name, step } of workflow.iterateStepsDepthFirst()) {
-    if (step instanceof CallStep) {
+    if (step instanceof CallStepAST) {
       if (!validCallTarget(step.call))
         issues.push({
           type: 'missingJumpTarget',
           message: `Call target "${step.call}" in step "${name}" not found`,
         })
-    } else if (step instanceof SwitchStep) {
+    } else if (step instanceof SwitchStepASTNamed) {
       if (step.next && !validNextTarget(step.next)) {
         issues.push({
           type: 'missingJumpTarget',
@@ -237,7 +237,10 @@ function findIssuesInCallArguments(
   const issues: WorkflowIssue[] = []
 
   for (const { name, step } of wf.iterateStepsDepthFirst()) {
-    if (step instanceof CallStep && argumentBySubworkflowName.has(step.call)) {
+    if (
+      step instanceof CallStepAST &&
+      argumentBySubworkflowName.has(step.call)
+    ) {
       const requiredArgs =
         argumentBySubworkflowName.get(step.call)?.required ?? []
       const optionalArgs =

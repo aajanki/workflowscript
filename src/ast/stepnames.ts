@@ -1,4 +1,4 @@
-import { WorkflowAST } from './index.js'
+import { WorkflowAST } from './steps.js'
 import { WorkflowApp } from './workflows.js'
 
 export class StepNameGenerator {

@@ -1,7 +1,7 @@
 import * as YAML from 'yaml'
 
-import { NamedWorkflowStep } from './steps.js'
 import { VariableName, LiteralValueOrLiteralExpression } from './expressions.js'
+import { NamedWorkflowStep2 } from './steps.js'
 
 export interface WorkflowParameter {
   name: VariableName
@@ -28,12 +28,12 @@ export class WorkflowApp {
 // https://cloud.google.com/workflows/docs/reference/syntax/subworkflows
 export class Subworkflow {
   readonly name: string
-  readonly steps: NamedWorkflowStep[]
+  readonly steps: NamedWorkflowStep2[]
   readonly params?: WorkflowParameter[]
 
   constructor(
     name: string,
-    steps: NamedWorkflowStep[],
+    steps: NamedWorkflowStep2[],
     params?: WorkflowParameter[],
   ) {
     this.name = name
@@ -69,12 +69,12 @@ export class Subworkflow {
     return body
   }
 
-  *iterateStepsDepthFirst(): IterableIterator<NamedWorkflowStep> {
+  *iterateStepsDepthFirst(): IterableIterator<NamedWorkflowStep2> {
     const visited = new Set()
 
     function* visitPreOrder(
-      step: NamedWorkflowStep,
-    ): IterableIterator<NamedWorkflowStep> {
+      step: NamedWorkflowStep2,
+    ): IterableIterator<NamedWorkflowStep2> {
       if (!visited.has(step)) {
         visited.add(step)
 

@@ -2,19 +2,19 @@ import { expect } from 'chai'
 import * as YAML from 'yaml'
 
 import { Subworkflow, WorkflowApp, toYAMLString } from '../src/ast/workflows.js'
-import { AssignStep, CallStep, namedStep } from '../src/ast/steps.js'
-import { parseExpression } from './testutils.js'
+import { namedStep, parseExpression } from './testutils.js'
+import { AssignStepAST, CallStepAST } from '../src/ast/steps.js'
 
 describe('workflow AST', () => {
   it('renders a main workflow', () => {
     const steps = [
       namedStep(
         'assign_name',
-        new AssignStep([['name', parseExpression('args.name')]]),
+        new AssignStepAST([['name', parseExpression('args.name')]]),
       ),
       namedStep(
         'say_hello',
-        new CallStep('sys.log', {
+        new CallStepAST('sys.log', {
           text: parseExpression('"Hello, " + name'),
         }),
       ),
@@ -41,7 +41,7 @@ describe('workflow AST', () => {
     const steps = [
       namedStep(
         'log_greetings',
-        new CallStep('sys.log', {
+        new CallStepAST('sys.log', {
           text: parseExpression('greeting + ", " + name'),
         }),
       ),
@@ -70,7 +70,7 @@ describe('workflow AST', () => {
       [
         namedStep(
           'log_greetings',
-          new CallStep('sys.log', {
+          new CallStepAST('sys.log', {
             text: parseExpression('"Hello, " + name'),
           }),
         ),
@@ -80,7 +80,7 @@ describe('workflow AST', () => {
     const mainWorkflow = new Subworkflow('main', [
       namedStep(
         'call_subworkflow',
-        new CallStep(subworkflow.name, {
+        new CallStepAST(subworkflow.name, {
           name: parseExpression('"Leela"'),
         }),
       ),
@@ -110,11 +110,11 @@ describe('workflow AST', () => {
     const steps = [
       namedStep(
         'assign_name',
-        new AssignStep([['name', parseExpression('args.name')]]),
+        new AssignStepAST([['name', parseExpression('args.name')]]),
       ),
       namedStep(
         'say_hello',
-        new CallStep('sys.log', {
+        new CallStepAST('sys.log', {
           text: parseExpression('"Hello, " + name'),
         }),
       ),

@@ -64,7 +64,7 @@ import {
   TryStepAST,
   WorkflowAST,
   WorkflowStepAST,
-} from '../ast/index.js'
+} from '../ast/steps.js'
 
 export function createVisitor(parserInstance: WorfkflowScriptParser) {
   const BaseWorkflowscriptCstVisitor =
