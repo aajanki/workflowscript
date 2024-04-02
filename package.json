@@ -9,7 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "npm run buildCstTypes && tsc -p tsconfig.json",
+    "build": "rimraf dist && npm run buildCstTypes && tsc -p tsconfig.json",
     "buildCstTypes": "tsx tools/generateDts.ts > src/parser/cst.d.ts",
     "prepare": "npm run build",
     "prepublishOnly": "npm run lint && npm run test",
@@ -50,6 +50,7 @@
     "eslint": "^8.56.0",
     "mocha": "^10.2.0",
     "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }
