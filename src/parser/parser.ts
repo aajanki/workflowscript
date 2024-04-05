@@ -33,6 +33,7 @@ import {
   Workflow,
   tokens,
   UnaryOperator,
+  StepLabel,
 } from './lexer.js'
 
 export class WorfkflowScriptParser extends CstParser {
@@ -308,6 +309,9 @@ export class WorfkflowScriptParser extends CstParser {
   })
 
   branch = this.RULE('branch', () => {
+    this.OPTION(() => {
+      this.CONSUME(StepLabel)
+    })
     this.CONSUME(Branch)
     this.CONSUME(LCurly)
     this.SUBRULE(this.statementBlock)

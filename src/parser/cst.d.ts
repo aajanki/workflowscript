@@ -265,6 +265,7 @@ export interface BranchCstNode extends CstNode {
 }
 
 export type BranchCstChildren = {
+  StepLabel?: IToken[];
   Branch: IToken[];
   LeftCurlyBracket: IToken[];
   statementBlock: StatementBlockCstNode[];

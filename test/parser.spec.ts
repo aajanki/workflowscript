@@ -1635,3 +1635,57 @@ describe('Return statement', () => {
     })
   })
 })
+
+describe('step labels', () => {
+  it('parses branch labels', () => {
+    const block = `
+    parallel
+    branch {
+      a = 1
+    }
+    // step-name-next-line: the_other_section
+    branch {
+      b = 2
+    }
+    `
+    const ast = parseStatement(block)
+    const rendered = renderASTStep(ast[0])
+
+    expect(rendered).to.deep.equal({
+      parallel: {
+        branches: [
+          {
+            branch1: {
+              steps: [
+                {
+                  assign1: {
+                    assign: [
+                      {
+                        a: 1,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            the_other_section: {
+              steps: [
+                {
+                  assign2: {
+                    assign: [
+                      {
+                        b: 2,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    })
+  })
+})

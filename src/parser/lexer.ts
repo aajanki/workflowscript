@@ -248,6 +248,12 @@ export const NumberLiteral = createToken({
   name: 'NumberLiteral',
   pattern: /-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/,
 })
+export const StepLabel = createToken({
+  name: 'StepLabel',
+  label: 'step label',
+  pattern: matchStepLabel,
+  line_breaks: false,
+})
 export const SingleLineComment = createToken({
   name: 'SingleLineComment ',
   pattern: /\/\/[^\n\r]*/,
@@ -259,10 +265,25 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED,
 })
 
+const stepLabelPattern =
+  /\/\/\s*step-name-next-line:+\s*([a-zA-Z_][a-zA-Z0-9_]*)[^\n]*\n/iy
+function matchStepLabel(text: string, startOffset: number) {
+  stepLabelPattern.lastIndex = startOffset
+
+  const execResult: (RegExpExecArray & { payload?: string }) | null =
+    stepLabelPattern.exec(text)
+  if (execResult !== null) {
+    execResult.payload = execResult[1]
+  }
+
+  return execResult
+}
+
 export const tokens = [
   UnaryOperator,
   BinaryOperator,
   WhiteSpace,
+  StepLabel,
   SingleLineComment,
   NumberLiteral,
   StringLiteral,

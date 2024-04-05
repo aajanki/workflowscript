@@ -6,6 +6,16 @@ export type StepName = string
 export type VariableAssignment = readonly [VariableName, Expression]
 export type WorkflowParameters = Record<VariableName, Expression>
 
+export interface CustomRetryPolicy {
+  predicate: string
+  maxRetries: number
+  backoff: {
+    initialDelay: number
+    maxDelay: number
+    multiplier: number
+  }
+}
+
 export interface WorkflowAST {
   readonly subworkflows: SubworkflowAST[]
 }
@@ -37,8 +47,9 @@ export class SubworkflowAST {
  */
 export interface WorkflowStepAST {
   readonly tag: string
+  label: string | undefined
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep
 }
 
 /**
@@ -48,10 +59,10 @@ export interface WorkflowStepASTWithNamedNested {
   readonly tag: string
 
   render(): object
-  nestedSteps(): NamedWorkflowStep2[]
+  nestedSteps(): NamedWorkflowStep[]
 }
 
-export interface NamedWorkflowStep2 {
+export interface NamedWorkflowStep {
   name: StepName
   step: WorkflowStepASTWithNamedNested
 }
@@ -62,14 +73,15 @@ export class AssignStepAST
 {
   readonly tag = 'assign'
   readonly assignments: VariableAssignment[]
+  label: string | undefined
 
   constructor(assignments: VariableAssignment[]) {
     this.assignments = assignments
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     return {
-      name: generate('assign'),
+      name: this.label ?? generate('assign'),
       step: this,
     }
   }
@@ -82,7 +94,7 @@ export class AssignStepAST
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return []
   }
 }
@@ -95,6 +107,7 @@ export class CallStepAST
   readonly call: string
   readonly args?: WorkflowParameters
   readonly result?: string
+  label: string | undefined
 
   constructor(call: string, args?: WorkflowParameters, result?: string) {
     this.call = call
@@ -102,9 +115,9 @@ export class CallStepAST
     this.result = result
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     return {
-      name: generate('call'),
+      name: this.label ?? generate('call'),
       step: this,
     }
   }
@@ -128,7 +141,7 @@ export class CallStepAST
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return []
   }
 }
@@ -142,6 +155,7 @@ export class ForStepAST implements WorkflowStepAST {
   readonly listExpression: Expression
   readonly rangeStart?: number
   readonly rangeEnd?: number
+  label: string | undefined
 
   constructor(
     steps: WorkflowStepAST[],
@@ -159,13 +173,13 @@ export class ForStepAST implements WorkflowStepAST {
     this.rangeEnd = rangeEnd
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     const namedSteps = this.steps.map((astStep) =>
       astStep.withStepNames(generate),
     )
 
     return {
-      name: generate('for'),
+      name: this.label ?? generate('for'),
       step: new ForStepASTNamed(
         namedSteps,
         this.loopVariableName,
@@ -177,7 +191,7 @@ export class ForStepAST implements WorkflowStepAST {
 
 export class ForStepASTNamed implements WorkflowStepASTWithNamedNested {
   readonly tag = 'for'
-  readonly steps: NamedWorkflowStep2[]
+  readonly steps: NamedWorkflowStep[]
   readonly loopVariableName: VariableName
   readonly indexVariableName?: VariableName
   readonly listExpression?: Expression
@@ -185,7 +199,7 @@ export class ForStepASTNamed implements WorkflowStepASTWithNamedNested {
   readonly rangeEnd?: number
 
   constructor(
-    steps: NamedWorkflowStep2[],
+    steps: NamedWorkflowStep[],
     loopVariableName: VariableName,
     listExpression?: Expression,
     indexVariable?: VariableName,
@@ -226,7 +240,7 @@ export class ForStepASTNamed implements WorkflowStepASTWithNamedNested {
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return this.steps
   }
 }
@@ -236,14 +250,15 @@ export class NextStepAST
 {
   readonly tag = 'next'
   readonly target: string
+  label: string | undefined
 
   constructor(target: string) {
     this.target = target
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     return {
-      name: generate('next'),
+      name: this.label ?? generate('next'),
       step: this,
     }
   }
@@ -254,7 +269,7 @@ export class NextStepAST
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return []
   }
 }
@@ -266,6 +281,7 @@ export class ParallelStepAST implements WorkflowStepAST {
   readonly shared?: VariableName[]
   readonly concurrencyLimit?: number
   readonly exceptionPolicy?: string
+  label: string | undefined
 
   constructor(
     steps: Record<StepName, StepsStepAST> | ForStepAST,
@@ -279,7 +295,7 @@ export class ParallelStepAST implements WorkflowStepAST {
     this.exceptionPolicy = exceptionPolicy
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     let steps: Record<StepName, StepsStepASTNamed> | ForStepASTNamed
     if (this.steps instanceof ForStepAST) {
       const forStep = this.steps.withStepNames(generate).step
@@ -299,7 +315,7 @@ export class ParallelStepAST implements WorkflowStepAST {
     }
 
     return {
-      name: generate('parallel'),
+      name: this.label ?? generate('parallel'),
       step: new ParallelStepASTNamed(
         steps,
         this.shared,
@@ -312,7 +328,7 @@ export class ParallelStepAST implements WorkflowStepAST {
 
 export class ParallelStepASTNamed implements WorkflowStepASTWithNamedNested {
   readonly tag = 'parallel'
-  readonly branches?: NamedWorkflowStep2[] // Either steps for each branch
+  readonly branches?: NamedWorkflowStep[] // Either steps for each branch
   readonly forStep?: ForStepASTNamed // ... or a parallel for
   readonly shared?: VariableName[]
   readonly concurrenceLimit?: number
@@ -351,7 +367,7 @@ export class ParallelStepASTNamed implements WorkflowStepASTWithNamedNested {
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return (this.branches ?? []).concat(this.forStep?.steps ?? [])
   }
 }
@@ -362,14 +378,15 @@ export class RaiseStepAST
 {
   readonly tag = 'raise'
   readonly value: Expression
+  label: string | undefined
 
   constructor(value: Expression) {
     this.value = value
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     return {
-      name: generate('raise'),
+      name: this.label ?? generate('raise'),
       step: this,
     }
   }
@@ -380,7 +397,7 @@ export class RaiseStepAST
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return []
   }
 }
@@ -391,14 +408,15 @@ export class ReturnStepAST
 {
   readonly tag = 'return'
   readonly value: Expression | undefined
+  label: string | undefined
 
   constructor(value: Expression | undefined) {
     this.value = value
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     return {
-      name: generate('return'),
+      name: this.label ?? generate('return'),
       step: this,
     }
   }
@@ -415,7 +433,7 @@ export class ReturnStepAST
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return []
   }
 }
@@ -424,18 +442,19 @@ export class ReturnStepAST
 export class StepsStepAST implements WorkflowStepAST {
   readonly tag = 'steps'
   readonly steps: WorkflowStepAST[]
+  label: string | undefined
 
   constructor(steps: WorkflowStepAST[]) {
     this.steps = steps
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     const namedSteps = this.steps.map((astStep) =>
       astStep.withStepNames(generate),
     )
 
     return {
-      name: generate('steps'),
+      name: this.label ?? generate('steps'),
       step: new StepsStepASTNamed(namedSteps),
     }
   }
@@ -443,9 +462,9 @@ export class StepsStepAST implements WorkflowStepAST {
 
 export class StepsStepASTNamed implements WorkflowStepASTWithNamedNested {
   readonly tag = 'steps'
-  readonly steps: NamedWorkflowStep2[]
+  readonly steps: NamedWorkflowStep[]
 
-  constructor(steps: NamedWorkflowStep2[]) {
+  constructor(steps: NamedWorkflowStep[]) {
     this.steps = steps
   }
 
@@ -455,7 +474,7 @@ export class StepsStepASTNamed implements WorkflowStepASTWithNamedNested {
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return this.steps
   }
 }
@@ -464,12 +483,13 @@ export class StepsStepASTNamed implements WorkflowStepASTWithNamedNested {
 export class SwitchStepAST implements WorkflowStepAST {
   readonly tag = 'switch'
   readonly branches: SwitchConditionAST[]
+  label: string | undefined
 
   constructor(branches: SwitchConditionAST[]) {
     this.branches = branches
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     const namedBranches = this.branches.map(
       (branch) =>
         new SwitchConditionASTNamed(
@@ -479,7 +499,7 @@ export class SwitchStepAST implements WorkflowStepAST {
     )
 
     return {
-      name: generate('switch'),
+      name: this.label ?? generate('switch'),
       step: new SwitchStepASTNamed(namedBranches),
     }
   }
@@ -502,7 +522,7 @@ export class SwitchStepASTNamed implements WorkflowStepASTWithNamedNested {
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return this.conditions.flatMap((x) => x.steps)
   }
 }
@@ -514,12 +534,12 @@ export interface SwitchConditionAST {
 
 export class SwitchConditionASTNamed {
   readonly condition: Expression
-  readonly steps: NamedWorkflowStep2[]
+  readonly steps: NamedWorkflowStep[]
   readonly next?: StepName
 
   constructor(
     condition: Expression,
-    steps: NamedWorkflowStep2[],
+    steps: NamedWorkflowStep[],
     next?: StepName,
   ) {
     this.condition = condition
@@ -543,6 +563,7 @@ export class TryStepAST implements WorkflowStepAST {
   readonly exceptSteps: WorkflowStepAST[]
   readonly retryPolicy?: string | CustomRetryPolicy
   readonly errorMap?: VariableName
+  label: string | undefined
 
   constructor(
     steps: WorkflowStepAST[],
@@ -556,7 +577,7 @@ export class TryStepAST implements WorkflowStepAST {
     this.errorMap = errorMap
   }
 
-  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep2 {
+  withStepNames(generate: (prefix: string) => string): NamedWorkflowStep {
     const namedTrySteps = this.trySteps.map((astStep) =>
       astStep.withStepNames(generate),
     )
@@ -565,7 +586,7 @@ export class TryStepAST implements WorkflowStepAST {
     )
 
     return {
-      name: generate('try'),
+      name: this.label ?? generate('try'),
       step: new TryStepASTNamed(
         namedTrySteps,
         namedExceptSteps,
@@ -581,13 +602,13 @@ export class TryStepASTNamed implements WorkflowStepASTWithNamedNested {
   readonly retryPolicy?: string | CustomRetryPolicy
   readonly errorMap?: StepName
   // Steps in the try block
-  readonly trySteps: NamedWorkflowStep2[]
+  readonly trySteps: NamedWorkflowStep[]
   // Steps in the except block
-  readonly exceptSteps: NamedWorkflowStep2[]
+  readonly exceptSteps: NamedWorkflowStep[]
 
   constructor(
-    steps: NamedWorkflowStep2[],
-    exceptSteps: NamedWorkflowStep2[],
+    steps: NamedWorkflowStep[],
+    exceptSteps: NamedWorkflowStep[],
     retryPolicy?: string | CustomRetryPolicy,
     errorMap?: VariableName,
   ) {
@@ -635,22 +656,12 @@ export class TryStepASTNamed implements WorkflowStepASTWithNamedNested {
     }
   }
 
-  nestedSteps(): NamedWorkflowStep2[] {
+  nestedSteps(): NamedWorkflowStep[] {
     return this.trySteps.concat(this.exceptSteps)
   }
 }
 
-export interface CustomRetryPolicy {
-  predicate: string
-  maxRetries: number
-  backoff: {
-    initialDelay: number
-    maxDelay: number
-    multiplier: number
-  }
-}
-
-function renderSteps(steps: NamedWorkflowStep2[]) {
+function renderSteps(steps: NamedWorkflowStep[]) {
   return steps.map((x) => {
     return { [x.name]: x.step.render() }
   })

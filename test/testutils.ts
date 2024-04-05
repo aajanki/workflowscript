@@ -12,7 +12,7 @@ import {
 } from '../src/ast/expressions.js'
 import { Subworkflow } from '../src/ast/workflows.js'
 import {
-  NamedWorkflowStep2,
+  NamedWorkflowStep,
   SubworkflowAST,
   WorkflowStepAST,
   WorkflowStepASTWithNamedNested,
@@ -89,7 +89,7 @@ export function renderASTStep(ast: WorkflowStepAST) {
 export function namedStep(
   name: string,
   step: WorkflowStepASTWithNamedNested,
-): NamedWorkflowStep2 {
+): NamedWorkflowStep {
   return {
     name,
     step,

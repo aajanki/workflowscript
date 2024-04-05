@@ -413,8 +413,19 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       return [new ForStepAST(steps, loopVariableName, listExpression)]
     }
 
-    branch(ctx: BranchCstChildren): WorkflowStepAST[] {
-      return this.visit(ctx.statementBlock)
+    branch(ctx: BranchCstChildren): {
+      steps: WorkflowStepAST[]
+      label?: string
+    } {
+      const res: { steps: WorkflowStepAST[]; label?: string } = {
+        steps: this.visit(ctx.statementBlock) as WorkflowStepAST[],
+      }
+
+      if (ctx.StepLabel && ctx.StepLabel.length > 0) {
+        res.label = ctx.StepLabel[0].payload as string | undefined
+      }
+
+      return res
     }
 
     parallelStatement(ctx: ParallelStatementCstChildren): WorkflowStepAST[] {
@@ -425,10 +436,11 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       if (ctx.branch) {
         nestedSteps = Object.fromEntries(
           ctx.branch.map((branch, i) => {
-            return [
-              `branch${i + 1}`,
-              new StepsStepAST(this.visit(branch) as WorkflowStepAST[]),
-            ]
+            const { steps, label } = this.visit(branch) as {
+              steps: WorkflowStepAST[]
+              label?: string
+            }
+            return [label ?? `branch${i + 1}`, new StepsStepAST(steps)]
           }),
         )
       } else if (ctx.forStatement) {
