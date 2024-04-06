@@ -441,3 +441,46 @@ Comments start with `//`. The parser ignores the rest of the line starting from 
 ```javascript
 var1 = 1 // This is a comment
 ```
+
+## Step labels
+
+The WorkflowScript compiler assigns labels for the steps in the output automatically
+using consecutive item numbering: e.g. `assign1`, `assign2`.
+
+You can override a step label with your own label by writing a comment `// @step-name: my_step`.
+This comment sets the label for the statement appearing on the next line to `my_step`.
+
+The fragment:
+
+```javascript
+workflow label_sample() {
+  // @step-name: initialization
+  total = 0
+
+  // @step-name: compute_sum
+  for (i in [1, 2, 3]) {
+    total = total + i
+  }
+}
+```
+
+will be compiled to the following workflow:
+
+```yaml
+label_sample:
+  steps:
+    - initialization:
+        assign:
+          - total: 0
+    - compute_sum:
+        for:
+          value: i
+          in:
+            - 1
+            - 2
+            - 3
+          steps:
+            - assign2:
+                assign:
+                  - total: ${total + i}
+```

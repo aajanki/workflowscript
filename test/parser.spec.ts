@@ -1636,14 +1636,97 @@ describe('Return statement', () => {
   })
 })
 
-describe('step labels', () => {
-  it('parses branch labels', () => {
+describe('Step labels', () => {
+  it('labels steps', () => {
+    const block = `
+    workflow main() {
+      // @step-name: initialization
+      a = 1
+    }
+    `
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      main: {
+        steps: [
+          {
+            initialization: {
+              assign: [{ a: 1 }],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('labels only the directly following step', () => {
+    const block = `
+    workflow main() {
+      status = "OK"
+
+      // @step-name: log_status
+      sys.log(text=status)
+
+      return status
+    }
+    `
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      main: {
+        steps: [
+          {
+            assign1: {
+              assign: [{ status: 'OK' }],
+            },
+          },
+          {
+            log_status: {
+              call: 'sys.log',
+              args: {
+                text: '${status}',
+              },
+            },
+          },
+          {
+            return1: {
+              return: '${status}',
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('allows varying amount of white space', () => {
+    const block = `
+    workflow main() {
+      //@step-name:    initialization
+      a = 1
+    }
+    `
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      main: {
+        steps: [
+          {
+            initialization: {
+              assign: [{ a: 1 }],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('labels branches', () => {
     const block = `
     parallel
     branch {
       a = 1
     }
-    // step-name-next-line: the_other_section
+    // @step-name: another_branch
     branch {
       b = 2
     }
@@ -1670,7 +1753,7 @@ describe('step labels', () => {
             },
           },
           {
-            the_other_section: {
+            another_branch: {
               steps: [
                 {
                   assign2: {
@@ -1682,6 +1765,72 @@ describe('step labels', () => {
                   },
                 },
               ],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('ignores suffix after the label', () => {
+    const block = `
+    workflow main() {
+      // @step-name: initialization Everything after the label here is a comment!
+      a = 1
+    }
+    `
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      main: {
+        steps: [
+          {
+            initialization: {
+              assign: [{ a: 1 }],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('ignores empty labels', () => {
+    const block = `
+    workflow main() {
+      // @step-name:
+      a = 1
+    }
+    `
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      main: {
+        steps: [
+          {
+            assign1: {
+              assign: [{ a: 1 }],
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('ignores labels that are not followed by a statement', () => {
+    const block = `
+    workflow main() {
+      a = 1
+      // @step-name: no_step_here
+    }
+    `
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      main: {
+        steps: [
+          {
+            assign1: {
+              assign: [{ a: 1 }],
             },
           },
         ],

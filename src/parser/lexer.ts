@@ -255,7 +255,7 @@ export const StepLabel = createToken({
   line_breaks: false,
 })
 export const SingleLineComment = createToken({
-  name: 'SingleLineComment ',
+  name: 'SingleLineComment',
   pattern: /\/\/[^\n\r]*/,
   group: Lexer.SKIPPED,
 })
@@ -265,8 +265,7 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED,
 })
 
-const stepLabelPattern =
-  /\/\/\s*step-name-next-line:+\s*([a-zA-Z_][a-zA-Z0-9_]*)[^\n]*\n/iy
+const stepLabelPattern = /\/\/[ \t]*@step-name:+[ \t]*([a-zA-Z0-9_]*).*?$/imy
 function matchStepLabel(text: string, startOffset: number) {
   stepLabelPattern.lastIndex = startOffset
 

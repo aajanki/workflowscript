@@ -422,7 +422,10 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
       }
 
       if (ctx.StepLabel && ctx.StepLabel.length > 0) {
-        res.label = ctx.StepLabel[0].payload as string | undefined
+        const label = ctx.StepLabel[0].payload as string | undefined
+        if (label) {
+          res.label = label
+        }
       }
 
       return res
@@ -585,27 +588,40 @@ export function createVisitor(parserInstance: WorfkflowScriptParser) {
     }
 
     statement(ctx: StatementCstChildren): WorkflowStepAST[] {
+      let steps: WorkflowStepAST[] = []
+
       if (ctx.callOrAssignmentStatement) {
-        return this.visit(ctx.callOrAssignmentStatement[0])
+        steps = this.visit(
+          ctx.callOrAssignmentStatement[0],
+        ) as WorkflowStepAST[]
       } else if (ctx.ifStatement) {
-        return this.visit(ctx.ifStatement[0])
+        steps = this.visit(ctx.ifStatement[0]) as WorkflowStepAST[]
       } else if (ctx.forStatement) {
-        return this.visit(ctx.forStatement[0])
+        steps = this.visit(ctx.forStatement[0]) as WorkflowStepAST[]
       } else if (ctx.parallelStatement) {
-        return this.visit(ctx.parallelStatement[0])
+        steps = this.visit(ctx.parallelStatement[0]) as WorkflowStepAST[]
       } else if (ctx.tryStatement) {
-        return this.visit(ctx.tryStatement[0])
+        steps = this.visit(ctx.tryStatement[0]) as WorkflowStepAST[]
       } else if (ctx.throwStatement) {
-        return this.visit(ctx.throwStatement[0])
+        steps = this.visit(ctx.throwStatement[0]) as WorkflowStepAST[]
       } else if (ctx.breakStatement) {
-        return this.visit(ctx.breakStatement[0])
+        steps = this.visit(ctx.breakStatement[0]) as WorkflowStepAST[]
       } else if (ctx.continueStatement) {
-        return this.visit(ctx.continueStatement[0])
+        steps = this.visit(ctx.continueStatement[0]) as WorkflowStepAST[]
       } else if (ctx.returnStatement) {
-        return this.visit(ctx.returnStatement[0])
-      } else {
-        throw new InternalParsingError('Unknown value in "statement"', ctx)
+        steps = this.visit(ctx.returnStatement[0]) as WorkflowStepAST[]
+      } else if (ctx.StepLabel) {
+        return []
       }
+
+      if (steps.length > 0 && ctx.StepLabel && ctx.StepLabel.length > 0) {
+        const label = ctx.StepLabel[0].payload as string | undefined
+        if (label) {
+          steps[0].label = label
+        }
+      }
+
+      return steps
     }
 
     statementBlock(ctx: StatementBlockCstChildren): WorkflowStepAST[] {

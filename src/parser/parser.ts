@@ -341,17 +341,23 @@ export class WorfkflowScriptParser extends CstParser {
   })
 
   statement = this.RULE('statement', () => {
-    this.OR([
-      { ALT: () => this.SUBRULE(this.callOrAssignmentStatement) },
-      { ALT: () => this.SUBRULE(this.ifStatement) },
-      { ALT: () => this.SUBRULE(this.forStatement) },
-      { ALT: () => this.SUBRULE(this.parallelStatement) },
-      { ALT: () => this.SUBRULE(this.tryStatement) },
-      { ALT: () => this.SUBRULE(this.throwStatement) },
-      { ALT: () => this.SUBRULE(this.breakStatement) },
-      { ALT: () => this.SUBRULE(this.continueStatement) },
-      { ALT: () => this.SUBRULE(this.returnStatement) },
-    ])
+    this.OPTION(() => {
+      this.CONSUME(StepLabel)
+    })
+
+    this.OPTION2(() => {
+      this.OR([
+        { ALT: () => this.SUBRULE(this.callOrAssignmentStatement) },
+        { ALT: () => this.SUBRULE(this.ifStatement) },
+        { ALT: () => this.SUBRULE(this.forStatement) },
+        { ALT: () => this.SUBRULE(this.parallelStatement) },
+        { ALT: () => this.SUBRULE(this.tryStatement) },
+        { ALT: () => this.SUBRULE(this.throwStatement) },
+        { ALT: () => this.SUBRULE(this.breakStatement) },
+        { ALT: () => this.SUBRULE(this.continueStatement) },
+        { ALT: () => this.SUBRULE(this.returnStatement) },
+      ])
+    })
   })
 
   statementBlock = this.RULE('statementBlock', () => {

@@ -302,6 +302,7 @@ export interface StatementCstNode extends CstNode {
 }
 
 export type StatementCstChildren = {
+  StepLabel?: IToken[];
   callOrAssignmentStatement?: CallOrAssignmentStatementCstNode[];
   ifStatement?: IfStatementCstNode[];
   forStatement?: ForStatementCstNode[];
