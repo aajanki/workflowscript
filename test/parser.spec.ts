@@ -1837,4 +1837,86 @@ describe('Step labels', () => {
       },
     })
   })
+
+  it('ignores labels before catch', () => {
+    const block = `
+    workflow main() {
+      try {
+        a = 1
+      }
+      // @step-name: catch_does_not_have_a_label
+      catch (err) {
+        sys.log(text="Error!")
+      }
+    }
+    `
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      main: {
+        steps: [
+          {
+            try1: {
+              try: {
+                steps: [
+                  {
+                    assign1: {
+                      assign: [{ a: 1 }],
+                    },
+                  },
+                ],
+              },
+              except: {
+                as: 'err',
+                steps: [
+                  {
+                    call1: {
+                      call: 'sys.log',
+                      args: {
+                        text: 'Error!',
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('ignores labels before catch', () => {
+    const block = `
+    workflow main() {
+      try {
+        a = 1
+      }
+      // @step-name: retry_does_not_have_a_label
+      retry (policy = http.default_retry)
+    }
+    `
+    const ast = parseSubworkflow(block)
+
+    expect(ast.render()).to.deep.equal({
+      main: {
+        steps: [
+          {
+            try1: {
+              try: {
+                steps: [
+                  {
+                    assign1: {
+                      assign: [{ a: 1 }],
+                    },
+                  },
+                ],
+              },
+              retry: '${http.default_retry}',
+            },
+          },
+        ],
+      },
+    })
+  })
 })

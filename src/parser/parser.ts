@@ -266,12 +266,18 @@ export class WorfkflowScriptParser extends CstParser {
     this.SUBRULE(this.statementBlock)
     this.CONSUME(RCurly)
     this.OPTION(() => {
+      this.CONSUME(StepLabel)
+    })
+    this.OPTION2(() => {
       this.CONSUME(Retry)
       this.CONSUME(LParenthesis)
       this.SUBRULE(this.actualNamedParameterList)
       this.CONSUME(RParenthesis)
     })
-    this.OPTION2(() => {
+    this.OPTION3(() => {
+      this.CONSUME2(StepLabel)
+    })
+    this.OPTION4(() => {
       this.CONSUME(Catch)
       this.CONSUME2(LParenthesis)
       this.CONSUME(Identifier)
