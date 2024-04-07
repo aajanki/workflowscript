@@ -38,7 +38,7 @@ Operators:
 | ==           | equal to                                     |
 | !=           | not equal to                                 |
 | <, >, <=, >= | inequality comparisons                       |
-| &&, ||, !    | logical operators                            |
+| &&, \|\|, !  | logical operators                            |
 
 The [precendence order of operators](https://cloud.google.com/workflows/docs/reference/syntax/datatypes#order-operations) is the same as in GCP Workflows.
 
