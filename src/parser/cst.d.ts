@@ -206,6 +206,7 @@ export type TryStatementCstChildren = {
   LeftCurlyBracket: (IToken)[];
   statementBlock: (StatementBlockCstNode)[];
   RightCurlyBracket: (IToken)[];
+  StepLabel?: (IToken)[];
   Retry?: IToken[];
   LeftParenthesis?: (IToken)[];
   actualNamedParameterList?: ActualNamedParameterListCstNode[];

@@ -1,6 +1,6 @@
 {
   "name": "workflowscript-compiler",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A JavaScript-inspired programming language for writing GCP Workflows programs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

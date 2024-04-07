@@ -480,7 +480,7 @@ label_sample:
             - 2
             - 3
           steps:
-            - assign2:
+            - assign1:
                 assign:
                   - total: ${total + i}
 ```
