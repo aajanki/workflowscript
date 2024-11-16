@@ -1,5 +1,7 @@
 # WorkflowScript - a JavaScript-inspired programming language for writing GCP Workflows programs
 
+⛔ WorkflowScript is not being developed anymore. Consider using [ts2workflows](https://github.com/aajanki/ts2workflows) instead! ⛔
+
 WorkflowScript is a programming language for writing
 [GCP Workflows](https://cloud.google.com/workflows/docs/apis)
 programs in a Javascript-like syntax. This project is a compiler that compiles
